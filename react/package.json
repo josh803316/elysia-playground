@@ -1,0 +1,44 @@
+{
+  "name": "@videate/react-client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "VITE_APP_NAME='React Client' vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@clerk/clerk-react": "^5.59.4",
+    "@clerk/react-router": "^2.3.10",
+    "@mantine/core": "^8.3.13",
+    "@mantine/form": "^8.3.13",
+    "@mantine/hooks": "^8.3.13",
+    "@tabler/icons-react": "^3.36.1",
+    "axios": "^1.13.2",
+    "postcss": "^8.5.6",
+    "postcss-preset-mantine": "^1.18.0",
+    "postcss-simple-vars": "^7.0.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.12.0",
+    "rollup-plugin-visualizer": "^6.0.5",
+    "vite-plugin-compression": "^0.5.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^17.0.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.53.1",
+    "vite": "^7.3.1"
+  }
+}

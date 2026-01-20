@@ -1,0 +1,35 @@
+{
+  "name": "elysia-playground",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "bun@1.3.6",
+  "workspaces": [
+    "react",
+    "svelte",
+    "server"
+  ],
+  "scripts": {
+    "dev": "bun run dev:react",
+    "dev:react": "turbo run dev --filter=./react --filter=./server",
+    "dev:svelte": "turbo run dev --filter=./svelte --filter=./server",
+    "dev:comparison": "turbo run dev --filter=./react --filter=./svelte --filter=./server",
+    "build": "turbo run build",
+    "build:react": "turbo run build --filter=./react",
+    "build:svelte": "turbo run build --filter=./svelte",
+    "typecheck:react": "cd react && bun run typecheck",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "install:all": "bun install && bun run install:workspaces",
+    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server",
+    "install:react": "cd react && bun install",
+    "install:svelte": "cd svelte && bun install",
+    "install:server": "cd server && bun install",
+    "dev:server": "bun run dev -w server",
+    "build:server": "bun run build -w server",
+    "start:server": "bun run start -w server",
+    "test:server": "bun test --bun"
+  },
+  "devDependencies": {
+    "turbo": "^2.7.5"
+  }
+}

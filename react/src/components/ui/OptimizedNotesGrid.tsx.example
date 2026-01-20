@@ -1,0 +1,113 @@
+import { useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
+
+// Import optimized UI components
+import {
+  Grid,
+  Card,
+  Text,
+  Group,
+  Badge,
+  Button,
+  Title,
+  Flex,
+  Divider,
+  Stack,
+  Alert,
+  TextInput,
+  Textarea,
+  Checkbox,
+  ActionIcon,
+} from "../ui"; // Import from barrel file instead of directly from @mantine/core
+
+// Import optimized icons
+import {
+  IconEdit,
+  IconCheck,
+  IconX,
+} from "../ui/icons"; // Import from icons barrel file
+
+import EditNoteModal from "./EditNoteModal";
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  userId: string | null;
+  isPublic: boolean | string;
+  createdAt: string;
+  updatedAt: string;
+  // Optional user information that might be included for admin view
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+}
+
+interface NotesGridProps {
+  notes: Note[];
+  emptyMessage: string;
+  showUser?: boolean;
+  onNoteDeleted?: () => void;
+  onNoteUpdated?: () => void;
+  isAdmin?: boolean;
+  currentUserNotes?: string[]; // IDs of notes owned by the current user
+}
+
+/**
+ * NotesGrid Component - Optimized Version
+ * - Uses optimized imports from barrel files
+ * - Maintains functionality while improving performance
+ */
+const OptimizedNotesGrid = ({
+  notes,
+  emptyMessage,
+  showUser = false,
+  onNoteDeleted,
+  onNoteUpdated,
+  isAdmin = false,
+  currentUserNotes = [],
+}: NotesGridProps) => {
+  const { getToken } = useAuth();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [editInPlaceId, setEditInPlaceId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    title: string;
+    content: string;
+    isPublic: boolean;
+  }>({
+    title: "",
+    content: "",
+    isPublic: false,
+  });
+
+  // Rest of the component remains the same...
+  // This is just an example showing the import pattern
+
+  if (notes.length === 0) {
+    return (
+      <Text fs="italic" c="dimmed" ta="center" mt="xl">
+        {emptyMessage}
+      </Text>
+    );
+  }
+
+  return (
+    <Grid>
+      {/* Note cards would go here */}
+      {notes.map(note => (
+        <Grid.Col key={note.id} span={{ base: 12, sm: 6, md: 4 }}>
+          <Card p="md" withBorder>
+            <Title order={4}>{note.title}</Title>
+            {/* Rest of card content */}
+          </Card>
+        </Grid.Col>
+      ))}
+    </Grid>
+  );
+};
+
+export default OptimizedNotesGrid; 
