@@ -35,13 +35,14 @@ export function useNotes() {
       if (!token) {
         throw new Error("No authentication token available");
       }
-      const response = (await apiClient.notes.getAll(token)) as ApiResponse;
-      console.log("Notes response:", response);
-      setNotes(response.data);
+      const response = (await apiClient.notes.getAll(token)) as ApiResponse & { data?: Note[]; error?: unknown };
+      const data = response?.data;
+      setNotes(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
       console.error("Error fetching notes:", err);
       setError(err instanceof Error ? err : new Error("Failed to fetch notes"));
+      setNotes([]);
     } finally {
       setIsLoading(false);
       setInitialized(true);

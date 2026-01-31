@@ -23,8 +23,8 @@ export const authGuard = (ctx: any) => {
 
     console.log({ auth });
 
-    // Check if user is authenticated and has email in claims
-    if (!auth?.userId || !auth?.sessionClaims?.email) {
+    // Check if user is authenticated (userId is set by Clerk when token is valid)
+    if (!auth?.userId) {
       return typedCtx.status(401, "Unauthorized - Authentication required");
     }
   } catch (e) {

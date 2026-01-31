@@ -4,6 +4,7 @@ import { notes, users } from "../db/schema";
 import { DrizzleD1Database } from "drizzle-orm/d1";
 import {
   notesPage,
+  notesTablePage,
   noteCard,
   newNoteModal,
   editNoteModal,
@@ -105,6 +106,13 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         headers: { "Content-Type": "text/html" },
       });
     }
+  })
+
+  // Notes table view (full page, same layout as Svelte admin /notes)
+  .get("/notes", async () => {
+    return new Response(notesTablePage(CLERK_PUBLISHABLE_KEY), {
+      headers: { "Content-Type": "text/html" },
+    });
   })
 
   // Get new note form modal
@@ -604,8 +612,9 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
     try {
       const typedCtx = ctx as unknown as DbContext;
       if (!isAdminRequest(typedCtx.request)) {
+        // Return 200 so HTMX swaps the message (HTMX does not swap on 4xx/5xx by default)
         return new Response(adminUnauthorizedMessage(), {
-          status: 401,
+          status: 200,
           headers: { "Content-Type": "text/html" },
         });
       }

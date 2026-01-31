@@ -2,8 +2,16 @@ import { treaty } from "@elysiajs/eden";
 // Import the App type from the server
 import type { App } from "../../../server/src/index";
 
-// Get the API URL from environment variables
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Get the API URL from environment variables (used by Eden and by fetch() for consistency)
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+/** In dev (Vite on 5173), use relative path so the proxy forwards to the server and we avoid CORS. */
+export function getApiBase(): string {
+  if (typeof window !== "undefined" && window.location.port === "5173") {
+    return "";
+  }
+  return API_URL.replace(/\/$/, "");
+}
 
 // Define error types
 interface ApiError extends Error {
@@ -65,14 +73,14 @@ interface ExpectedClient {
 }
 
 // Create and export the base Eden Treaty client, asserting its shape
-export const client = treaty<App>(API_URL) as ExpectedClient;
+const client = treaty<App>(API_URL) as ExpectedClient;
 
 // Helper functions for common API operations using the exported client
 export const apiClient = {
   // Notes API (mounted under /api)
   notes: {
     getAll: async (token?: string) => {
-      return client.api.notes.index.get({
+      return client.api.notes.get({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
     },

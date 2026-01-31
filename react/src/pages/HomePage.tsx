@@ -1,11 +1,12 @@
 import { useUser, useAuth } from "@clerk/clerk-react";
-import { useState, useEffect } from "react";
-import { Grid, Paper, Title, Text, ActionIcon, Group } from "@mantine/core";
+import { useState, useEffect, useRef } from "react";
+import { Grid, Paper, Title, Text, Group, Button } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import AnonymousNoteForm from "../components/AnonymousNoteForm";
 import NotesGrid from "../components/NotesGrid";
 import { NoteForm } from "../components/NoteForm";
 import { useNoteContext } from "../context/NoteContext";
+import { API_URL, getApiBase } from "../api/client";
 
 interface Note {
   id: string;
@@ -20,7 +21,8 @@ interface Note {
 const HomePage = () => {
   const { isSignedIn } = useUser();
   const { getToken } = useAuth();
-  const { triggerRefresh } = useNoteContext();
+  const { refreshTrigger, triggerRefresh } = useNoteContext();
+  const prevRefreshTriggerRef = useRef(refreshTrigger);
   const [publicNotes, setPublicNotes] = useState<Note[]>([]);
   const [privateNotes, setPrivateNotes] = useState<Note[]>([]);
   const [allNotes, setAllNotes] = useState<Note[]>([]);
@@ -33,19 +35,51 @@ const HomePage = () => {
     isPublic: false,
   });
   const [initialized, setInitialized] = useState(false);
+  const publicNotesRequestIdRef = useRef(0);
 
-  // Fetch public notes
+  // Fetch public notes (use relative URL in dev so Vite proxy is used; avoids CORS)
   const fetchPublicNotes = async () => {
+    const requestId = ++publicNotesRequestIdRef.current;
+    const base = getApiBase();
+    const url = base ? `${base}/api/public-notes` : "/api/public-notes";
     try {
       setLoading(true);
-      const response = await fetch("/api/public-notes");
-      const data = await response.json();
-      setPublicNotes(data);
+      setError(null);
+      const response = await fetch(url);
+      const contentType = response.headers.get("content-type");
+      let raw: unknown;
+      if (contentType?.includes("application/json")) {
+        raw = await response.json();
+      } else {
+        await response.text(); // consume body
+        if (requestId === publicNotesRequestIdRef.current) {
+          setError("Failed to load public notes (invalid response)");
+        }
+        return;
+      }
+      // Server returns array directly; handle wrapped { data } in case of middleware
+      const data: Note[] | null = Array.isArray(raw)
+        ? raw
+        : raw && Array.isArray((raw as { data?: unknown }).data)
+          ? (raw as { data: Note[] }).data
+          : null;
+      const notes = data ?? [];
+      if (!response.ok) {
+        if (requestId === publicNotesRequestIdRef.current) {
+          setError("Failed to load public notes");
+          setPublicNotes(notes);
+        }
+        return;
+      }
+      // Update state: prefer non-empty data so a late empty response doesn't overwrite real notes
+      setPublicNotes((prev) => (notes.length > 0 ? notes : prev.length > 0 ? prev : notes));
     } catch (err) {
       console.error("Error fetching public notes:", err);
-      setError("Failed to load public notes");
+      if (requestId === publicNotesRequestIdRef.current) {
+        setError("Failed to load public notes");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === publicNotesRequestIdRef.current) setLoading(false);
     }
   };
 
@@ -59,7 +93,9 @@ const HomePage = () => {
       const token = await getToken();
 
       // Get user's notes (both private and public)
-      const response = await fetch("/api/notes", {
+      const base = getApiBase();
+      const notesUrl = base ? `${base}/api/notes` : "/api/notes";
+      const response = await fetch(notesUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -97,7 +133,9 @@ const HomePage = () => {
       console.log("Fetching all notes with API key:", adminApiKey);
 
       // Correct endpoint is /api/notes/all as defined in notes.controller.ts
-      const response = await fetch("/api/notes/all", {
+      const base = getApiBase();
+      const allUrl = base ? `${base}/api/notes/all` : "/api/notes/all";
+      const response = await fetch(allUrl, {
         headers: {
           "X-API-Key": adminApiKey,
         },
@@ -124,9 +162,8 @@ const HomePage = () => {
     }
   };
 
-  // Fetch notes on load and when auth state changes
+  // Fetch notes once on mount
   useEffect(() => {
-    // Only fetch if not initialized yet
     if (!initialized) {
       fetchPublicNotes();
       if (isSignedIn) {
@@ -139,18 +176,18 @@ const HomePage = () => {
     }
   }, [isSignedIn, isAdminLoggedIn, adminApiKey, initialized]);
 
-  // Re-fetch when the refresh trigger changes
+  // Re-fetch only when refreshTrigger actually changes (e.g. after create/update), not on mount
   useEffect(() => {
-    if (initialized) {
-      fetchPublicNotes();
-      if (isSignedIn) {
-        fetchPrivateNotes();
-      }
-      if (isAdminLoggedIn) {
-        fetchAllNotes();
-      }
+    if (!initialized || prevRefreshTriggerRef.current === refreshTrigger) return;
+    prevRefreshTriggerRef.current = refreshTrigger;
+    fetchPublicNotes();
+    if (isSignedIn) {
+      fetchPrivateNotes();
     }
-  }, [triggerRefresh, initialized]);
+    if (isAdminLoggedIn) {
+      fetchAllNotes();
+    }
+  }, [refreshTrigger, initialized, isSignedIn, isAdminLoggedIn]);
 
   // Check for existing admin API key in localStorage on mount
   useEffect(() => {
@@ -251,19 +288,18 @@ const HomePage = () => {
         <>
           {/* Public Notes Section */}
           <Grid.Col span={12}>
-            <Paper shadow="xs" p="md" withBorder>
+            <Paper shadow="sm" p="md" withBorder radius="md">
               <Group justify="space-between" mb="md">
                 <Title order={2}>Public Notes</Title>
                 {isSignedIn && (
-                  <ActionIcon
+                  <Button
+                    leftSection={<IconPlus size={18} />}
+                    color="green"
                     variant="filled"
-                    color="indigo"
-                    size="lg"
-                    radius="xl"
                     onClick={() => openNoteModal(true)}
                   >
-                    <IconPlus size={20} />
-                  </ActionIcon>
+                    + Create Public Note
+                  </Button>
                 )}
               </Group>
               {loading && <Text>Loading public notes...</Text>}
@@ -281,21 +317,20 @@ const HomePage = () => {
             </Paper>
           </Grid.Col>
 
-          {/* Private Notes Section (only for signed-in users) */}
+          {/* Your Notes Section (only for signed-in users) */}
           {isSignedIn && (
             <Grid.Col span={12}>
-              <Paper shadow="xs" p="md" withBorder>
+              <Paper shadow="sm" p="md" withBorder radius="md">
                 <Group justify="space-between" mb="md">
-                  <Title order={2}>Your Private Notes</Title>
-                  <ActionIcon
+                  <Title order={2}>Your Notes</Title>
+                  <Button
+                    leftSection={<IconPlus size={18} />}
+                    color="violet"
                     variant="filled"
-                    color="indigo"
-                    size="lg"
-                    radius="xl"
                     onClick={() => openNoteModal(false)}
                   >
-                    <IconPlus size={20} />
-                  </ActionIcon>
+                    + Create Private Note
+                  </Button>
                 </Group>
                 {loading && <Text>Loading your notes...</Text>}
                 {error && <Text c="red">{error}</Text>}
@@ -313,7 +348,7 @@ const HomePage = () => {
           {/* Anonymous Note Creation (only for non-signed in users) */}
           {!isSignedIn && (
             <Grid.Col span={12}>
-              <Paper shadow="xs" p="md" withBorder>
+              <Paper shadow="sm" p="md" withBorder radius="md">
                 <Title order={2} mb="md">
                   Create a Public Note
                 </Title>

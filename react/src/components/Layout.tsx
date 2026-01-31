@@ -187,7 +187,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   to="/"
                   style={{ textDecoration: "none", color: "inherit" }}
                 >
-                  Elysia Notes - Svelte
+                  Elysia Notes - React
                 </Link>
               </Text>
               <Group>

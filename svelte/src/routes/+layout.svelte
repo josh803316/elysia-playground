@@ -249,50 +249,22 @@
 		<header class="bg-white shadow-sm border-b">
 			<div class="container mx-auto px-4 flex justify-between items-center h-16">
 				<!-- Logo/Brand -->
-				<a href="/" class="text-lg font-semibold">Notes App</a>
+				<a href="/" class="text-lg font-semibold">Elysia Notes - Svelte</a>
 				
 				<!-- Main Navigation Links - No hamburger, always visible -->
 				<div class="flex items-center space-x-6">
 					<button type="button" class="text-gray-700 hover:text-gray-900" onclick={() => goto('/')}>Home</button>
 					<SignedIn>
 						<a href="/notes" class="text-gray-700 hover:text-gray-900 flex items-center">
-							My Notes
+							{isAdminLoggedIn ? 'All Notes' : 'My Notes'}
 							<div class="flex space-x-1 ml-2">
-								<Badge color="green" rounded class="text-xs py-0.5 px-1.5 bg-green-200 text-green-800">PUBLIC: {publicNotesCount}</Badge>
-								<Badge color="purple" rounded class="text-xs py-0.5 px-1.5 bg-purple-200 text-purple-800">PRIVATE: {privateNotesCount}</Badge>
+								<Badge color="green" rounded class="text-xs py-0.5 px-1.5 bg-green-200 text-green-800">Public: {publicNotesCount}</Badge>
+								<Badge color="purple" rounded class="text-xs py-0.5 px-1.5 bg-purple-200 text-purple-800">Private: {privateNotesCount}</Badge>
 							</div>
 						</a>
-						<div class="flex items-center space-x-2">
-							<Button 
-								size="xs" 
-								color="green" 
-								class="bg-green-600 hover:bg-green-700 text-white" 
-								on:click={() => handleCreateNote(true)}
-							>
-								<svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-									<path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
-								</svg>
-								Create Public
-							</Button>
-							<Button 
-								size="xs" 
-								color="purple" 
-								class="bg-purple-600 hover:bg-purple-700 text-white" 
-								on:click={() => handleCreateNote(false)}
-							>
-								<svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-									<path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
-								</svg>
-								Create Private
-							</Button>
-						</div>
 					</SignedIn>
 					<SignedOut>
-						<button type="button" class="text-gray-700 hover:text-gray-900" onclick={() => {
-							createPublicNote = true;
-							editingNote = null;
-							createNoteModalOpen = true;
-						}}>Create Public Note</button>
+						<span class="text-sm text-gray-600">Anonymous</span>
 					</SignedOut>
 					
 					<!-- User Authentication -->
@@ -333,6 +305,11 @@
 			<div class="container mx-auto px-4">
 				<div class="flex justify-between items-center py-4">
 					<span class="text-sm text-gray-500">© 2024 Notes App</span>
+					<div class="flex gap-4 text-sm text-gray-500">
+						<a href="#" class="hover:text-gray-700">Privacy Policy</a>
+						<a href="#" class="hover:text-gray-700">Terms of Service</a>
+						<a href="#" class="hover:text-gray-700">Contact Us</a>
+					</div>
 				</div>
 			</div>
 		</Footer>
@@ -371,7 +348,7 @@
 	<!-- Simple SSR-compatible layout -->
 	<header class="bg-white shadow-sm border-b">
 		<div class="container mx-auto px-4 flex justify-between items-center h-16">
-			<a href="/" class="text-lg font-semibold">Notes App</a>
+			<a href="/" class="text-lg font-semibold">Elysia Notes - Svelte</a>
 		</div>
 	</header>
 

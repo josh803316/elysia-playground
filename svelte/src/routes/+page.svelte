@@ -599,32 +599,23 @@
       </Alert>
     {/if}
 
-    <!-- Add a prominent banner for anonymous users -->
+    <!-- Anonymous: create public note prompt (matches React anonymous section) -->
     {#if !isSignedIn}
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-center">
-        <svg class="w-16 h-16 text-blue-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-        </svg>
-        <h2 class="text-xl font-bold mb-2">Welcome to the Notes App!</h2>
-        <p class="mb-4">You can post public notes anonymously without signing in.</p>
-        <Button color="blue" on:click={() => {
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Create a Public Note</h2>
+        <p class="text-gray-600 mb-4">You can post public notes anonymously without signing in.</p>
+        <Button color="green" class="bg-green-600 hover:bg-green-700 text-white" onclick={() => {
           editingNote = null;
           createPublicNote = true;
           createNoteModalOpen = true;
         }}>
-          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
-          </svg>
-          Create Anonymous Public Note
+          <span class="text-xl mr-2">+</span>
+          Create Public Note
         </Button>
       </div>
     {/if}
 
-    <div class="flex justify-center mb-4">
-      <h1 class="text-2xl font-bold text-center">Elysia Notes App</h1>
-    </div>
-    
-    <div class="mt-8">
+    <div class="mt-6">
       <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-2xl font-bold">Public Notes ({publicNotes.length || 0})</h2>
@@ -633,9 +624,7 @@
             createPublicNote = true;
             createNoteModalOpen = true;
           }}>
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
-            </svg>
+            <span class="text-xl mr-2">+</span>
             Create Public Note
           </Button>
         </div>
@@ -658,9 +647,7 @@
               createPublicNote = true;
               createNoteModalOpen = true;
             }}>
-              <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
-              </svg>
+              <span class="text-xl mr-2">+</span>
               Create Public Note
             </Button>
           </div>
@@ -720,9 +707,7 @@
             createPublicNote = false;
             createNoteModalOpen = true;
           }}>
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
-            </svg>
+            <span class="text-xl mr-2">+</span>
             Create Private Note
           </Button>
         </div>

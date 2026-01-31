@@ -110,16 +110,21 @@ app
     clerkPlugin({
       publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
       secretKey: process.env.CLERK_SECRET_KEY,
+      // Allow tokens from dev origins (Clerk validates request origin; proxy sends Origin from browser)
+      authorizedParties: [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:6173",
+      ],
       // Skip authentication for public paths
       protectedRoutes: (path) => {
-        // Skip auth for public paths
         return !publicPaths.some((publicPath) => path.startsWith(publicPath));
       },
     })
   )
   .use(
     cors({
-      origin: ["http://localhost:5173", "http://localhost:3000"],
+      origin: ["http://localhost:5173", "http://localhost:6173", "http://localhost:3000"],
       credentials: true,
     })
   )

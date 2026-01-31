@@ -29,7 +29,7 @@ export interface User {
 /**
  * Base HTML layout with HTMX script, Tailwind CSS, and Clerk JS
  */
-export function baseLayout(content: string, title: string = "Notes App - HTMX", clerkPublishableKey?: string): string {
+export function baseLayout(content: string, title: string = "Elysia Notes - HTMX", clerkPublishableKey?: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -75,48 +75,38 @@ export function baseLayout(content: string, title: string = "Notes App - HTMX", 
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen clerk-loading">
-  <nav class="bg-indigo-600 text-white shadow-lg">
-    <div class="max-w-6xl mx-auto px-4 py-4">
+  <nav class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3">
       <div class="flex justify-between items-center">
-        <a href="/htmx" class="text-2xl font-bold hover:text-indigo-200 transition-colors">
-          📝 Notes App
+        <a href="/htmx" class="text-xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
+          Elysia Notes - HTMX
         </a>
         <div class="flex gap-4 items-center">
-          <span class="text-indigo-200 text-sm hidden md:inline">Powered by HTMX + Elysia</span>
-          
+          <a href="/htmx" class="text-sm text-gray-700 hover:text-gray-900 font-medium">Home</a>
+          <a href="/htmx/notes" class="text-sm text-gray-700 hover:text-gray-900 font-medium show-when-signed-in">My Notes</a>
           <!-- Auth buttons -->
           <div id="auth-container" class="flex items-center gap-3 show-when-loaded">
-            <!-- Signed out state -->
             <button 
               id="sign-in-btn"
-              class="show-when-signed-out text-sm bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-colors"
+              class="show-when-signed-out text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Sign In
             </button>
-            
-            <!-- Signed in state -->
             <div class="show-when-signed-in flex items-center gap-3">
-              <div id="user-info" class="flex items-center gap-2">
-                <img id="user-avatar" src="" alt="" class="w-8 h-8 rounded-full border-2 border-indigo-300" style="display:none;" />
-                <span id="user-name" class="text-sm font-medium"></span>
-              </div>
+              <span id="user-name" class="text-sm text-gray-700"></span>
               <button 
                 id="sign-out-btn"
-                class="text-sm bg-indigo-500 hover:bg-indigo-400 px-3 py-1.5 rounded transition-colors"
+                class="text-sm text-gray-600 hover:text-gray-900 font-medium"
               >
                 Sign Out
               </button>
             </div>
           </div>
-          
           <span id="admin-nav-area">
-            <button type="button" id="admin-login-btn" hx-get="/htmx/admin/login-modal" hx-target="#modal-container" hx-swap="innerHTML" class="text-sm bg-amber-500 hover:bg-amber-400 px-3 py-1 rounded transition-colors">
+            <button type="button" id="admin-login-btn" hx-get="/htmx/admin/login-modal" hx-target="#modal-container" hx-swap="innerHTML" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium">
               Admin Login
             </button>
           </span>
-          <a href="/" class="text-sm bg-indigo-500 hover:bg-indigo-400 px-3 py-1 rounded transition-colors">
-            API Home
-          </a>
         </div>
       </div>
     </div>
@@ -127,8 +117,13 @@ export function baseLayout(content: string, title: string = "Notes App - HTMX", 
   </main>
   
   <footer class="bg-gray-800 text-gray-400 py-6 mt-12">
-    <div class="max-w-6xl mx-auto px-4 text-center">
-      <p>HTMX Notes Demo - Compare with <a href="http://localhost:5173" class="text-indigo-400 hover:underline">React</a> and <a href="http://localhost:5174" class="text-indigo-400 hover:underline">Svelte</a></p>
+    <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
+      <span class="text-sm">© 2024 Notes App</span>
+      <div class="flex gap-4 text-sm">
+        <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+        <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
+        <a href="#" class="hover:text-white transition-colors">Contact Us</a>
+      </div>
     </div>
   </footer>
   
@@ -139,31 +134,36 @@ export function baseLayout(content: string, title: string = "Notes App - HTMX", 
       var area = document.getElementById('admin-nav-area');
       if (!area) return;
       if (window.getAdminApiKey()) {
-        area.innerHTML = '<button type="button" id="admin-logout-btn" class="text-sm bg-amber-600 hover:bg-amber-500 px-3 py-1 rounded transition-colors">Admin Logout</button>';
+        area.innerHTML = '<button type="button" id="admin-logout-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded font-medium">Admin Logout</button>';
         document.getElementById('admin-logout-btn')?.addEventListener('click', function() {
           sessionStorage.removeItem('adminApiKey');
           document.getElementById('admin-section')?.classList.add('hidden');
           window.updateAdminNav();
         });
       } else {
-        area.innerHTML = '<button type="button" id="admin-login-btn" hx-get="/htmx/admin/login-modal" hx-target="#modal-container" hx-swap="innerHTML" class="text-sm bg-amber-500 hover:bg-amber-400 px-3 py-1 rounded transition-colors">Admin Login</button>';
+        area.innerHTML = '<button type="button" id="admin-login-btn" hx-get="/htmx/admin/login-modal" hx-target="#modal-container" hx-swap="innerHTML" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium">Admin Login</button>';
         htmx.process(document.getElementById('admin-nav-area'));
       }
     };
     document.addEventListener('DOMContentLoaded', function() {
       if (window.getAdminApiKey()) {
         document.getElementById('admin-section')?.classList.remove('hidden');
-        htmx.trigger(document.body, 'refreshAdminNotes');
+        setTimeout(function() {
+          if (typeof htmx !== 'undefined') htmx.trigger(document.body, 'refreshAdminNotes');
+        }, 50);
       }
       window.updateAdminNav();
     });
     document.body.addEventListener('htmx:configRequest', function(evt) {
-      if (evt.detail.pathInfo.requestPath.indexOf('/htmx/admin/') !== -1 && window.getAdminApiKey()) {
+      var el = evt.detail && evt.detail.elt;
+      var url = (el && el.getAttribute && el.getAttribute('hx-get')) || (evt.detail.pathInfo && evt.detail.pathInfo.requestPath) || '';
+      if ((url.indexOf('/htmx/admin/notes') !== -1 || url === '/htmx/admin/notes') && window.getAdminApiKey()) {
         evt.detail.headers['X-API-Key'] = window.getAdminApiKey();
       }
     });
     document.body.addEventListener('htmx:afterRequest', function(evt) {
-      if (evt.detail.pathInfo && evt.detail.pathInfo.requestPath.indexOf('/htmx/admin/') !== -1 && evt.detail.xhr && evt.detail.xhr.status === 401) {
+      var path = (evt.detail.pathInfo && evt.detail.pathInfo.requestPath) || (evt.detail.elt && evt.detail.elt.getAttribute && evt.detail.elt.getAttribute('hx-get')) || '';
+      if (path.indexOf('/htmx/admin/') !== -1 && evt.detail.xhr && evt.detail.xhr.status === 401) {
         sessionStorage.removeItem('adminApiKey');
         if (window.updateAdminNav) window.updateAdminNav();
       }
@@ -235,6 +235,53 @@ export function baseLayout(content: string, title: string = "Notes App - HTMX", 
 }
 
 /**
+ * Notes table page - full page with table of all notes (admin view, requires Admin API Key)
+ */
+export function notesTablePage(clerkPublishableKey?: string): string {
+  return baseLayout(`
+    <div class="space-y-6">
+      <div id="modal-container"></div>
+      <section class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <a href="/htmx" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium mb-2 inline-block">← Back to Notes home</a>
+            <h2 class="text-2xl font-bold text-gray-800">All Notes</h2>
+            <p class="text-gray-600 text-sm">Table view – requires Admin Login</p>
+          </div>
+        </div>
+        <div
+          id="notes-table-container"
+          hx-get="/htmx/admin/notes"
+          hx-trigger="notesTableLoad from:body"
+          hx-swap="innerHTML"
+          class="min-h-[200px]"
+        >
+          <div class="text-center py-8 text-gray-500">Loading notes...</div>
+        </div>
+      </section>
+    </div>
+    <script>
+      (function() {
+        function loadNotesTable() {
+          var container = document.getElementById('notes-table-container');
+          if (!container) return;
+          if (!window.getAdminApiKey || !window.getAdminApiKey()) {
+            container.innerHTML = '<div class="text-center py-8 text-amber-700 bg-amber-50 rounded-lg border border-amber-200"><div class="text-4xl mb-2">🔑</div><p class="font-medium">Admin login required</p><p class="text-sm mt-1">Use Admin Login in the nav, then refresh this page.</p><a href="/htmx" class="inline-block mt-4 text-indigo-600 hover:underline">Back to Notes home</a></div>';
+            return;
+          }
+          if (typeof htmx !== 'undefined') htmx.trigger(document.body, 'notesTableLoad');
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() { setTimeout(loadNotesTable, 100); });
+        } else {
+          setTimeout(loadNotesTable, 100);
+        }
+      })();
+    </script>
+  `, "Notes – Table view", clerkPublishableKey);
+}
+
+/**
  * Main notes page content
  */
 export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
@@ -245,7 +292,7 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
       
       <!-- Admin: All Notes (visible when admin is logged in) -->
       <div id="admin-section" class="hidden">
-        <div class="bg-amber-50 rounded-xl p-6 border border-amber-200 mb-8">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
           <div class="flex justify-between items-center mb-4">
             <div>
               <h2 class="text-2xl font-bold text-gray-800">All Notes (Admin View)</h2>
@@ -264,25 +311,49 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
         </div>
       </div>
       
-      <!-- Private Notes Section (only visible when signed in) -->
+      <!-- Public Notes Section (first, same as React/Svelte) -->
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">Public Notes</h2>
+            <p class="text-gray-600 text-sm">Visible to everyone</p>
+          </div>
+          <button 
+            hx-get="/htmx/notes/new" 
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
+          >
+            <span class="text-xl">+</span> Create Public Note
+          </button>
+        </div>
+        
+        <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          ${notes.length === 0 
+            ? emptyState() 
+            : notes.map(note => noteCard(note)).join('')
+          }
+        </div>
+      </div>
+      
+      <!-- Your Notes Section (only visible when signed in) -->
       <div class="show-when-signed-in show-when-loaded">
-        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
           <div class="flex justify-between items-center mb-4">
             <div>
-              <h2 class="text-2xl font-bold text-gray-800">My Private Notes</h2>
+              <h2 class="text-2xl font-bold text-gray-800">Your Notes</h2>
               <p class="text-gray-600 text-sm">Only you can see these notes</p>
             </div>
             <button 
               hx-get="/htmx/private-notes/new" 
               hx-target="#modal-container"
               hx-swap="innerHTML"
-              class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2"
+              class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
             >
-              <span class="text-xl">+</span> New Private Note
+              <span class="text-xl">+</span> Create Private Note
             </button>
           </div>
           
-          <!-- Private notes grid -->
           <div 
             id="private-notes-container"
             hx-get="/htmx/private-notes" 
@@ -299,7 +370,7 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
       
       <!-- Sign in prompt (only visible when signed out) -->
       <div class="show-when-signed-out show-when-loaded">
-        <div class="bg-gradient-to-r from-gray-50 to-indigo-50 rounded-xl p-6 border border-gray-200 text-center">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 text-center">
           <h2 class="text-xl font-semibold text-gray-700 mb-2">Want to create private notes?</h2>
           <p class="text-gray-600 mb-4">Sign in to create and manage your own private notes.</p>
           <button 
@@ -311,34 +382,8 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
           </button>
         </div>
       </div>
-      
-      <!-- Public Notes Section -->
-      <div>
-        <div class="flex justify-between items-center mb-4">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-800">Public Notes</h2>
-            <p class="text-gray-600 text-sm">Visible to everyone</p>
-          </div>
-          <button 
-            hx-get="/htmx/notes/new" 
-            hx-target="#modal-container"
-            hx-swap="innerHTML"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2"
-          >
-            <span class="text-xl">+</span> New Public Note
-          </button>
-        </div>
-        
-        <!-- Public notes grid -->
-        <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          ${notes.length === 0 
-            ? emptyState() 
-            : notes.map(note => noteCard(note)).join('')
-          }
-        </div>
-      </div>
     </div>
-  `, "Notes App - HTMX", clerkPublishableKey);
+  `, "Elysia Notes - HTMX", clerkPublishableKey);
 }
 
 /**
@@ -707,7 +752,7 @@ export function adminUnauthorizedMessage(): string {
 }
 
 /**
- * Admin view: grid of all notes (public + private, all users)
+ * Admin view: table of all notes (public + private, all users)
  */
 export function adminNotesGrid(notes: Note[]): string {
   if (notes.length === 0) {
@@ -718,15 +763,72 @@ export function adminNotesGrid(notes: Note[]): string {
       </div>
     `;
   }
+  const rows = notes
+    .map(
+      (note) => {
+        const authorName = note.user
+          ? `${note.user.firstName || ""} ${note.user.lastName || ""}`.trim() || note.user.email
+          : "Anonymous";
+        const createdDate = new Date(note.createdAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+        return `
+    <tr id="admin-note-row-${note.id}" class="border-b border-gray-200 hover:bg-gray-50">
+      <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title)}</td>
+      <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">${escapeHtml(note.content)}</td>
+      <td class="px-4 py-3 text-sm">${note.isPublic === "true" ? '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700">Public</span>' : '<span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700">Private</span>'}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${escapeHtml(authorName ?? "")}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${createdDate}</td>
+      <td class="px-4 py-3">
+        <div class="flex gap-2">
+          <button
+            hx-get="/htmx/notes/${note.id}/edit"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+          >
+            Edit
+          </button>
+          <button
+            hx-delete="/htmx/admin/notes/${note.id}"
+            hx-target="#admin-note-row-${note.id}"
+            hx-swap="outerHTML swap:0.2s"
+            hx-confirm="Delete this note as admin?"
+            class="text-red-600 hover:text-red-800 text-sm font-medium"
+          >
+            Delete
+          </button>
+        </div>
+      </td>
+    </tr>`;
+      }
+    )
+    .join("");
   return `
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      ${notes.map((note) => adminNoteCard(note)).join("")}
+    <div class="overflow-x-auto rounded-lg border border-gray-200">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-100">
+          <tr>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Title</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Content</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Visibility</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Author</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
+            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          ${rows}
+        </tbody>
+      </table>
     </div>
   `;
 }
 
 /**
- * Admin view: single note card with owner and delete button
+ * Admin view: single note table row (used when returning one row for swap)
  */
 export function adminNoteCard(note: Note): string {
   const authorName = note.user
@@ -737,34 +839,35 @@ export function adminNoteCard(note: Note): string {
     day: "numeric",
     year: "numeric",
   });
-
   return `
-    <div id="admin-note-${note.id}" class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border-l-4 border-amber-400">
-      <div class="p-4">
-        <div class="flex justify-between items-start mb-2">
-          <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">${escapeHtml(note.title)}</h3>
-          <span class="text-xs px-2 py-1 rounded-full ${note.isPublic === "true" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}">
-            ${note.isPublic === "true" ? "Public" : "Private"}
-          </span>
+    <tr id="admin-note-row-${note.id}" class="border-b border-gray-200 hover:bg-gray-50">
+      <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title)}</td>
+      <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">${escapeHtml(note.content)}</td>
+      <td class="px-4 py-3 text-sm">${note.isPublic === "true" ? '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700">Public</span>' : '<span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700">Private</span>'}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${escapeHtml(authorName ?? "")}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${createdDate}</td>
+      <td class="px-4 py-3">
+        <div class="flex gap-2">
+          <button
+            hx-get="/htmx/notes/${note.id}/edit"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+          >
+            Edit
+          </button>
+          <button
+            hx-delete="/htmx/admin/notes/${note.id}"
+            hx-target="#admin-note-row-${note.id}"
+            hx-swap="outerHTML swap:0.2s"
+            hx-confirm="Delete this note as admin?"
+            class="text-red-600 hover:text-red-800 text-sm font-medium"
+          >
+            Delete
+          </button>
         </div>
-        <p class="text-gray-600 text-sm mb-3 line-clamp-2">${escapeHtml(note.content)}</p>
-        <div class="flex justify-between items-center text-xs text-gray-500">
-          <span>By ${escapeHtml(authorName ?? "")}</span>
-          <span>${createdDate}</span>
-        </div>
-      </div>
-      <div class="border-t bg-gray-50 px-4 py-2 flex justify-end">
-        <button
-          hx-delete="/htmx/admin/notes/${note.id}"
-          hx-target="#admin-note-${note.id}"
-          hx-swap="outerHTML swap:0.2s"
-          hx-confirm="Delete this note as admin?"
-          class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
+      </td>
+    </tr>
   `;
 }
 
