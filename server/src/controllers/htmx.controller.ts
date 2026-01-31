@@ -13,6 +13,9 @@ import {
   authRequiredMessage,
   errorMessage,
   emptyState,
+  adminNotesGrid,
+  adminUnauthorizedMessage,
+  adminLoginModal,
   type Note,
 } from "../views/htmx-templates";
 import { NotesModel } from "../models/notes.model";
@@ -42,8 +45,18 @@ interface ClerkContext extends DbContext {
   };
 }
 
-// Get Clerk publishable key from environment
+// Get Clerk publishable key and Admin API key from environment
 const CLERK_PUBLISHABLE_KEY = process.env.CLERK_PUBLISHABLE_KEY || "";
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
+
+function getAdminApiKeyFromRequest(request: Request): string | null {
+  return request.headers.get("x-api-key") ?? request.headers.get("X-API-Key");
+}
+
+function isAdminRequest(request: Request): boolean {
+  const key = getAdminApiKeyFromRequest(request);
+  return !!ADMIN_API_KEY && key === ADMIN_API_KEY;
+}
 
 // Initialize models
 const notesModel = new NotesModel();
@@ -568,6 +581,111 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
       });
     } catch (error) {
       console.error("Error deleting private note:", error);
+      return new Response(errorMessage("Failed to delete note"), {
+        status: 500,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+  })
+
+  // ============================================
+  // ADMIN ROUTES (require X-API-Key = ADMIN_API_KEY)
+  // ============================================
+
+  // Get admin login modal (no auth required)
+  .get("/admin/login-modal", () => {
+    return new Response(adminLoginModal(), {
+      headers: { "Content-Type": "text/html" },
+    });
+  })
+
+  // Get all notes as HTML fragment (admin only)
+  .get("/admin/notes", async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as DbContext;
+      if (!isAdminRequest(typedCtx.request)) {
+        return new Response(adminUnauthorizedMessage(), {
+          status: 401,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      const publicNotesWithUsers = await typedCtx.db
+        .select({
+          note: notes,
+          user: {
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+          },
+        })
+        .from(notes)
+        .leftJoin(users, eq(notes.userId, users.id))
+        .orderBy(desc(notes.createdAt));
+
+      const formattedNotes: Note[] = publicNotesWithUsers.map((item) => ({
+        ...item.note,
+        user: item.user || null,
+      }));
+
+      if (formattedNotes.length === 0) {
+        return new Response(
+          '<div class="text-center py-8 text-gray-500">No notes in the system.</div>',
+          { headers: { "Content-Type": "text/html" } }
+        );
+      }
+
+      return new Response(adminNotesGrid(formattedNotes), {
+        headers: { "Content-Type": "text/html" },
+      });
+    } catch (error) {
+      console.error("Error fetching admin notes:", error);
+      return new Response(errorMessage("Failed to load admin notes"), {
+        status: 500,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+  })
+
+  // Delete any note as admin
+  .delete("/admin/notes/:id", async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as DbContext & { params: { id: string } };
+      if (!isAdminRequest(typedCtx.request)) {
+        return new Response(adminUnauthorizedMessage(), {
+          status: 401,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      const noteId = Number(typedCtx.params.id);
+      if (isNaN(noteId)) {
+        return new Response(errorMessage("Invalid note ID"), {
+          status: 400,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      const noteToDelete = await typedCtx.db
+        .select()
+        .from(notes)
+        .where(eq(notes.id, noteId))
+        .limit(1);
+
+      if (!noteToDelete || noteToDelete.length === 0) {
+        return new Response(errorMessage("Note not found"), {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      await typedCtx.db.delete(notes).where(eq(notes.id, noteId));
+
+      return new Response("", {
+        headers: { "Content-Type": "text/html" },
+      });
+    } catch (error) {
+      console.error("Error deleting note as admin:", error);
       return new Response(errorMessage("Failed to delete note"), {
         status: 500,
         headers: { "Content-Type": "text/html" },

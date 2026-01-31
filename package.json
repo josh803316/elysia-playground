@@ -10,7 +10,8 @@
     "htmx"
   ],
   "scripts": {
-    "dev": "bun run dev:react",
+    "dev": "bun run dev:all",
+    "dev:all": "turbo run dev --filter=./react --filter=./svelte --filter=./server",
     "dev:react": "turbo run dev --filter=./react --filter=./server",
     "dev:svelte": "turbo run dev --filter=./svelte --filter=./server",
     "dev:htmx": "turbo run dev --filter=./htmx --filter=./server",
@@ -22,10 +23,11 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "install:all": "bun install && bun run install:workspaces",
-    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server",
+    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server && bun run install:htmx",
     "install:react": "cd react && bun install",
     "install:svelte": "cd svelte && bun install",
     "install:server": "cd server && bun install",
+    "install:htmx": "cd htmx && bun install",
     "dev:server": "bun run dev -w server",
     "build:server": "bun run build -w server",
     "start:server": "bun run start -w server",
