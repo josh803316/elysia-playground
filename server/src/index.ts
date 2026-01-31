@@ -9,6 +9,7 @@ import { privateNotesController } from "./controllers/private-notes.controller";
 import { notesController } from "./controllers/notes.controller";
 import { publicNotesController } from "./controllers/public-notes.controller";
 import { versionsController } from "./controllers/versions.controller";
+import { htmxController } from "./controllers/htmx.controller";
 import { initDB, getDB } from "./db";
 import { apiKeyGuard } from "./guards/api-key-guard";
 import { authGuard } from "./guards/auth-guard";
@@ -22,6 +23,7 @@ export const publicPaths = [
   "/webhooks",
   "/versions",
   "/api/public-notes",
+  "/htmx",
 ];
 
 // Initialize and configure the database with seeding
@@ -151,6 +153,7 @@ app
     beforeHandle: authGuard,
   })
   .use(versionsController) // Add versions controller at the app level
+  .use(htmxController) // Add HTMX controller
   .use(api) // Use the API router with prefix
   .listen(3000);
 
