@@ -1,9 +1,22 @@
 import { Elysia, t } from "elysia";
-import { html } from "@elysiajs/html";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { notes, users } from "../db/schema";
-import { authGuard } from "../guards/auth-guard";
 import { DrizzleD1Database } from "drizzle-orm/d1";
+import {
+  notesPage,
+  noteCard,
+  newNoteModal,
+  editNoteModal,
+  newPrivateNoteModal,
+  privateNotesGrid,
+  privateNoteCard,
+  authRequiredMessage,
+  errorMessage,
+  emptyState,
+  type Note,
+} from "../views/htmx-templates";
+import { NotesModel } from "../models/notes.model";
+import { UsersModel } from "../models/users.model";
 
 // Type for database context
 interface DbContext {
@@ -13,59 +26,38 @@ interface DbContext {
   request: {
     headers: Headers;
   };
-  auth?: () => { userId: string; [key: string]: any };
-  clerk?: any;
 }
 
-// Helper function to format date
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+// Type for context with clerk auth
+interface ClerkContext extends DbContext {
+  auth: () => { userId: string; sessionClaims?: { email?: string } } | null;
+  clerk: {
+    users: {
+      getUser: (id: string) => Promise<{
+        firstName?: string;
+        lastName?: string;
+        emailAddresses?: Array<{ emailAddress: string }>;
+      }>;
+    };
+  };
 }
 
-// Helper to render a note card
-function renderNoteCard(note: any, showUser: boolean = false): string {
-  const isPublic = note.isPublic === "true";
-  const userName =
-    note.user?.firstName || note.user?.lastName
-      ? `${note.user.firstName || ""} ${note.user.lastName || ""}`.trim()
-      : note.user?.email || "Anonymous";
+// Get Clerk publishable key from environment
+const CLERK_PUBLISHABLE_KEY = process.env.CLERK_PUBLISHABLE_KEY || "";
 
-  return `
-    <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex justify-between items-start mb-2">
-        <h3 class="text-lg font-semibold text-gray-900">${note.title || "Untitled"}</h3>
-        <span class="px-2 py-1 text-xs font-medium rounded ${
-          isPublic
-            ? "bg-blue-100 text-blue-800"
-            : "bg-gray-100 text-gray-800"
-        }">
-          ${isPublic ? "Public" : "Private"}
-        </span>
-      </div>
-      <p class="text-gray-700 mb-4 line-clamp-3">${note.content || ""}</p>
-      <div class="flex justify-between items-center text-sm text-gray-500 border-t pt-2">
-        <span>${formatDate(note.createdAt)}</span>
-        ${showUser ? `<span class="text-xs">by ${userName}</span>` : ""}
-      </div>
-    </div>
-  `;
-}
+// Initialize models
+const notesModel = new NotesModel();
+const usersModel = new UsersModel();
 
 /**
- * HTMX Controller for serving HTML fragments
+ * HTMX Controller - Serves HTML pages and fragments for the Notes App
+ *
+ * This controller demonstrates server-side rendering with HTMX,
+ * where the server returns HTML fragments that HTMX swaps into the DOM.
  */
 export const htmxController = new Elysia({ prefix: "/htmx" })
-  .use(html())
-  // Serve the main HTMX page
-  .get("/", async () => {
-    return Bun.file("htmx/index.html");
-  })
-  // Get public notes as HTML fragment
-  .get("/public-notes", async (ctx) => {
+  // Main page - renders full HTML page with all public notes
+  .get("/", async (ctx) => {
     try {
       const typedCtx = ctx as unknown as DbContext;
 
@@ -84,188 +76,501 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         .where(eq(notes.isPublic, "true"))
         .orderBy(desc(notes.createdAt));
 
-      // Format the notes as HTML
-      const notesHTML = publicNotesWithUsers
-        .map((item) => {
-          const noteWithUser = { ...item.note, user: item.user };
-          return renderNoteCard(noteWithUser, true);
-        })
-        .join("");
+      // Format the response
+      const formattedNotes: Note[] = publicNotesWithUsers.map((item) => ({
+        ...item.note,
+        user: item.user || null,
+      }));
 
-      if (notesHTML === "") {
-        return `<div class="text-center py-8 text-gray-500">No public notes yet. Be the first to create one!</div>`;
-      }
-
-      return `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${notesHTML}</div>`;
+      return new Response(notesPage(formattedNotes, CLERK_PUBLISHABLE_KEY), {
+        headers: { "Content-Type": "text/html" },
+      });
     } catch (error) {
-      console.error("Error fetching public notes:", error);
-      return `<div class="text-red-500">Error loading public notes</div>`;
+      console.error("Error fetching notes for HTMX:", error);
+      return new Response(errorMessage("Failed to load notes"), {
+        status: 500,
+        headers: { "Content-Type": "text/html" },
+      });
     }
   })
-  // Get private notes as HTML fragment (requires auth)
-  .get(
-    "/private-notes",
-    async (ctx) => {
-      try {
-        const typedCtx = ctx as unknown as DbContext;
-        const authData = typedCtx.auth?.();
 
-        if (!authData?.userId) {
-          return `<div class="text-center py-8 text-gray-500">Please sign in to view your private notes</div>`;
-        }
+  // Get new note form modal
+  .get("/notes/new", () => {
+    return new Response(newNoteModal(), {
+      headers: { "Content-Type": "text/html" },
+    });
+  })
 
-        // Find the user by Clerk ID
-        const userResult = await typedCtx.db
-          .select()
-          .from(users)
-          .where(eq(users.clerkUserId, authData.userId))
-          .limit(1);
+  // Get edit note form modal
+  .get("/notes/:id/edit", async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as DbContext & { params: { id: string } };
+      const noteId = Number(typedCtx.params.id);
 
-        if (!userResult || userResult.length === 0) {
-          return `<div class="text-center py-8 text-gray-500">No private notes yet.</div>`;
-        }
-
-        const user = userResult[0];
-
-        // Get user's private notes
-        const userNotes = await typedCtx.db
-          .select()
-          .from(notes)
-          .where(eq(notes.userId, user.id))
-          .orderBy(desc(notes.createdAt));
-
-        const privateNotes = userNotes.filter(
-          (note) => note.isPublic !== "true"
-        );
-
-        const notesHTML = privateNotes.map((note) => renderNoteCard(note, false)).join("");
-
-        if (notesHTML === "") {
-          return `<div class="text-center py-8 text-gray-500">You don't have any private notes yet.</div>`;
-        }
-
-        return `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${notesHTML}</div>`;
-      } catch (error) {
-        console.error("Error fetching private notes:", error);
-        return `<div class="text-red-500">Error loading private notes</div>`;
+      if (isNaN(noteId)) {
+        return new Response(errorMessage("Invalid note ID"), {
+          status: 400,
+          headers: { "Content-Type": "text/html" },
+        });
       }
-    },
-    {
-      beforeHandle: authGuard,
+
+      // Fetch the note
+      const noteResult = await typedCtx.db
+        .select()
+        .from(notes)
+        .where(eq(notes.id, noteId))
+        .limit(1);
+
+      if (!noteResult || noteResult.length === 0) {
+        return new Response(errorMessage("Note not found"), {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      const note = noteResult[0] as Note;
+      return new Response(editNoteModal(note), {
+        headers: { "Content-Type": "text/html" },
+      });
+    } catch (error) {
+      console.error("Error fetching note for edit:", error);
+      return new Response(errorMessage("Failed to load note"), {
+        status: 500,
+        headers: { "Content-Type": "text/html" },
+      });
     }
-  )
-  // Create a public note (anonymous)
+  })
+
+  // Create a new note - returns the new note card HTML
   .post(
-    "/public-notes",
+    "/notes",
     async (ctx) => {
       try {
         const typedCtx = ctx as unknown as DbContext;
-        const content = typedCtx.body?.content;
+        const body = typedCtx.body as { title?: string; content: string };
 
-        if (!content || content.trim() === "") {
-          return `<div class="text-red-500">Content is required</div>`;
+        if (!body.content || body.content.trim() === "") {
+          return new Response(errorMessage("Content is required"), {
+            status: 400,
+            headers: { "Content-Type": "text/html" },
+          });
         }
 
         // Create new note
         const newNote = {
-          title: "Public Note",
-          content: content.trim(),
-          userId: null,
+          title: body.title || "Public Note",
+          content: body.content,
+          userId: null, // anonymous note
           isPublic: "true",
           createdAt: new Date(),
           updatedAt: new Date(),
         };
 
+        // Insert note into database
         const inserted = await typedCtx.db
           .insert(notes)
           .values(newNote)
           .returning();
 
-        // Return a success message that triggers a refresh
-        return `<div class="text-green-600 mb-4" id="success-message">Note created successfully!</div>`;
+        const createdNote: Note = {
+          ...inserted[0],
+          user: null,
+        };
+
+        // Return the new note card HTML
+        return new Response(noteCard(createdNote), {
+          headers: { "Content-Type": "text/html" },
+        });
       } catch (error) {
-        console.error("Error creating public note:", error);
-        return `<div class="text-red-500">Error creating note</div>`;
+        console.error("Error creating note:", error);
+        return new Response(errorMessage("Failed to create note"), {
+          status: 500,
+          headers: { "Content-Type": "text/html" },
+        });
       }
     },
     {
       body: t.Object({
+        title: t.Optional(t.String()),
         content: t.String(),
       }),
     }
   )
-  // Create a private note (requires auth)
-  .post(
-    "/private-notes",
+
+  // Update a note - returns the updated note card HTML
+  .put(
+    "/notes/:id",
     async (ctx) => {
       try {
-        const typedCtx = ctx as unknown as DbContext;
-        const authData = typedCtx.auth?.();
+        const typedCtx = ctx as unknown as DbContext & { params: { id: string } };
+        const noteId = Number(typedCtx.params.id);
+        const body = typedCtx.body as { title: string; content: string; isPublic?: string };
 
-        if (!authData?.userId) {
-          return `<div class="text-red-500">Authentication required</div>`;
+        if (isNaN(noteId)) {
+          return new Response(errorMessage("Invalid note ID"), {
+            status: 400,
+            headers: { "Content-Type": "text/html" },
+          });
         }
 
-        const content = typedCtx.body?.content;
-
-        if (!content || content.trim() === "") {
-          return `<div class="text-red-500">Content is required</div>`;
-        }
-
-        // Find or create the user
-        let userResult = await typedCtx.db
+        // Check if note exists
+        const noteToUpdate = await typedCtx.db
           .select()
-          .from(users)
-          .where(eq(users.clerkUserId, authData.userId))
+          .from(notes)
+          .where(eq(notes.id, noteId))
           .limit(1);
 
-        if (!userResult || userResult.length === 0) {
-          // Create the user if they don't exist
-          const clerkUser = await typedCtx.clerk?.users.getUser(
-            authData.userId
-          );
-          const newUser = {
-            clerkUserId: authData.userId,
-            email: clerkUser?.emailAddresses?.[0]?.emailAddress || "",
-            firstName: clerkUser?.firstName || "",
-            lastName: clerkUser?.lastName || "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-
-          userResult = await typedCtx.db
-            .insert(users)
-            .values(newUser)
-            .returning();
+        if (!noteToUpdate || noteToUpdate.length === 0) {
+          return new Response(errorMessage("Note not found"), {
+            status: 404,
+            headers: { "Content-Type": "text/html" },
+          });
         }
 
-        const user = userResult[0];
+        // Only allow editing anonymous public notes (like the public notes API)
+        if (noteToUpdate[0].userId !== null) {
+          return new Response(errorMessage("Cannot edit user-owned notes"), {
+            status: 403,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
 
-        // Create new note
-        const newNote = {
-          title: "Private Note",
-          content: content.trim(),
-          userId: user.id,
-          isPublic: "false",
-          createdAt: new Date(),
+        // Update the note
+        const updatedNoteData = {
+          title: body.title,
+          content: body.content,
+          isPublic: body.isPublic === "on" ? "true" : "false",
           updatedAt: new Date(),
         };
 
-        const inserted = await typedCtx.db
-          .insert(notes)
-          .values(newNote)
+        const result = await typedCtx.db
+          .update(notes)
+          .set(updatedNoteData)
+          .where(eq(notes.id, noteId))
           .returning();
 
-        return `<div class="text-green-600 mb-4" id="success-message">Private note created successfully!</div>`;
+        const updatedNote: Note = {
+          ...result[0],
+          user: null,
+        };
+
+        // Return the updated note card HTML
+        return new Response(noteCard(updatedNote), {
+          headers: { "Content-Type": "text/html" },
+        });
       } catch (error) {
-        console.error("Error creating private note:", error);
-        return `<div class="text-red-500">Error creating note</div>`;
+        console.error("Error updating note:", error);
+        return new Response(errorMessage("Failed to update note"), {
+          status: 500,
+          headers: { "Content-Type": "text/html" },
+        });
       }
     },
     {
-      beforeHandle: authGuard,
       body: t.Object({
+        title: t.String(),
         content: t.String(),
+        isPublic: t.Optional(t.String()),
       }),
     }
-  );
+  )
+
+  // Delete a note - returns empty string to remove from DOM
+  .delete("/notes/:id", async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as DbContext & { params: { id: string } };
+      const noteId = Number(typedCtx.params.id);
+
+      if (isNaN(noteId)) {
+        return new Response(errorMessage("Invalid note ID"), {
+          status: 400,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Check if note exists
+      const noteToDelete = await typedCtx.db
+        .select()
+        .from(notes)
+        .where(eq(notes.id, noteId))
+        .limit(1);
+
+      if (!noteToDelete || noteToDelete.length === 0) {
+        return new Response(errorMessage("Note not found"), {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Only allow deleting anonymous public notes
+      if (noteToDelete[0].userId !== null) {
+        return new Response(errorMessage("Cannot delete user-owned notes"), {
+          status: 403,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Delete the note
+      await typedCtx.db.delete(notes).where(eq(notes.id, noteId));
+
+      // Return empty string - HTMX will remove the element
+      return new Response("", {
+        headers: { "Content-Type": "text/html" },
+      });
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      return new Response(errorMessage("Failed to delete note"), {
+        status: 500,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+  })
+
+  // Refresh notes grid - returns all note cards
+  .get("/notes/refresh", async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as DbContext;
+
+      // Get all public notes with user information
+      const publicNotesWithUsers = await typedCtx.db
+        .select({
+          note: notes,
+          user: {
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+          },
+        })
+        .from(notes)
+        .leftJoin(users, eq(notes.userId, users.id))
+        .where(eq(notes.isPublic, "true"))
+        .orderBy(desc(notes.createdAt));
+
+      // Format the response
+      const formattedNotes: Note[] = publicNotesWithUsers.map((item) => ({
+        ...item.note,
+        user: item.user || null,
+      }));
+
+      if (formattedNotes.length === 0) {
+        return new Response(emptyState(), {
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Return all note cards
+      return new Response(
+        formattedNotes.map((note) => noteCard(note)).join(""),
+        {
+          headers: { "Content-Type": "text/html" },
+        }
+      );
+    } catch (error) {
+      console.error("Error refreshing notes:", error);
+      return new Response(errorMessage("Failed to refresh notes"), {
+        status: 500,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+  })
+
+  // ============================================
+  // PRIVATE NOTES ROUTES (require authentication)
+  // ============================================
+
+  // Get new private note form modal
+  .get("/private-notes/new", () => {
+    return new Response(newPrivateNoteModal(), {
+      headers: { "Content-Type": "text/html" },
+    });
+  })
+
+  // Get all private notes for the current user
+  .get("/private-notes", async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as ClerkContext;
+
+      // Check if user is authenticated
+      let authData;
+      try {
+        authData = typedCtx.auth();
+      } catch (e) {
+        return new Response(authRequiredMessage(), {
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      if (!authData?.userId) {
+        return new Response(authRequiredMessage(), {
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      console.log("HTMX: Looking up private notes for Clerk user:", authData.userId);
+
+      // Find or create the user
+      const user = await usersModel.findOrCreateByClerkId(
+        typedCtx.db,
+        authData.userId,
+        typedCtx.clerk
+      );
+
+      // Get user's private notes
+      const userNotes = await notesModel.findPrivateNotesByUserId(typedCtx.db, user.id);
+
+      console.log(`HTMX: Found ${userNotes.length} private notes for user ID:`, user.id);
+
+      return new Response(privateNotesGrid(userNotes as Note[]), {
+        headers: { "Content-Type": "text/html" },
+      });
+    } catch (error) {
+      console.error("Error fetching private notes:", error);
+      return new Response(authRequiredMessage(), {
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+  })
+
+  // Create a new private note
+  .put(
+    "/private-notes",
+    async (ctx) => {
+      try {
+        const typedCtx = ctx as unknown as ClerkContext;
+        const body = typedCtx.body as { data: string };
+
+        // Check if user is authenticated
+        let authData;
+        try {
+          authData = typedCtx.auth();
+        } catch (e) {
+          return new Response(errorMessage("Authentication required"), {
+            status: 401,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+
+        if (!authData?.userId) {
+          return new Response(errorMessage("Authentication required"), {
+            status: 401,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+
+        if (!body.data || body.data.trim() === "") {
+          return new Response(errorMessage("Content is required"), {
+            status: 400,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+
+        console.log("HTMX: Creating private note for Clerk user:", authData.userId);
+
+        // Find or create the user
+        const user = await usersModel.findOrCreateByClerkId(
+          typedCtx.db,
+          authData.userId,
+          typedCtx.clerk
+        );
+
+        // Create new private note
+        const noteData = {
+          title: "Private Note",
+          content: body.data,
+          userId: user.id,
+          isPublic: "false",
+        };
+
+        const note = await notesModel.createNote(typedCtx.db, noteData);
+
+        console.log("HTMX: Created private note with ID:", note.id);
+
+        // Return updated private notes grid
+        const userNotes = await notesModel.findPrivateNotesByUserId(typedCtx.db, user.id);
+        return new Response(privateNotesGrid(userNotes as Note[]), {
+          headers: { "Content-Type": "text/html" },
+        });
+      } catch (error) {
+        console.error("Error creating private note:", error);
+        return new Response(errorMessage("Failed to create note. Please ensure you are signed in."), {
+          status: 500,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+    },
+    {
+      body: t.Object({
+        data: t.String(),
+      }),
+    }
+  )
+
+  // Delete a private note
+  .delete("/private-notes/:id", async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as ClerkContext & { params: { id: string } };
+      const noteId = Number(typedCtx.params.id);
+
+      if (isNaN(noteId)) {
+        return new Response(errorMessage("Invalid note ID"), {
+          status: 400,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Check if user is authenticated
+      let authData;
+      try {
+        authData = typedCtx.auth();
+      } catch (e) {
+        return new Response(errorMessage("Authentication required"), {
+          status: 401,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      if (!authData?.userId) {
+        return new Response(errorMessage("Authentication required"), {
+          status: 401,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Find the user
+      const user = await usersModel.findOrCreateByClerkId(
+        typedCtx.db,
+        authData.userId,
+        typedCtx.clerk
+      );
+
+      // Verify the note belongs to this user
+      const noteToDelete = await typedCtx.db
+        .select()
+        .from(notes)
+        .where(and(eq(notes.id, noteId), eq(notes.userId, user.id)))
+        .limit(1);
+
+      if (!noteToDelete || noteToDelete.length === 0) {
+        return new Response(errorMessage("Note not found or access denied"), {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+
+      // Delete the note
+      await notesModel.delete(typedCtx.db, noteId);
+
+      console.log("HTMX: Deleted private note ID:", noteId);
+
+      // Return empty string - HTMX will remove the element
+      return new Response("", {
+        headers: { "Content-Type": "text/html" },
+      });
+    } catch (error) {
+      console.error("Error deleting private note:", error);
+      return new Response(errorMessage("Failed to delete note"), {
+        status: 500,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+  });
