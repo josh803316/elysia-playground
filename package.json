@@ -6,12 +6,14 @@
   "workspaces": [
     "react",
     "svelte",
-    "server"
+    "server",
+    "htmx"
   ],
   "scripts": {
     "dev": "bun run dev:react",
     "dev:react": "turbo run dev --filter=./react --filter=./server",
     "dev:svelte": "turbo run dev --filter=./svelte --filter=./server",
+    "dev:htmx": "turbo run dev --filter=./htmx --filter=./server",
     "dev:comparison": "turbo run dev --filter=./react --filter=./svelte --filter=./server",
     "build": "turbo run build",
     "build:react": "turbo run build --filter=./react",
