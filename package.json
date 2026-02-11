@@ -34,6 +34,9 @@
     "start:server": "bun run start -w server",
     "test:server": "bun test --bun"
   },
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
   "devDependencies": {
     "turbo": "^2.8.6"
   }
