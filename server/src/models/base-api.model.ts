@@ -6,7 +6,7 @@ import type { PgTable } from "drizzle-orm/pg-core";
  * Base model class for all API models
  * Provides common CRUD operations
  */
-export class BaseApiModel<T extends Record<string, unknown>> {
+export class BaseApiModel<T extends object> {
   protected table: PgTable<any>;
   protected idColumn: keyof T & string;
 
