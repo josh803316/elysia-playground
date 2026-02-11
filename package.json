@@ -2,7 +2,7 @@
   "name": "elysia-playground",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "bun@1.3.6",
+  "packageManager": "bun@1.3.9",
   "workspaces": [
     "react",
     "svelte",
@@ -34,6 +34,6 @@
     "test:server": "bun test --bun"
   },
   "devDependencies": {
-    "turbo": "^2.8.3"
+    "turbo": "^2.8.6"
   }
 }
