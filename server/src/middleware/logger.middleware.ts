@@ -33,16 +33,22 @@ export function useLogger(app: Elysia) {
       ],
       censor: "[Redacted]",
     },
-    transport: {
-      target: "pino-pretty",
-      options: {
-        colorize: true,
-        singleLine: isProductionMode,
-        translateTime: "HH:MM:ss.l",
-        ignore: "pid,hostname",
-        level: isProductionMode ? "info" : "debug",
-      },
-    },
+    // pino-pretty transport is for local development only.
+    // In serverless production environments, use default JSON logger.
+    ...(!isProductionMode
+      ? {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              singleLine: false,
+              translateTime: "HH:MM:ss.l",
+              ignore: "pid,hostname",
+              level: "debug",
+            },
+          },
+        }
+      : {}),
     level: isProductionMode ? "info" : "debug",
   });
 
