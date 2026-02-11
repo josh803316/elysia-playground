@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { eq, desc, and } from "drizzle-orm";
-import { notes, users } from "../db/schema";
-import type { Database } from "../db";
+import { notes, users } from "../db/schema.js";
+import type { Database } from "../db/index.js";
 import {
   notesPage,
   notesTablePage,
@@ -18,9 +18,9 @@ import {
   adminUnauthorizedMessage,
   adminLoginModal,
   type Note,
-} from "../views/htmx-templates";
-import { NotesModel } from "../models/notes.model";
-import { UsersModel } from "../models/users.model";
+} from "../views/htmx-templates.js";
+import { NotesModel } from "../models/notes.model.js";
+import { UsersModel } from "../models/users.model.js";
 
 // Type for database context
 interface DbContext {

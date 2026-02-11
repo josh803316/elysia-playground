@@ -1,4 +1,4 @@
-import { initDB } from "./index";
+import { initDB } from "./index.js";
 
 async function main() {
   console.log("Running database seeding...");

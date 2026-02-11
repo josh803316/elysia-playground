@@ -1,6 +1,6 @@
-import { BaseApiModel } from "./base-api.model";
-import { users } from "../db/schema";
-import type { Database } from "../db";
+import { BaseApiModel } from "./base-api.model.js";
+import { users } from "../db/schema.js";
+import type { Database } from "../db/index.js";
 import { eq } from "drizzle-orm";
 
 // Define the User type based on the schema

@@ -1,6 +1,6 @@
-import { BaseApiModel } from "./base-api.model";
-import { notes } from "../db/schema";
-import type { Database } from "../db";
+import { BaseApiModel } from "./base-api.model.js";
+import { notes } from "../db/schema.js";
+import type { Database } from "../db/index.js";
 import { eq, and } from "drizzle-orm";
 
 // Define the Note type based on the schema

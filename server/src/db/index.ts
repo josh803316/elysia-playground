@@ -1,8 +1,8 @@
 import { drizzle } from "drizzle-orm/pglite";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { PGlite } from "@electric-sql/pglite";
-import * as schema from "./schema";
-import { notes, users } from "./schema";
+import * as schema from "./schema.js";
+import { notes, users } from "./schema.js";
 import { sql } from "drizzle-orm";
 
 // Database type

@@ -1,8 +1,8 @@
 import { Elysia, t } from "elysia";
-import { BaseApiController } from "./base-api.controller";
-import { NotesModel, Note, NoteDTO } from "../models/notes.model";
-import { UsersModel } from "../models/users.model";
-import type { Database } from "../db";
+import { BaseApiController } from "./base-api.controller.js";
+import { NotesModel, Note, NoteDTO } from "../models/notes.model.js";
+import { UsersModel } from "../models/users.model.js";
+import type { Database } from "../db/index.js";
 
 // Context interface for authentication
 interface AuthContext {

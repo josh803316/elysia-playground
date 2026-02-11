@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
-import { BaseApiModel } from "../models/base-api.model";
-import type { Database } from "../db";
+import { BaseApiModel } from "../models/base-api.model.js";
+import type { Database } from "../db/index.js";
 
 // Type definition for the context that includes db
 interface DbContext {

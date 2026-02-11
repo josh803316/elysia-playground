@@ -1,10 +1,10 @@
 import { Elysia, t } from "elysia";
 import { eq, desc } from "drizzle-orm";
-import { notes, users } from "../db/schema";
-import { BaseApiController } from "./base-api.controller";
-import { NotesModel, Note } from "../models/notes.model";
-import { UsersModel } from "../models/users.model";
-import type { Database } from "../db";
+import { notes, users } from "../db/schema.js";
+import { BaseApiController } from "./base-api.controller.js";
+import { NotesModel, Note } from "../models/notes.model.js";
+import { UsersModel } from "../models/users.model.js";
+import type { Database } from "../db/index.js";
 
 // Schema for public notes
 const publicNoteSchema = t.Object({

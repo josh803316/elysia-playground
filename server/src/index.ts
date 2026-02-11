@@ -6,15 +6,15 @@ import { cors } from "@elysiajs/cors";
 import { promises as fs } from "fs";
 import { join, resolve } from "path";
 
-import { privateNotesController } from "./controllers/private-notes.controller";
-import { notesController } from "./controllers/notes.controller";
-import { publicNotesController } from "./controllers/public-notes.controller";
-import { versionsController } from "./controllers/versions.controller";
-import { htmxController } from "./controllers/htmx.controller";
-import { getDB, initDB } from "./db";
-import { apiKeyGuard } from "./guards/api-key-guard";
-import { authGuard } from "./guards/auth-guard";
-import { useLogger } from "./middleware/logger.middleware";
+import { privateNotesController } from "./controllers/private-notes.controller.js";
+import { notesController } from "./controllers/notes.controller.js";
+import { publicNotesController } from "./controllers/public-notes.controller.js";
+import { versionsController } from "./controllers/versions.controller.js";
+import { htmxController } from "./controllers/htmx.controller.js";
+import { getDB, initDB } from "./db/index.js";
+import { apiKeyGuard } from "./guards/api-key-guard.js";
+import { authGuard } from "./guards/auth-guard.js";
+import { useLogger } from "./middleware/logger.middleware.js";
 
 // Define public paths that don't require auth
 export const publicPaths = [
