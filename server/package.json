@@ -30,8 +30,7 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "bun-types": "latest",
-    "drizzle-kit": "^0.31.9",
-    "esbuild": "0.27.3"
+    "drizzle-kit": "^0.31.9"
   },
   "module": "src/index.js"
 }
