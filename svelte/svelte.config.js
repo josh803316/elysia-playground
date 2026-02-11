@@ -14,7 +14,9 @@ const config = {
 		},
 		prerender: {
 			// Don't fail build for dynamic routes we don't explicitly crawl
-			handleUnseenRoutes: 'ignore'
+			handleUnseenRoutes: 'ignore',
+			// Ignore HTTP errors (e.g. API not reachable) during prerender on Vercel
+			handleHttpError: 'ignore'
 		}
 	},
 
