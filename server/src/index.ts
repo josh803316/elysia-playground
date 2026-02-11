@@ -122,7 +122,8 @@ const serveSPA = (assetsDir: string, prefix: string) => {
     .get(prefix, async ({ request }) => {
       const url = new URL(request.url);
       if (!url.pathname.endsWith("/")) {
-        return Response.redirect(`${url.pathname}/`, 302);
+        const redirectUrl = new URL(`${url.pathname}/`, url.origin);
+        return Response.redirect(redirectUrl.toString(), 302);
       }
       return await serveIndex();
     })
