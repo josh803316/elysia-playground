@@ -1,6 +1,6 @@
 import type { Database } from "../db";
-import { eq, and } from "drizzle-orm";
-import type { PgTable } from "drizzle-orm/pg-core";
+import { eq } from "drizzle-orm";
+import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 /**
  * Base model class for all API models
@@ -8,12 +8,9 @@ import type { PgTable } from "drizzle-orm/pg-core";
  */
 export class BaseApiModel<T extends object> {
   protected table: PgTable<any>;
-  protected idColumn: keyof T & string;
+  protected idColumn: AnyPgColumn;
 
-  constructor(
-    table: PgTable<any>,
-    idColumn: keyof T & string = "id"
-  ) {
+  constructor(table: PgTable<any>, idColumn: AnyPgColumn) {
     this.table = table;
     this.idColumn = idColumn;
   }
@@ -28,7 +25,7 @@ export class BaseApiModel<T extends object> {
     const records = await db
       .select()
       .from(this.table)
-      .where(eq(this.table[this.idColumn], id));
+      .where(eq(this.idColumn, id));
     return records.length > 0 ? (records[0] as T) : null;
   }
 
@@ -62,7 +59,7 @@ export class BaseApiModel<T extends object> {
     const records = await db
       .update(this.table)
       .set(data)
-      .where(eq(this.table[this.idColumn], id))
+      .where(eq(this.idColumn, id))
       .returning();
 
     return records.length > 0 ? (records[0] as T) : null;
@@ -80,7 +77,7 @@ export class BaseApiModel<T extends object> {
       return { success: false, message: "Record not found" };
     }
 
-    await db.delete(this.table).where(eq(this.table[this.idColumn], id));
+    await db.delete(this.table).where(eq(this.idColumn, id));
     return { success: true, message: "Record deleted successfully" };
   }
 
@@ -88,21 +85,16 @@ export class BaseApiModel<T extends object> {
    * Custom query with conditions
    */
   async findWhere(db: Database, conditions: Partial<T>): Promise<T[]> {
-    // Convert conditions to an array of eq conditions
-    const conditionArray = Object.entries(conditions).map(([key, value]) => {
-      return eq(this.table[key], value);
-    });
+    // Keep this generic helper simple and type-safe:
+    // fetch rows once, then filter in memory by key/value pairs.
+    const records = await this.findAll(db);
+    if (Object.keys(conditions).length === 0) return records;
 
-    // If no conditions provided, return all records
-    if (conditionArray.length === 0) {
-      return this.findAll(db);
-    }
-
-    // Combine all conditions with AND
-    const whereClause =
-      conditionArray.length === 1 ? conditionArray[0] : and(...conditionArray);
-
-    const records = await db.select().from(this.table).where(whereClause);
-    return records as T[];
+    return records.filter((record) =>
+      Object.entries(conditions).every(([key, value]) => {
+        const rec = record as Record<string, unknown>;
+        return rec[key] === value;
+      })
+    );
   }
 }

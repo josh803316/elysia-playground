@@ -42,7 +42,7 @@ export interface ClerkInstance {
  */
 export class UsersModel extends BaseApiModel<User> {
   constructor() {
-    super(users, "id");
+    super(users, users.id);
   }
 
   /**

@@ -30,7 +30,7 @@ export interface NoteDTO {
  */
 export class NotesModel extends BaseApiModel<Note> {
   constructor() {
-    super(notes, "id");
+    super(notes, notes.id);
   }
 
   /**
