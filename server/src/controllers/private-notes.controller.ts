@@ -1,10 +1,10 @@
 import { Elysia, t } from "elysia";
-import { BaseApiController } from "./base-api.controller";
-import { NotesModel, Note } from "../models/notes.model";
-import { UsersModel } from "../models/users.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
-import { authGuard } from "../guards/auth-guard";
-import { ownershipGuard } from "../guards/ownership-guard";
+import { BaseApiController } from "./base-api.controller.js";
+import { NotesModel, Note } from "../models/notes.model.js";
+import { UsersModel } from "../models/users.model.js";
+import type { Database } from "../db/index.js";
+import { authGuard } from "../guards/auth-guard.js";
+import { ownershipGuard } from "../guards/ownership-guard.js";
 
 // Schema for private notes
 const privateMemoSchema = t.Object({
@@ -24,7 +24,7 @@ type ClerkContext = {
       }>;
     };
   };
-  db: DrizzleD1Database;
+  db: Database;
   params?: { id: string };
   body?: any;
 };

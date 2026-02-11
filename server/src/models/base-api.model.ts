@@ -1,19 +1,16 @@
-import { DrizzleD1Database } from "drizzle-orm/d1";
-import { eq, and, SQL } from "drizzle-orm";
-import { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
+import type { Database } from "../db/index.js";
+import { eq } from "drizzle-orm";
+import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 /**
  * Base model class for all API models
  * Provides common CRUD operations
  */
-export class BaseApiModel<T extends Record<string, any>> {
-  protected table: SQLiteTableWithColumns<any>;
-  protected idColumn: keyof T & string;
+export class BaseApiModel<T extends object> {
+  protected table: PgTable<any>;
+  protected idColumn: AnyPgColumn;
 
-  constructor(
-    table: SQLiteTableWithColumns<any>,
-    idColumn: keyof T & string = "id"
-  ) {
+  constructor(table: PgTable<any>, idColumn: AnyPgColumn) {
     this.table = table;
     this.idColumn = idColumn;
   }
@@ -22,20 +19,20 @@ export class BaseApiModel<T extends Record<string, any>> {
    * Find a record by ID
    */
   async findById(
-    db: DrizzleD1Database,
+    db: Database,
     id: string | number
   ): Promise<T | null> {
     const records = await db
       .select()
       .from(this.table)
-      .where(eq(this.table[this.idColumn], id));
+      .where(eq(this.idColumn, id));
     return records.length > 0 ? (records[0] as T) : null;
   }
 
   /**
    * Find all records
    */
-  async findAll(db: DrizzleD1Database): Promise<T[]> {
+  async findAll(db: Database): Promise<T[]> {
     const records = await db.select().from(this.table);
     return records as T[];
   }
@@ -43,10 +40,10 @@ export class BaseApiModel<T extends Record<string, any>> {
   /**
    * Create a new record
    */
-  async create(db: DrizzleD1Database, data: Partial<T>): Promise<T> {
+  async create(db: Database, data: Partial<T>): Promise<T> {
     const records = await db
       .insert(this.table)
-      .values(data as any)
+      .values(data)
       .returning();
     return records[0] as T;
   }
@@ -55,14 +52,14 @@ export class BaseApiModel<T extends Record<string, any>> {
    * Update an existing record
    */
   async update(
-    db: DrizzleD1Database,
+    db: Database,
     id: string | number,
     data: Partial<T>
   ): Promise<T | null> {
     const records = await db
       .update(this.table)
-      .set(data as any)
-      .where(eq(this.table[this.idColumn], id))
+      .set(data)
+      .where(eq(this.idColumn, id))
       .returning();
 
     return records.length > 0 ? (records[0] as T) : null;
@@ -72,7 +69,7 @@ export class BaseApiModel<T extends Record<string, any>> {
    * Delete a record
    */
   async delete(
-    db: DrizzleD1Database,
+    db: Database,
     id: string | number
   ): Promise<{ success: boolean; message?: string }> {
     const record = await this.findById(db, id);
@@ -80,29 +77,24 @@ export class BaseApiModel<T extends Record<string, any>> {
       return { success: false, message: "Record not found" };
     }
 
-    await db.delete(this.table).where(eq(this.table[this.idColumn], id));
+    await db.delete(this.table).where(eq(this.idColumn, id));
     return { success: true, message: "Record deleted successfully" };
   }
 
   /**
    * Custom query with conditions
    */
-  async findWhere(db: DrizzleD1Database, conditions: Partial<T>): Promise<T[]> {
-    // Convert conditions to an array of eq conditions
-    const conditionArray = Object.entries(conditions).map(([key, value]) => {
-      return eq(this.table[key], value);
-    });
+  async findWhere(db: Database, conditions: Partial<T>): Promise<T[]> {
+    // Keep this generic helper simple and type-safe:
+    // fetch rows once, then filter in memory by key/value pairs.
+    const records = await this.findAll(db);
+    if (Object.keys(conditions).length === 0) return records;
 
-    // If no conditions provided, return all records
-    if (conditionArray.length === 0) {
-      return this.findAll(db);
-    }
-
-    // Combine all conditions with AND
-    const whereClause =
-      conditionArray.length === 1 ? conditionArray[0] : and(...conditionArray);
-
-    const records = await db.select().from(this.table).where(whereClause);
-    return records as T[];
+    return records.filter((record) =>
+      Object.entries(conditions).every(([key, value]) => {
+        const rec = record as Record<string, unknown>;
+        return rec[key] === value;
+      })
+    );
   }
 }

@@ -1,6 +1,10 @@
 import { Elysia } from "elysia";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Read package.json directly since dynamic imports can be troublesome
 const packageJsonPath = path.resolve(__dirname, "../../package.json");

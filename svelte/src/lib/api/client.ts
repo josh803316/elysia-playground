@@ -2,8 +2,25 @@ import { treaty } from "@elysiajs/eden";
 // Import the App type from the server
 import type { App } from "../../../../server/src/index";
 
-// Get the API URL from environment variables
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Resolve API base URL safely.
+// In production (Vercel), default to same-origin (`/`) unless a valid
+// absolute or root-relative VITE_API_URL is explicitly provided.
+const rawApiUrl = (import.meta.env.VITE_API_URL ?? "").trim();
+const normalizedApiUrl = rawApiUrl.toLowerCase();
+const isPlaceholderApiHost =
+  normalizedApiUrl === "api" ||
+  normalizedApiUrl === "//api" ||
+  normalizedApiUrl === "http://api" ||
+  normalizedApiUrl === "https://api";
+
+const API_URL =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : rawApiUrl && !isPlaceholderApiHost && /^https?:\/\//i.test(rawApiUrl)
+      ? rawApiUrl.replace(/\/+$/, "")
+      : typeof process !== "undefined" && process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
 
 // Define error types
 interface ApiError extends Error {

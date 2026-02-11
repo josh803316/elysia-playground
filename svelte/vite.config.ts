@@ -21,6 +21,11 @@ export default defineConfig({
           });
           proxy.on("proxyReq", (proxyReq, req, _res) => {
             console.log("Proxying:", req.method, req.url);
+            // Ensure Authorization header is forwarded (some proxies drop it)
+            const auth = req.headers?.authorization ?? req.headers?.Authorization;
+            if (auth) {
+              proxyReq.setHeader("Authorization", auth);
+            }
           });
           proxy.on("proxyRes", (proxyRes, req, _res) => {
             console.log(

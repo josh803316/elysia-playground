@@ -2,34 +2,48 @@
   "name": "elysia-playground",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "bun@1.3.6",
+  "type": "module",
+  "packageManager": "bun@1.3.9",
   "workspaces": [
     "react",
     "svelte",
-    "server"
+    "server",
+    "htmx"
   ],
   "scripts": {
-    "dev": "bun run dev:react",
+    "dev": "bun run dev:all",
+    "dev:all": "turbo run dev --filter=./react --filter=./svelte --filter=./server",
     "dev:react": "turbo run dev --filter=./react --filter=./server",
     "dev:svelte": "turbo run dev --filter=./svelte --filter=./server",
+    "dev:htmx": "turbo run dev --filter=./htmx --filter=./server",
     "dev:comparison": "turbo run dev --filter=./react --filter=./svelte --filter=./server",
     "build": "turbo run build",
     "build:react": "turbo run build --filter=./react",
     "build:svelte": "turbo run build --filter=./svelte",
+    "build:frontends": "bun run build:react && bun run build:svelte",
+    "dev:monolith": "bun run build:react && bun run build:svelte && bun run dev:server",
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "install:all": "bun install && bun run install:workspaces",
-    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server",
+    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server && bun run install:htmx",
     "install:react": "cd react && bun install",
     "install:svelte": "cd svelte && bun install",
     "install:server": "cd server && bun install",
-    "dev:server": "bun run dev -w server",
+    "install:htmx": "cd htmx && bun install",
+    "dev:server": "cd server && bun run dev",
     "build:server": "bun run build -w server",
     "start:server": "bun run start -w server",
     "test:server": "bun test --bun"
   },
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
+  "dependencies": {
+    "elysia": "^1.4.24"
+  },
   "devDependencies": {
-    "turbo": "^2.7.5"
+    "turbo": "^2.8.6",
+    "bun-types": "latest"
   }
 }

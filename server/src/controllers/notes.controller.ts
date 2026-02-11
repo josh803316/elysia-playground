@@ -1,18 +1,18 @@
 import { Elysia, t } from "elysia";
-import { authGuard } from "../guards/auth-guard";
-import { ownershipGuard } from "../guards/ownership-guard";
+import { authGuard } from "../guards/auth-guard.js";
+import { ownershipGuard } from "../guards/ownership-guard.js";
 import { eq, and, desc } from "drizzle-orm";
-import { notes, users } from "../db/schema";
-import { BaseApiController } from "./base-api.controller";
-import { NotesModel, Note } from "../models/notes.model";
-import { UsersModel } from "../models/users.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import { notes, users } from "../db/schema.js";
+import { BaseApiController } from "./base-api.controller.js";
+import { NotesModel, Note } from "../models/notes.model.js";
+import { UsersModel } from "../models/users.model.js";
+import type { Database } from "../db/index.js";
 
 // Type definitions for context
 type AuthData = {
   userId: string | number;
-  sessionClaims?: Record<string, any>;
-  [key: string]: any;
+  sessionClaims?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 type Context = {
@@ -23,11 +23,11 @@ type Context = {
         firstName?: string;
         lastName?: string;
         emailAddresses?: Array<{ emailAddress: string }>;
-        [key: string]: any;
+        [key: string]: unknown;
       }>;
     };
   };
-  db: DrizzleD1Database;
+  db: Database;
   store: {
     resource: any;
   };
@@ -62,7 +62,7 @@ export class NotesController extends BaseApiController<Note> {
   /**
    * Initialize routes for the Notes API
    */
-  init() {
+  init(): Elysia<any, any, any, any, any, any, any> {
     const app = new Elysia();
 
     return (
@@ -329,13 +329,14 @@ export class NotesController extends BaseApiController<Note> {
             const usersList = await typedCtx.db.select().from(users);
 
             // Create a user lookup map for faster access
-            const userMap = new Map();
-            usersList.forEach((user) => {
+            type UserRow = typeof users.$inferSelect;
+            const userMap = new Map<number, UserRow>();
+            usersList.forEach((user: UserRow) => {
               userMap.set(user.id, user);
             });
 
             // Ensure all dates are properly formatted as strings
-            const ensureISOString = (date: any): string => {
+            const ensureISOString = (date: Date | string | null | undefined): string => {
               if (!date) return "";
 
               try {
@@ -367,7 +368,8 @@ export class NotesController extends BaseApiController<Note> {
             };
 
             // Format notes with user data
-            const formattedNotes = notesList.map((note) => {
+            type NoteRow = typeof notes.$inferSelect;
+            const formattedNotes = notesList.map((note: NoteRow) => {
               const userData = note.userId ? userMap.get(note.userId) : null;
 
               // Format date values as ISO strings

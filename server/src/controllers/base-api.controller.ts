@@ -1,10 +1,10 @@
 import { Elysia, t } from "elysia";
-import { BaseApiModel } from "../models/base-api.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import { BaseApiModel } from "../models/base-api.model.js";
+import type { Database } from "../db/index.js";
 
 // Type definition for the context that includes db
 interface DbContext {
-  db: DrizzleD1Database;
+  db: Database;
 }
 
 /**
@@ -26,17 +26,20 @@ export abstract class BaseApiController<T extends Record<string, any>> {
    * Initialize the controller with routes
    * Should be implemented by subclasses
    */
-  abstract init(): Elysia;
+  abstract init(): Elysia<any, any, any, any, any, any, any>;
 
   /**
    * Define common routes for the controller
    */
-  protected registerCommonRoutes<E extends Elysia>(app: E): E {
+  protected registerCommonRoutes(
+    app: Elysia<any, any, any, any, any, any, any>
+  ): Elysia<any, any, any, any, any, any, any> {
     return (
       app
         // Get all resources
-        .get("", async ({ db }: DbContext) => {
+        .get("", async (ctx) => {
           try {
+            const { db } = ctx as unknown as DbContext;
             const records = await this.model.findAll(db);
             return records;
           } catch (error) {
@@ -48,11 +51,12 @@ export abstract class BaseApiController<T extends Record<string, any>> {
         // Get a resource by ID
         .get(
           "/:id",
-          async ({
-            params: { id },
-            db,
-          }: DbContext & { params: { id: string } }) => {
+          async (ctx) => {
             try {
+              const { db, params } = ctx as unknown as DbContext & {
+                params: { id: string };
+              };
+              const { id } = params;
               const record = await this.model.findById(db, id);
               if (!record) {
                 return new Response(
@@ -71,11 +75,12 @@ export abstract class BaseApiController<T extends Record<string, any>> {
         // Delete a resource
         .delete(
           "/:id",
-          async ({
-            params: { id },
-            db,
-          }: DbContext & { params: { id: string } }) => {
+          async (ctx) => {
             try {
+              const { db, params } = ctx as unknown as DbContext & {
+                params: { id: string };
+              };
+              const { id } = params;
               const result = await this.model.delete(db, id);
               if (!result.success) {
                 return new Response(
@@ -94,7 +99,7 @@ export abstract class BaseApiController<T extends Record<string, any>> {
               throw new Error(`Failed to delete ${this.resourceName}`);
             }
           }
-        ) as any
+        )
     );
   }
 

@@ -1,10 +1,10 @@
 import { Elysia, t } from "elysia";
 import { eq, desc } from "drizzle-orm";
-import { notes, users } from "../db/schema";
-import { BaseApiController } from "./base-api.controller";
-import { NotesModel, Note } from "../models/notes.model";
-import { UsersModel } from "../models/users.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import { notes, users } from "../db/schema.js";
+import { BaseApiController } from "./base-api.controller.js";
+import { NotesModel, Note } from "../models/notes.model.js";
+import { UsersModel } from "../models/users.model.js";
+import type { Database } from "../db/index.js";
 
 // Schema for public notes
 const publicNoteSchema = t.Object({
@@ -20,7 +20,7 @@ const updatePublicNoteSchema = t.Object({
 
 // Type for database context
 interface DbContext {
-  db: DrizzleD1Database;
+  db: Database;
   params?: { id: string };
   body?: any;
   request: {
@@ -76,15 +76,17 @@ export class PublicNotesController extends BaseApiController<Note> {
               .orderBy(desc(notes.createdAt));
 
             // Format the response to include user data
+            type NoteWithUser = {
+              note: typeof notes.$inferSelect;
+              user: {
+                email: string | null;
+                firstName: string | null;
+                lastName: string | null;
+              } | null;
+            };
+
             const formattedNotes = publicNotesWithUsers.map(
-              (item: {
-                note: any;
-                user: {
-                  email: string | null;
-                  firstName: string | null;
-                  lastName: string | null;
-                } | null;
-              }) => ({
+              (item: NoteWithUser) => ({
                 ...item.note,
                 user: item.user || null,
               })

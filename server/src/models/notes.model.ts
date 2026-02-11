@@ -1,6 +1,6 @@
-import { BaseApiModel } from "./base-api.model";
-import { notes } from "../db/schema";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import { BaseApiModel } from "./base-api.model.js";
+import { notes } from "../db/schema.js";
+import type { Database } from "../db/index.js";
 import { eq, and } from "drizzle-orm";
 
 // Define the Note type based on the schema
@@ -30,13 +30,13 @@ export interface NoteDTO {
  */
 export class NotesModel extends BaseApiModel<Note> {
   constructor() {
-    super(notes, "id");
+    super(notes, notes.id);
   }
 
   /**
    * Find notes by user ID
    */
-  async findByUserId(db: DrizzleD1Database, userId: number): Promise<Note[]> {
+  async findByUserId(db: Database, userId: number): Promise<Note[]> {
     const results = await db
       .select()
       .from(notes)
@@ -48,7 +48,7 @@ export class NotesModel extends BaseApiModel<Note> {
   /**
    * Find public notes
    */
-  async findPublicNotes(db: DrizzleD1Database): Promise<Note[]> {
+  async findPublicNotes(db: Database): Promise<Note[]> {
     const results = await db
       .select()
       .from(notes)
@@ -61,7 +61,7 @@ export class NotesModel extends BaseApiModel<Note> {
    * Find private notes by user ID
    */
   async findPrivateNotesByUserId(
-    db: DrizzleD1Database,
+    db: Database,
     userId: number
   ): Promise<Note[]> {
     const results = await db
@@ -76,7 +76,7 @@ export class NotesModel extends BaseApiModel<Note> {
    * Create a new note with the current timestamp
    */
   async createNote(
-    db: DrizzleD1Database,
+    db: Database,
     data: Omit<Partial<Note>, "createdAt" | "updatedAt">
   ): Promise<Note> {
     const now = new Date();
@@ -113,7 +113,7 @@ export class NotesModel extends BaseApiModel<Note> {
    * Check if a user owns a note
    */
   async isOwner(
-    db: DrizzleD1Database,
+    db: Database,
     userId: number,
     noteId: number
   ): Promise<boolean> {

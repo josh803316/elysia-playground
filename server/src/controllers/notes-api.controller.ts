@@ -1,12 +1,12 @@
 import { Elysia, t } from "elysia";
-import { BaseApiController } from "./base-api.controller";
-import { NotesModel, Note, NoteDTO } from "../models/notes.model";
-import { UsersModel } from "../models/users.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import { BaseApiController } from "./base-api.controller.js";
+import { NotesModel, Note, NoteDTO } from "../models/notes.model.js";
+import { UsersModel } from "../models/users.model.js";
+import type { Database } from "../db/index.js";
 
 // Context interface for authentication
 interface AuthContext {
-  db: DrizzleD1Database;
+  db: Database;
   // Use optional chaining for auth properties
   auth?: {
     userId?: string;

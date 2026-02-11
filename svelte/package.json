@@ -15,22 +15,23 @@
     "@fontsource/fira-mono": "^5.2.7",
     "@neoconfetti/svelte": "^2.2.2",
     "@sveltejs/adapter-auto": "^7.0.0",
-    "@sveltejs/kit": "^2.50.0",
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.50.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/postcss": "^4.1.18",
-    "autoprefixer": "^10.4.23",
-    "svelte": "^5.47.1",
-    "svelte-check": "^4.3.5",
+    "autoprefixer": "^10.4.24",
+    "svelte": "^5.50.1",
+    "svelte-check": "^4.3.6",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
   },
   "dependencies": {
-    "@elysiajs/eden": "^1.4.6",
+    "@elysiajs/eden": "^1.4.8",
     "flowbite": "^4.0.1",
     "flowbite-svelte": "^1.31.0",
     "flowbite-svelte-icons": "^3.1.0",
     "postcss": "^8.5.6",
-    "svelte-clerk": "^0.20.3",
+    "svelte-clerk": "^0.20.5",
     "tailwindcss": "^4.1.18"
   }
 }

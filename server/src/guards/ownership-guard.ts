@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { notes, users } from "../db/schema";
+import { notes, users } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 
 // Type definitions for context

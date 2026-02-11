@@ -28,15 +28,13 @@
     };
   }
   
-  // Props
-  export let open = $bindable(false);
+  // Props (use export let; avoid $bindable() unless inside $props())
+  export let open = false;
   export let onClose = () => {};
   export let onSuccess = () => {};
   export let userToken: string | null = null;
   export let initialNote: NoteData | null = null;
   export let isEditing = false;
-
-  // Additional prop to control the public/private state
   export let initialPublic = false;
 
   // Form state
@@ -153,20 +151,30 @@
       } else {
         // Create new note
         console.log('Creating new note as', finalPublicState ? 'public' : 'private');
-        
-        // For public notes without authentication, use the public notes API directly
-        if (finalPublicState && !userToken) {
+
+        // Resolve token only when needed for authenticated/private requests.
+        // For anonymous public notes this stays non-blocking.
+        let tokenToUse = userToken;
+        if (!finalPublicState && typeof window !== 'undefined' && (window as any).Clerk?.session) {
+          try {
+            const fresh = await (window as any).Clerk.session.getToken();
+            if (fresh) tokenToUse = fresh;
+          } catch (_) {
+            // keep tokenToUse as-is
+          }
+        }
+
+        // For public notes without a token, use the public notes API (no auth)
+        if (finalPublicState && !tokenToUse) {
           try {
             await notesStore.createNote(
               {
-                title: title.trim() || 'Untitled Public Note', 
-                content, 
+                title: title.trim() || 'Untitled Public Note',
+                content,
                 isPublic: true
-              }, 
-              undefined // No token for anonymous submission
+              },
+              undefined
             );
-            
-            // Reset form and close modal
             resetForm();
             onSuccess();
             onClose();
@@ -176,39 +184,47 @@
             throw err;
           }
         }
-        
-        // For authenticated notes (both public and private), use the normal flow
-        // Prepare request headers (always include Content-Type)
+
+        // Authenticated path: POST /api/notes with Bearer token
         const headers: Record<string, string> = {
           'Content-Type': 'application/json'
         };
-        
-        // Add authorization header if we have a token (always include it when available)
-        if (userToken) {
-          headers['Authorization'] = `Bearer ${userToken}`;
+        if (tokenToUse) {
+          headers['Authorization'] = `Bearer ${tokenToUse}`;
         }
-        
-        // API endpoint to use - always use /api/notes for consistency
-        const endpoint = '/api/notes';
-        
-        // Payload data
+
         const payload = {
           title,
           content,
           isPublic: finalPublicState
         };
-        
-        console.log(`Sending ${finalPublicState ? 'public' : 'private'} note to endpoint:`, endpoint);
-        console.log('Headers include Authorization:', headers.hasOwnProperty('Authorization'));
-        
-        // Use consistent fetch approach for both public and private notes
-        const response = await fetch(endpoint, {
+
+        const response = await fetch('/api/notes', {
           method: 'POST',
           headers,
           body: JSON.stringify(payload)
         });
-        
+
         if (!response.ok) {
+          // For public notes, fall back to anonymous creation if 401 (token not accepted)
+          if (finalPublicState && response.status === 401) {
+            try {
+              await notesStore.createNote(
+                {
+                  title: title.trim() || 'Untitled Public Note',
+                  content,
+                  isPublic: true
+                },
+                undefined
+              );
+              resetForm();
+              onSuccess();
+              onClose();
+              return;
+            } catch (fallbackErr) {
+              console.error('Fallback public note creation failed:', fallbackErr);
+            }
+          }
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `Failed to create note: ${response.status}`);
         }
@@ -262,7 +278,7 @@
   autoclose={false}
   outsideclose={true}
   placement="center"
-  on:close={handleClose}
+  onclose={handleClose}
 >
   <div class="p-4">
     {#if error}
@@ -353,24 +369,23 @@
         </Helper>
       {/if}
     </div>
-  </div>
 
-  <svelte:fragment slot="footer">
-    <div class="flex justify-end space-x-4 w-full">
+    <!-- Action buttons in body so they're always visible (flowbite Modal footer uses snippet API) -->
+    <div class="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200">
       <Button
         type="button"
         color="light"
-        class="px-6 py-2" 
+        class="px-6 py-2"
         disabled={loading}
-        on:click={handleClose}
+        onclick={handleClose}
       >
         Cancel
       </Button>
       <Button
         type="button"
-        class="{modalButtonColor} text-white px-6 py-2 font-semibold" 
+        class="{modalButtonColor} text-white px-6 py-2 font-semibold"
         disabled={loading || !isFormValid}
-        on:click={handleSubmit}
+        onclick={handleSubmit}
       >
         {#if loading}
           <span class="flex items-center">
@@ -391,5 +406,5 @@
         {/if}
       </Button>
     </div>
-  </svelte:fragment>
+  </div>
 </Modal> 
