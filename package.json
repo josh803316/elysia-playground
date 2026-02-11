@@ -19,6 +19,7 @@
     "build": "turbo run build",
     "build:react": "turbo run build --filter=./react",
     "build:svelte": "turbo run build --filter=./svelte",
+    "build:frontends": "bun run build:react && bun run build:svelte",
     "dev:monolith": "bun run build:react && bun run build:svelte && bun run dev:server",
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
