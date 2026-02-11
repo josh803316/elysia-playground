@@ -9,11 +9,11 @@
       },
     },
     "htmx": {
-      "name": "@videate/htmx-frontend",
+      "name": "@josh803316/htmx-frontend",
       "version": "1.0.0",
     },
     "react": {
-      "name": "@videate/react-client",
+      "name": "@josh803316/react-client",
       "version": "0.0.0",
       "dependencies": {
         "@clerk/clerk-react": "^5.60.0",
@@ -47,7 +47,7 @@
       },
     },
     "server": {
-      "name": "@videate/elysia-api",
+      "name": "@josh803316/elysia-api",
       "version": "1.0.0",
       "dependencies": {
         "@bogeychan/elysia-logger": "^0.1.10",
@@ -71,7 +71,7 @@
       },
     },
     "svelte": {
-      "name": "@videate/svelte-client",
+      "name": "@josh803316/svelte-client",
       "version": "0.0.1",
       "dependencies": {
         "@elysiajs/eden": "^1.4.8",
@@ -564,13 +564,13 @@
 
     "@unhead/schema": ["@unhead/schema@1.11.20", "", { "dependencies": { "hookable": "^5.5.3", "zhead": "^2.2.4" } }, ""],
 
-    "@videate/elysia-api": ["@videate/elysia-api@workspace:server"],
+    "@josh803316/elysia-api": ["@josh803316/elysia-api@workspace:server"],
 
-    "@videate/htmx-frontend": ["@videate/htmx-frontend@workspace:htmx"],
+    "@josh803316/htmx-frontend": ["@josh803316/htmx-frontend@workspace:htmx"],
 
-    "@videate/react-client": ["@videate/react-client@workspace:react"],
+    "@josh803316/react-client": ["@josh803316/react-client@workspace:react"],
 
-    "@videate/svelte-client": ["@videate/svelte-client@workspace:svelte"],
+    "@josh803316/svelte-client": ["@josh803316/svelte-client@workspace:svelte"],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@5.1.4", "", { "dependencies": { "@babel/core": "^7.29.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-rc.3", "@types/babel__core": "^7.20.5", "react-refresh": "^0.18.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-VIcFLdRi/VYRU8OL/puL7QXMYafHmqOnwTZY50U1JPlCNj30PxCMx65c494b1K9be9hX83KVt0+gTEwTWLqToA=="],
 
