@@ -329,13 +329,14 @@ export class NotesController extends BaseApiController<Note> {
             const usersList = await typedCtx.db.select().from(users);
 
             // Create a user lookup map for faster access
-            const userMap = new Map();
-            usersList.forEach((user) => {
+            type UserRow = typeof users.$inferSelect;
+            const userMap = new Map<number, UserRow>();
+            usersList.forEach((user: UserRow) => {
               userMap.set(user.id, user);
             });
 
             // Ensure all dates are properly formatted as strings
-            const ensureISOString = (date: any): string => {
+            const ensureISOString = (date: Date | string | null | undefined): string => {
               if (!date) return "";
 
               try {
@@ -367,7 +368,8 @@ export class NotesController extends BaseApiController<Note> {
             };
 
             // Format notes with user data
-            const formattedNotes = notesList.map((note) => {
+            type NoteRow = typeof notes.$inferSelect;
+            const formattedNotes = notesList.map((note: NoteRow) => {
               const userData = note.userId ? userMap.get(note.userId) : null;
 
               // Format date values as ISO strings
