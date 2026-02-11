@@ -31,13 +31,15 @@ export abstract class BaseApiController<T extends Record<string, any>> {
   /**
    * Define common routes for the controller
    */
-  protected registerCommonRoutes<E extends Elysia>(app: E): E {
+  protected registerCommonRoutes(
+    app: Elysia<any, any, any, any, any, any, any>
+  ): Elysia<any, any, any, any, any, any, any> {
     return (
       app
         // Get all resources
         .get("", async (ctx) => {
           try {
-            const { db } = ctx as DbContext;
+            const { db } = ctx as unknown as DbContext;
             const records = await this.model.findAll(db);
             return records;
           } catch (error) {
@@ -51,7 +53,9 @@ export abstract class BaseApiController<T extends Record<string, any>> {
           "/:id",
           async (ctx) => {
             try {
-              const { db, params } = ctx as DbContext & { params: { id: string } };
+              const { db, params } = ctx as unknown as DbContext & {
+                params: { id: string };
+              };
               const { id } = params;
               const record = await this.model.findById(db, id);
               if (!record) {
@@ -73,7 +77,9 @@ export abstract class BaseApiController<T extends Record<string, any>> {
           "/:id",
           async (ctx) => {
             try {
-              const { db, params } = ctx as DbContext & { params: { id: string } };
+              const { db, params } = ctx as unknown as DbContext & {
+                params: { id: string };
+              };
               const { id } = params;
               const result = await this.model.delete(db, id);
               if (!result.success) {
