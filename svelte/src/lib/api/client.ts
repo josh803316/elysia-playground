@@ -14,13 +14,13 @@ const isPlaceholderApiHost =
   normalizedApiUrl === "https://api";
 
 const API_URL =
-  rawApiUrl && !isPlaceholderApiHost
-    ? /^https?:\/\//i.test(rawApiUrl) || rawApiUrl.startsWith("/")
+  typeof window !== "undefined"
+    ? window.location.origin
+    : rawApiUrl && !isPlaceholderApiHost && /^https?:\/\//i.test(rawApiUrl)
       ? rawApiUrl.replace(/\/+$/, "")
-      : `/${rawApiUrl.replace(/^\/+/, "").replace(/\/+$/, "")}`
-    : import.meta.env.PROD
-      ? "/"
-      : "http://localhost:3000";
+      : typeof process !== "undefined" && process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
 
 // Define error types
 interface ApiError extends Error {

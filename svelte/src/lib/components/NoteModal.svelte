@@ -152,9 +152,10 @@
         // Create new note
         console.log('Creating new note as', finalPublicState ? 'public' : 'private');
 
-        // Resolve token: use prop or fetch fresh from Clerk at submit time (fixes layout timing)
+        // Resolve token only when needed for authenticated/private requests.
+        // For anonymous public notes this stays non-blocking.
         let tokenToUse = userToken;
-        if (typeof window !== 'undefined' && (window as any).Clerk?.session) {
+        if (!finalPublicState && typeof window !== 'undefined' && (window as any).Clerk?.session) {
           try {
             const fresh = await (window as any).Clerk.session.getToken();
             if (fresh) tokenToUse = fresh;
