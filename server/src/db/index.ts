@@ -1,12 +1,12 @@
 import { drizzle } from "drizzle-orm/pglite";
-import type { PGliteDatabase } from "drizzle-orm/pglite";
+import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { PGlite } from "@electric-sql/pglite";
 import * as schema from "./schema";
 import { notes, users } from "./schema";
 import { sql } from "drizzle-orm";
 
 // Database type
-export type Database = PGliteDatabase<typeof schema>;
+export type Database = PgliteDatabase<typeof schema>;
 
 // Database singleton
 let pgLiteInstance: PGlite | null = null;
