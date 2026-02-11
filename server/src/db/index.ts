@@ -1,18 +1,22 @@
 import { drizzle } from "drizzle-orm/pglite";
+import type { PGliteDatabase } from "drizzle-orm/pglite";
 import { PGlite } from "@electric-sql/pglite";
 import * as schema from "./schema";
 import { notes, users } from "./schema";
 import { sql } from "drizzle-orm";
 
+// Database type
+export type Database = PGliteDatabase<typeof schema>;
+
 // Database singleton
 let pgLiteInstance: PGlite | null = null;
-let db: ReturnType<typeof createDB> | null = null;
+let db: Database | null = null;
 let isInitialized = false;
 
 /**
  * Create a drizzle database instance with the schema
  */
-export const createDB = (client: PGlite) => {
+export const createDB = (client: PGlite): Database => {
   return drizzle(client, { schema });
 };
 
@@ -99,14 +103,14 @@ async function createTables(client: PGlite) {
 /**
  * Seed the database with initial data
  */
-async function seedDatabase(db: any) {
+async function seedDatabase(db: Database) {
   console.log("Seeding database...");
 
   try {
     // Check if users already exist
-    const existingUsers = await db.select({ count: sql`count(*)` }).from(users);
+    const existingUsers = await db.select({ count: sql<number>`count(*)` }).from(users);
 
-    if (existingUsers[0]?.count > 0) {
+    if (existingUsers[0]?.count && existingUsers[0].count > 0) {
       console.log("Database already seeded, skipping");
       return;
     }
@@ -169,7 +173,7 @@ async function seedDatabase(db: any) {
 /**
  * Get the database instance (initializes if not already done)
  */
-export const getDB = async () => {
+export const getDB = async (): Promise<Database> => {
   if (!db) {
     return await initDB();
   }

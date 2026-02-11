@@ -1,17 +1,17 @@
-import { DrizzleD1Database } from "drizzle-orm/d1";
-import { eq, and, SQL } from "drizzle-orm";
-import { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
+import type { Database } from "../db";
+import { eq, and } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
 
 /**
  * Base model class for all API models
  * Provides common CRUD operations
  */
-export class BaseApiModel<T extends Record<string, any>> {
-  protected table: SQLiteTableWithColumns<any>;
+export class BaseApiModel<T extends Record<string, unknown>> {
+  protected table: PgTable<any>;
   protected idColumn: keyof T & string;
 
   constructor(
-    table: SQLiteTableWithColumns<any>,
+    table: PgTable<any>,
     idColumn: keyof T & string = "id"
   ) {
     this.table = table;
@@ -22,7 +22,7 @@ export class BaseApiModel<T extends Record<string, any>> {
    * Find a record by ID
    */
   async findById(
-    db: DrizzleD1Database,
+    db: Database,
     id: string | number
   ): Promise<T | null> {
     const records = await db
@@ -35,7 +35,7 @@ export class BaseApiModel<T extends Record<string, any>> {
   /**
    * Find all records
    */
-  async findAll(db: DrizzleD1Database): Promise<T[]> {
+  async findAll(db: Database): Promise<T[]> {
     const records = await db.select().from(this.table);
     return records as T[];
   }
@@ -43,10 +43,10 @@ export class BaseApiModel<T extends Record<string, any>> {
   /**
    * Create a new record
    */
-  async create(db: DrizzleD1Database, data: Partial<T>): Promise<T> {
+  async create(db: Database, data: Partial<T>): Promise<T> {
     const records = await db
       .insert(this.table)
-      .values(data as any)
+      .values(data)
       .returning();
     return records[0] as T;
   }
@@ -55,13 +55,13 @@ export class BaseApiModel<T extends Record<string, any>> {
    * Update an existing record
    */
   async update(
-    db: DrizzleD1Database,
+    db: Database,
     id: string | number,
     data: Partial<T>
   ): Promise<T | null> {
     const records = await db
       .update(this.table)
-      .set(data as any)
+      .set(data)
       .where(eq(this.table[this.idColumn], id))
       .returning();
 
@@ -72,7 +72,7 @@ export class BaseApiModel<T extends Record<string, any>> {
    * Delete a record
    */
   async delete(
-    db: DrizzleD1Database,
+    db: Database,
     id: string | number
   ): Promise<{ success: boolean; message?: string }> {
     const record = await this.findById(db, id);
@@ -87,7 +87,7 @@ export class BaseApiModel<T extends Record<string, any>> {
   /**
    * Custom query with conditions
    */
-  async findWhere(db: DrizzleD1Database, conditions: Partial<T>): Promise<T[]> {
+  async findWhere(db: Database, conditions: Partial<T>): Promise<T[]> {
     // Convert conditions to an array of eq conditions
     const conditionArray = Object.entries(conditions).map(([key, value]) => {
       return eq(this.table[key], value);

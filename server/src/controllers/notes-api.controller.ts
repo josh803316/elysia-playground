@@ -2,11 +2,11 @@ import { Elysia, t } from "elysia";
 import { BaseApiController } from "./base-api.controller";
 import { NotesModel, Note, NoteDTO } from "../models/notes.model";
 import { UsersModel } from "../models/users.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import type { Database } from "../db";
 
 // Context interface for authentication
 interface AuthContext {
-  db: DrizzleD1Database;
+  db: Database;
   // Use optional chaining for auth properties
   auth?: {
     userId?: string;

@@ -1,6 +1,6 @@
 import { BaseApiModel } from "./base-api.model";
 import { users } from "../db/schema";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import type { Database } from "../db";
 import { eq } from "drizzle-orm";
 
 // Define the User type based on the schema
@@ -49,7 +49,7 @@ export class UsersModel extends BaseApiModel<User> {
    * Find a user by their Clerk ID
    */
   async findByClerkId(
-    db: DrizzleD1Database,
+    db: Database,
     clerkId: string
   ): Promise<User | null> {
     const results = await db
@@ -64,7 +64,7 @@ export class UsersModel extends BaseApiModel<User> {
    * Find a user by their email
    */
   async findByEmail(
-    db: DrizzleD1Database,
+    db: Database,
     email: string
   ): Promise<User | null> {
     const results = await db.select().from(users).where(eq(users.email, email));
@@ -77,7 +77,7 @@ export class UsersModel extends BaseApiModel<User> {
    * This method fetches user data from Clerk if needed
    */
   async findOrCreateByClerkId(
-    db: DrizzleD1Database,
+    db: Database,
     clerkId: string,
     clerk: ClerkInstance
   ): Promise<User> {
@@ -105,7 +105,7 @@ export class UsersModel extends BaseApiModel<User> {
       };
 
       // Use a transaction for the insert to handle race conditions
-      const inserted = await db.transaction(async (tx: any) => {
+      const inserted = await db.transaction(async (tx: Database) => {
         // Check one more time inside transaction to avoid race conditions
         const existingUserInTx = await tx
           .select()

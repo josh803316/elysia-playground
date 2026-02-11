@@ -1,10 +1,10 @@
 import { Elysia, t } from "elysia";
 import { BaseApiModel } from "../models/base-api.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import type { Database } from "../db";
 
 // Type definition for the context that includes db
 interface DbContext {
-  db: DrizzleD1Database;
+  db: Database;
 }
 
 /**

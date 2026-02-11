@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia";
 import { BaseApiController } from "./base-api.controller";
 import { NotesModel, Note } from "../models/notes.model";
 import { UsersModel } from "../models/users.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import type { Database } from "../db";
 import { authGuard } from "../guards/auth-guard";
 import { ownershipGuard } from "../guards/ownership-guard";
 
@@ -24,7 +24,7 @@ type ClerkContext = {
       }>;
     };
   };
-  db: DrizzleD1Database;
+  db: Database;
   params?: { id: string };
   body?: any;
 };

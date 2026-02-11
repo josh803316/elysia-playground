@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { eq, desc, and } from "drizzle-orm";
 import { notes, users } from "../db/schema";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import type { Database } from "../db";
 import {
   notesPage,
   notesTablePage,
@@ -24,7 +24,7 @@ import { UsersModel } from "../models/users.model";
 
 // Type for database context
 interface DbContext {
-  db: DrizzleD1Database;
+  db: Database;
   params?: { id: string };
   body?: any;
   request: {

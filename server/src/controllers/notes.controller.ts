@@ -6,13 +6,13 @@ import { notes, users } from "../db/schema";
 import { BaseApiController } from "./base-api.controller";
 import { NotesModel, Note } from "../models/notes.model";
 import { UsersModel } from "../models/users.model";
-import { DrizzleD1Database } from "drizzle-orm/d1";
+import type { Database } from "../db";
 
 // Type definitions for context
 type AuthData = {
   userId: string | number;
-  sessionClaims?: Record<string, any>;
-  [key: string]: any;
+  sessionClaims?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 type Context = {
@@ -23,11 +23,11 @@ type Context = {
         firstName?: string;
         lastName?: string;
         emailAddresses?: Array<{ emailAddress: string }>;
-        [key: string]: any;
+        [key: string]: unknown;
       }>;
     };
   };
-  db: DrizzleD1Database;
+  db: Database;
   store: {
     resource: any;
   };
