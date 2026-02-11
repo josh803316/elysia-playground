@@ -3,6 +3,7 @@ import { swagger } from "@elysiajs/swagger";
 import { opentelemetry } from "@elysiajs/opentelemetry";
 import { clerkPlugin } from "elysia-clerk";
 import { cors } from "@elysiajs/cors";
+import { promises as fs } from "fs";
 import { join, resolve } from "path";
 
 import { privateNotesController } from "./controllers/private-notes.controller";
@@ -10,7 +11,7 @@ import { notesController } from "./controllers/notes.controller";
 import { publicNotesController } from "./controllers/public-notes.controller";
 import { versionsController } from "./controllers/versions.controller";
 import { htmxController } from "./controllers/htmx.controller";
-import { getDB } from "./db";
+import { getDB, initDB } from "./db";
 import { apiKeyGuard } from "./guards/api-key-guard";
 import { authGuard } from "./guards/auth-guard";
 import { useLogger } from "./middleware/logger.middleware";
@@ -36,6 +37,12 @@ const getErrorMessage = (error: any): string => {
     return String(error.message);
   return String(error);
 };
+
+// Initialize/seed DB once per cold start. Do not hard-exit on failure in serverless.
+const dbSetupPromise = initDB({ seed: true }).catch((error) => {
+  console.error("Database setup failed during startup:", error);
+  return null;
+});
 
 // Create API routes with /api prefix
 const api = new Elysia({ prefix: "/api" })
@@ -74,47 +81,77 @@ const api = new Elysia({ prefix: "/api" })
 const reactAssetsPath = resolve(new URL("../../react/dist", import.meta.url).pathname);
 const svelteAssetsPath = resolve(new URL("../../svelte/build", import.meta.url).pathname);
 
-// Helper: create an Elysia plugin that serves a pre-built SPA from disk.
-// Uses Bun.file() directly to avoid Bun's HTML bundler (which rewrites
-// already-built Vite / SvelteKit output and breaks asset paths).
-const serveSPA = (assetsDir: string, prefix: string) => {
-  const indexFile = Bun.file(join(assetsDir, "index.html"));
+const contentTypeByExt: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".txt": "text/plain; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+};
 
-  const serveIndex = () => new Response(indexFile.slice(), {
-    headers: { "content-type": "text/html; charset=utf-8" },
-  });
+const getContentType = (filePath: string): string =>
+  contentTypeByExt[filePath.slice(filePath.lastIndexOf("."))] ??
+  "application/octet-stream";
+
+// Helper: create an Elysia plugin that serves a pre-built SPA from disk.
+// Uses fs APIs so it works on Node and Bun runtimes.
+const serveSPA = (assetsDir: string, prefix: string) => {
+  const indexPath = join(assetsDir, "index.html");
+
+  const serveIndex = async () => {
+    const html = await fs.readFile(indexPath);
+    return new Response(new Uint8Array(html), {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  };
 
   return new Elysia()
     // Redirect bare prefix to trailing-slash so relative paths in HTML resolve correctly
     // e.g. /svelte -> /svelte/  (without this, "./_app/foo.css" resolves to "/_app/foo.css")
-    .get(prefix, ({ request }) => {
+    .get(prefix, async ({ request }) => {
       const url = new URL(request.url);
       if (!url.pathname.endsWith("/")) {
         return Response.redirect(`${url.pathname}/`, 302);
       }
-      return serveIndex();
+      return await serveIndex();
     })
     .group(prefix, (app) =>
       app
-        .get("/", serveIndex)
+        .get("/", async () => await serveIndex())
         .get("/*", async ({ params }) => {
-          const reqPath = params["*"];
-          const filePath = join(assetsDir, reqPath);
+          const reqPath = params["*"] ?? "";
+          const filePath = resolve(assetsDir, reqPath);
 
           // Prevent path traversal
-          if (!filePath.startsWith(assetsDir)) {
+          if (!filePath.startsWith(assetsDir + "/") && filePath !== assetsDir) {
             throw new NotFoundError();
           }
 
-          const file = Bun.file(filePath);
-          if (await file.exists() && !(await file.stat()).isDirectory()) {
-            return new Response(file, {
-              headers: file.type ? { "content-type": file.type } : undefined,
-            });
+          try {
+            const stat = await fs.stat(filePath);
+            if (stat.isFile()) {
+              const file = await fs.readFile(filePath);
+              return new Response(new Uint8Array(file), {
+                headers: { "content-type": getContentType(filePath) },
+              });
+            }
+          } catch {
+            // Ignore fs errors and fall back to index for SPA routes.
           }
 
           // SPA fallback — serve index.html for client-side routing
-          return serveIndex();
+          return await serveIndex();
         })
     );
 };
@@ -159,6 +196,7 @@ app
     console.log(`[REQUEST] ${request.method} ${url.pathname}`);
   })
   .derive(async () => {
+    await dbSetupPromise;
     // Attach database to context
     const db = await getDB();
     return { db };
