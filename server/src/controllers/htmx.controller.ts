@@ -26,10 +26,8 @@ import { UsersModel } from "../models/users.model";
 interface DbContext {
   db: Database;
   params?: { id: string };
-  body?: any;
-  request: {
-    headers: Headers;
-  };
+  body?: unknown;
+  request: Request;
 }
 
 // Type for context with clerk auth
@@ -91,7 +89,14 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         .orderBy(desc(notes.createdAt));
 
       // Format the response
-      const formattedNotes: Note[] = publicNotesWithUsers.map((item) => ({
+      const formattedNotes: Note[] = publicNotesWithUsers.map((item: {
+        note: typeof notes.$inferSelect;
+        user: {
+          email: string;
+          firstName: string | null;
+          lastName: string | null;
+        } | null;
+      }) => ({
         ...item.note,
         user: item.user || null,
       }));
@@ -368,7 +373,14 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         .orderBy(desc(notes.createdAt));
 
       // Format the response
-      const formattedNotes: Note[] = publicNotesWithUsers.map((item) => ({
+      const formattedNotes: Note[] = publicNotesWithUsers.map((item: {
+        note: typeof notes.$inferSelect;
+        user: {
+          email: string;
+          firstName: string | null;
+          lastName: string | null;
+        } | null;
+      }) => ({
         ...item.note,
         user: item.user || null,
       }));
@@ -632,7 +644,14 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         .leftJoin(users, eq(notes.userId, users.id))
         .orderBy(desc(notes.createdAt));
 
-      const formattedNotes: Note[] = publicNotesWithUsers.map((item) => ({
+      const formattedNotes: Note[] = publicNotesWithUsers.map((item: {
+        note: typeof notes.$inferSelect;
+        user: {
+          email: string;
+          firstName: string | null;
+          lastName: string | null;
+        } | null;
+      }) => ({
         ...item.note,
         user: item.user || null,
       }));
