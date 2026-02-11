@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from 'svelte-clerk/client';
-	import { PUBLIC_CLERK_PUBLISHABLE_KEY } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { versionStore } from '$lib/stores/version';
@@ -38,6 +37,12 @@
 	let adminKeyInput = $state("");
 	let adminModalOpen = $state(false);
 	let clerkLoaded = $state(false);
+
+	const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+	if (!CLERK_PUBLISHABLE_KEY) {
+		throw new Error('Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in env');
+	}
 	let userName = $state<string | null>(null);
 	let createNoteModalOpen = $state(false);
 	let createPublicNote = $state(true);
@@ -243,7 +248,7 @@
 </script>
 
 {#if typeof window !== 'undefined'}
-<ClerkProvider publishableKey={PUBLIC_CLERK_PUBLISHABLE_KEY}>
+<ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
 	<div class="min-h-screen bg-gray-50 flex flex-col">
 		<!-- Header - Tailored to match the React app -->
 		<header class="bg-white shadow-sm border-b">

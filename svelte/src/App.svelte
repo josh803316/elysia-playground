@@ -1,6 +1,5 @@
 <script lang="ts">
   import { ClerkProvider, UserButton, SignInButton, SignedIn, SignedOut } from 'svelte-clerk';
-  import { PUBLIC_CLERK_PUBLISHABLE_KEY } from '$env/static/public';
   
   import {
     Navbar,
@@ -19,6 +18,12 @@
   let publicNotesCount = 0;
   let privateNotesCount = 0;
   let isAdminLoggedIn = false;
+
+  const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+  if (!CLERK_PUBLISHABLE_KEY) {
+    throw new Error("Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in env");
+  }
   
   async function loadInitialData() {
     try {
@@ -62,7 +67,7 @@
   loadInitialData();
 </script>
 
-<ClerkProvider publishableKey={PUBLIC_CLERK_PUBLISHABLE_KEY}>
+<ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
   <div class="flex flex-col min-h-screen bg-gray-50">
     <!-- Fixed Header -->
     <Navbar class="px-6 border-b shadow-sm fixed top-0 left-0 right-0 z-40 bg-white h-[60px]">
