@@ -170,10 +170,11 @@ app
         "http://localhost:6173",
       ],
       // Skip authentication for public paths
-      protectedRoutes: (path) => {
+      // Using type assertion since runtime may support this even if types don't
+      protectedRoutes: (path: string) => {
         return !publicPaths.some((publicPath) => path.startsWith(publicPath));
       },
-    })
+    } as any)
   )
   .use(
     cors({
