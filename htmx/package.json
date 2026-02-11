@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "echo 'HTMX is served by the Elysia server'",
-    "build": "echo 'HTMX build - static files only'"
+    "build": "echo 'HTMX build - static files only'",
+    "test": "cd ../server && bun test src/controllers/htmx.controller.test.ts"
   }
 }
