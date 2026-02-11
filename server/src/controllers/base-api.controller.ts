@@ -35,8 +35,9 @@ export abstract class BaseApiController<T extends Record<string, any>> {
     return (
       app
         // Get all resources
-        .get("", async ({ db }: DbContext) => {
+        .get("", async (ctx) => {
           try {
+            const { db } = ctx as DbContext;
             const records = await this.model.findAll(db);
             return records;
           } catch (error) {
@@ -48,11 +49,10 @@ export abstract class BaseApiController<T extends Record<string, any>> {
         // Get a resource by ID
         .get(
           "/:id",
-          async ({
-            params: { id },
-            db,
-          }: DbContext & { params: { id: string } }) => {
+          async (ctx) => {
             try {
+              const { db, params } = ctx as DbContext & { params: { id: string } };
+              const { id } = params;
               const record = await this.model.findById(db, id);
               if (!record) {
                 return new Response(
@@ -71,11 +71,10 @@ export abstract class BaseApiController<T extends Record<string, any>> {
         // Delete a resource
         .delete(
           "/:id",
-          async ({
-            params: { id },
-            db,
-          }: DbContext & { params: { id: string } }) => {
+          async (ctx) => {
             try {
+              const { db, params } = ctx as DbContext & { params: { id: string } };
+              const { id } = params;
               const result = await this.model.delete(db, id);
               if (!result.success) {
                 return new Response(
@@ -94,7 +93,7 @@ export abstract class BaseApiController<T extends Record<string, any>> {
               throw new Error(`Failed to delete ${this.resourceName}`);
             }
           }
-        ) as any
+        )
     );
   }
 
