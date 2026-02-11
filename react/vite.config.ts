@@ -4,7 +4,8 @@ import compression from "vite-plugin-compression";
 import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/react/" : "/",
   plugins: [
     react(),
     // Add gzip/brotli compression for all assets
@@ -73,4 +74,4 @@ export default defineConfig({
       target: "es2020",
     },
   },
-});
+}));

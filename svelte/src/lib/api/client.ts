@@ -2,8 +2,11 @@ import { treaty } from "@elysiajs/eden";
 // Import the App type from the server
 import type { App } from "../../../../server/src/index";
 
-// Get the API URL from environment variables
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Get the API URL from environment variables.
+// In production (Vercel), default to same-origin calls.
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? "" : "http://localhost:3000");
 
 // Define error types
 interface ApiError extends Error {

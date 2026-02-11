@@ -19,6 +19,7 @@
     "build": "turbo run build",
     "build:react": "turbo run build --filter=./react",
     "build:svelte": "turbo run build --filter=./svelte",
+    "dev:monolith": "bun run build:react && bun run build:svelte && bun run dev:server",
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
     "lint": "turbo run lint",
@@ -28,7 +29,7 @@
     "install:svelte": "cd svelte && bun install",
     "install:server": "cd server && bun install",
     "install:htmx": "cd htmx && bun install",
-    "dev:server": "bun run dev -w server",
+    "dev:server": "cd server && bun run dev",
     "build:server": "bun run build -w server",
     "start:server": "bun run start -w server",
     "test:server": "bun test --bun"

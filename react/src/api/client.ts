@@ -3,7 +3,10 @@ import { treaty } from "@elysiajs/eden";
 import type { App } from "../../../server/src/index";
 
 // Get the API URL from environment variables (used by Eden and by fetch() for consistency)
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// In production (Vercel), default to same-origin calls.
+export const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? "" : "http://localhost:3000");
 
 /** In dev (Vite on 5173), use relative path so the proxy forwards to the server and we avoid CORS. */
 export function getApiBase(): string {

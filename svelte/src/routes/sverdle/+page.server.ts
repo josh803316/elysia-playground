@@ -2,6 +2,9 @@ import { fail } from '@sveltejs/kit';
 import { Game } from './game';
 import type { PageServerLoad, Actions } from './$types';
 
+// This route uses form actions, so it cannot be prerendered.
+export const prerender = false;
+
 export const load = (({ cookies }) => {
 	const game = new Game(cookies.get('sverdle'));
 
