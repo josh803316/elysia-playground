@@ -62,7 +62,7 @@ export class NotesController extends BaseApiController<Note> {
   /**
    * Initialize routes for the Notes API
    */
-  init() {
+  init(): Elysia<any, any, any, any, any, any, any> {
     const app = new Elysia();
 
     return (

@@ -26,7 +26,7 @@ export abstract class BaseApiController<T extends Record<string, any>> {
    * Initialize the controller with routes
    * Should be implemented by subclasses
    */
-  abstract init(): Elysia;
+  abstract init(): Elysia<any, any, any, any, any, any, any>;
 
   /**
    * Define common routes for the controller
