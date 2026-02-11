@@ -38,6 +38,18 @@ const getErrorMessage = (error: any): string => {
   return String(error);
 };
 
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <path d="M16 20h26a8 8 0 0 1 0 16H30v8h-8v-24h-6z" fill="#fff"/>
+  <circle cx="46" cy="44" r="6" fill="#fff" opacity=".9"/>
+</svg>`;
+
 // Initialize/seed DB once per cold start. Do not hard-exit on failure in serverless.
 const dbSetupPromise = initDB({ seed: true }).catch((error) => {
   console.error("Database setup failed during startup:", error);
@@ -216,6 +228,16 @@ app
     return { error: errorMsg || "Unknown error" };
   })
   .head("/", () => "")
+  .get("/favicon.svg", () =>
+    new Response(faviconSvg, {
+      headers: { "content-type": "image/svg+xml" },
+    })
+  )
+  .get("/favicon.ico", () =>
+    new Response(faviconSvg, {
+      headers: { "content-type": "image/svg+xml" },
+    })
+  )
   .get(
     "/",
     () =>
@@ -227,6 +249,7 @@ app
           "  <meta charset='utf-8' />",
           "  <meta name='viewport' content='width=device-width, initial-scale=1' />",
           "  <title>Elysia Playground – Frontend Demos</title>",
+          "  <link rel='icon' href='/favicon.svg' type='image/svg+xml' />",
           "  <style>",
           "    :root {",
           "      color-scheme: dark;",

@@ -1,4 +1,4 @@
-import videateSharedConfig from '@videate/shared-config/eslint.config.js';
+import josh803316SharedConfig from '@josh803316/shared-config/eslint.config.js';
 import drizzle from 'eslint-plugin-drizzle';
 
 // the Drizzle ESLint plugin is a bit dumb, it doesn't understand types,
@@ -6,7 +6,7 @@ import drizzle from 'eslint-plugin-drizzle';
 const drizzleObjectName = ['db', 'tx'];
 
 const config = [
-  ...videateSharedConfig, // Spread the shared config into the main array
+  ...josh803316SharedConfig, // Spread the shared config into the main array
   {
     plugins: {
       drizzle,
