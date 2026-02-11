@@ -2,7 +2,6 @@ import { Elysia, NotFoundError } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { opentelemetry } from "@elysiajs/opentelemetry";
 import { clerkPlugin } from "elysia-clerk";
-import { sql } from "drizzle-orm";
 import { cors } from "@elysiajs/cors";
 import { join, resolve } from "path";
 
@@ -11,7 +10,7 @@ import { notesController } from "./controllers/notes.controller";
 import { publicNotesController } from "./controllers/public-notes.controller";
 import { versionsController } from "./controllers/versions.controller";
 import { htmxController } from "./controllers/htmx.controller";
-import { initDB, getDB } from "./db";
+import { getDB } from "./db";
 import { apiKeyGuard } from "./guards/api-key-guard";
 import { authGuard } from "./guards/auth-guard";
 import { useLogger } from "./middleware/logger.middleware";
@@ -29,34 +28,6 @@ export const publicPaths = [
   "/react",
   "/svelte",
 ];
-
-// Initialize and configure the database with seeding
-const setupDatabase = async () => {
-  try {
-    console.log("Setting up database with seeding...");
-    // Initialize DB and seed with data
-    const db = await initDB({ seed: true });
-
-    // Log the database contents
-    const usersCount = await db.execute(sql`SELECT COUNT(*) FROM users`);
-    const notesCount = await db.execute(sql`SELECT COUNT(*) FROM notes`);
-
-    // console.log("Database setup complete:");
-    // console.log("- Users:", usersCount);
-    // console.log("- Notes:", notesCount);
-
-    return db;
-  } catch (err) {
-    console.error("Database initialization failed:", err);
-    process.exit(1);
-  }
-};
-
-// Initialize the database
-setupDatabase().catch((err) => {
-  console.error("Database setup failed:", err);
-  process.exit(1);
-});
 
 // Helper to safely get error message
 const getErrorMessage = (error: any): string => {
