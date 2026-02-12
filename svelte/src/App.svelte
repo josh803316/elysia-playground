@@ -105,7 +105,7 @@
           
           <SignedOut>
             <SignInButton>
-              <Button color="indigo" size="xs" class="ml-2">Sign In</Button>
+              <Button color="primary" size="xs" class="ml-2">Sign In</Button>
             </SignInButton>
           </SignedOut>
           
@@ -115,7 +115,7 @@
           {#if isAdminLoggedIn}
             <Button color="red" size="xs" onclick={handleAdminLogout}>Admin Logout</Button>
           {:else}
-            <Button color="blue" size="xs" href="/">Admin Login</Button>
+            <Button color="primary" size="xs" href="/">Admin Login</Button>
           {/if}
         </div>
       </div>
@@ -149,14 +149,5 @@
   :global(body) {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  
-  /* Adjust colors to match Mantine theme */
-  :global(.btn-indigo) {
-    background-color: #4263eb !important;
-  }
-  
-  :global(.btn-indigo:hover) {
-    background-color: #3b5bdb !important;
   }
 </style> 

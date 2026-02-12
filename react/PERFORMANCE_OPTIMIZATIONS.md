@@ -114,14 +114,14 @@ export const theme = createTheme({
 To support these optimizations, install the following dependencies:
 
 ```bash
-npm install --save-dev vite-plugin-compression rollup-plugin-visualizer
+bun add -d vite-plugin-compression rollup-plugin-visualizer
 ```
 
 ## Monitoring Performance
 
 After implementing these changes, you can:
 
-1. Run `npm run build` to generate a production build
+1. Run `bun run build` to generate a production build
 2. Check the generated `stats.html` to visualize your bundle sizes
 3. Run Lighthouse again to measure the improvements
 

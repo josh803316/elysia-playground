@@ -121,32 +121,47 @@
       
       if (isEditing && noteId) {
         // Update existing note
-        console.log('Updating existing note:', noteId, 'as', finalPublicState ? 'public' : 'private');
-        
-        // For all notes being edited, ensure we have authorization headers when needed
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json'
-        };
-        
-        // Add authorization header if we have a token (always include it when available)
-        if (userToken) {
-          headers['Authorization'] = `Bearer ${userToken}`;
-        }
-        
-        // Use fetch for consistent behavior
-        const response = await fetch(`/api/notes/${noteId}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({
-            title,
-            content,
-            isPublic: finalPublicState
-          })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to update note: ${response.status}`);
+        const isAnonymousPublic =
+          initialNote &&
+          (initialNote.userId == null || initialNote.userId === '') &&
+          (initialNote.isPublic === true || initialNote.isPublic === 'true');
+
+        if (isAnonymousPublic) {
+          // Anonymous public notes: PUT /api/public-notes/:id (no auth required)
+          const response = await fetch(`/api/public-notes/${noteId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: title.trim() || 'Public Note',
+              content,
+              isPublic: finalPublicState
+            })
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to update note: ${response.status}`);
+          }
+        } else {
+          // User-owned or private notes: PUT /api/notes/:id with auth
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+          };
+          if (userToken) {
+            headers['Authorization'] = `Bearer ${userToken}`;
+          }
+          const response = await fetch(`/api/notes/${noteId}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              title,
+              content,
+              isPublic: finalPublicState
+            })
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to update note: ${response.status}`);
+          }
         }
       } else {
         // Create new note

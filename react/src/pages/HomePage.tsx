@@ -1,12 +1,13 @@
-import { useUser, useAuth } from "@clerk/clerk-react";
+import { useUser, useAuth, SignInButton, SignedOut } from "@clerk/clerk-react";
 import { useState, useEffect, useRef } from "react";
-import { Grid, Paper, Title, Text, Group, Button } from "@mantine/core";
+import { Grid, Paper, Title, Text, Group, Button, Modal, Textarea, Stack, Alert } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { IconPlus } from "@tabler/icons-react";
-import AnonymousNoteForm from "../components/AnonymousNoteForm";
 import NotesGrid from "../components/NotesGrid";
 import { NoteForm } from "../components/NoteForm";
+import { AdminNotesTable } from "../components/AdminNotesTable";
 import { useNoteContext } from "../context/NoteContext";
-import { API_URL, getApiBase } from "../api/client";
+import { getApiBase } from "../api/client";
 
 interface Note {
   id: string;
@@ -16,6 +17,11 @@ interface Note {
   isPublic: string;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
 }
 
 const HomePage = () => {
@@ -31,10 +37,16 @@ const HomePage = () => {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminApiKey, setAdminApiKey] = useState<string | null>(null);
   const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [anonymousNoteModalOpen, setAnonymousNoteModalOpen] = useState(false);
   const [initialNoteValues, setInitialNoteValues] = useState({
     isPublic: false,
   });
   const [initialized, setInitialized] = useState(false);
+  const [anonymousSubmitError, setAnonymousSubmitError] = useState<string | null>(null);
+  const anonymousForm = useForm({
+    initialValues: { content: "", isPublic: true },
+    validate: { content: (v) => (v.trim().length > 0 ? null : "Note content cannot be empty") },
+  });
   const publicNotesRequestIdRef = useRef(0);
 
   // Fetch public notes (use relative URL in dev so Vite proxy is used; avoids CORS)
@@ -243,131 +255,135 @@ const HomePage = () => {
     setNoteModalOpen(true);
   };
 
+  const handleAnonymousNoteSubmit = async (values: { content: string; isPublic: boolean }) => {
+    if (!values.content.trim()) return;
+    setAnonymousSubmitError(null);
+    try {
+      const base = getApiBase();
+      const url = base ? `${base}/api/public-notes` : "/api/public-notes";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: values.content, isPublic: values.isPublic }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to create note");
+      }
+      anonymousForm.reset();
+      setAnonymousNoteModalOpen(false);
+      triggerRefresh();
+      handleNoteCreated();
+    } catch (err) {
+      setAnonymousSubmitError(err instanceof Error ? err.message : "Failed to create note");
+    }
+  };
+
   return (
     <Grid>
-      {/* Admin View - All Notes */}
+      {/* All Notes (Admin View) - single table at top when admin */}
       {isAdminLoggedIn && (
-        <Grid.Col span={12}>
-          <Paper shadow="xs" p="md" withBorder>
-            <Title order={2} mb="md">
-              Admin Dashboard
-            </Title>
-            {loading && <Text>Loading all notes...</Text>}
-            {error && <Text c="red">{error}</Text>}
+        <Grid.Col span={12} data-testid="section-admin-table">
+          <AdminNotesTable
+            notes={allNotes}
+            loading={loading}
+            error={error}
+            adminApiKey={adminApiKey}
+            onRefetch={() => fetchAllNotes()}
+            showCreateButton={false}
+          />
+        </Grid.Col>
+      )}
 
-            {/* Admin View - Public Notes */}
-            <div
-              className="admin-notes-section public-notes"
-              style={{ marginBottom: "2rem" }}
+      {/* Public Notes Section - match HTMX/Svelte: wide section, green button in header for everyone */}
+      <Grid.Col span={12} data-testid="section-public-notes">
+        <Paper shadow="sm" p="md" withBorder radius="md">
+          <Group justify="space-between" mb="md">
+            <div>
+              <Title order={2}>Public Notes</Title>
+              <Text size="sm" c="dimmed">Visible to everyone</Text>
+            </div>
+            <Button
+              leftSection={<IconPlus size={18} />}
+              color="green"
+              variant="filled"
+              onClick={() => {
+                if (isSignedIn) {
+                  openNoteModal(true);
+                } else {
+                  setAnonymousSubmitError(null);
+                  anonymousForm.reset();
+                  setAnonymousNoteModalOpen(true);
+                }
+              }}
             >
-              <Title order={3} mb="md">
-                Public Notes
-              </Title>
-              <NotesGrid
-                notes={allNotes.filter((note) => note.isPublic === "true")}
-                emptyMessage="No public notes found in the system."
-                showUser={true}
-                onNoteDeleted={handleNoteCreated}
-                onNoteUpdated={handleNoteCreated}
-                isAdmin={true}
-              />
-            </div>
+              + Create Public Note
+            </Button>
+          </Group>
+          {loading && <Text>Loading public notes...</Text>}
+          {error && <Text c="red">{error}</Text>}
+          <NotesGrid
+            notes={publicNotes}
+            emptyMessage="No public notes yet. Be the first to create one!"
+            showUser={true}
+            onNoteDeleted={handleNoteCreated}
+            onNoteUpdated={handleNoteCreated}
+            currentUserNotes={isSignedIn ? privateNotes.filter((n) => n.isPublic === "true").map((n) => n.id) : undefined}
+          />
+        </Paper>
+      </Grid.Col>
 
-            {/* Admin View - Private Notes */}
-            <div className="admin-notes-section private-notes">
-              <Title order={3} mb="md">
-                Private Notes
-              </Title>
-              <NotesGrid
-                notes={allNotes.filter((note) => note.isPublic !== "true")}
-                emptyMessage="No private notes found in the system."
-                showUser={true}
-                onNoteDeleted={handleNoteCreated}
-                onNoteUpdated={handleNoteCreated}
-                isAdmin={true}
-              />
-            </div>
+      {/* Want to create private notes? - only when signed out (match HTMX) */}
+      <SignedOut>
+        <Grid.Col span={12}>
+          <Paper shadow="sm" p="md" withBorder radius="md" style={{ textAlign: "center" }}>
+            <Title order={2} mb="xs">
+              Want to create private notes?
+            </Title>
+            <Text size="sm" c="dimmed" mb="md">
+              Sign in to create and manage your own private notes.
+            </Text>
+            <SignInButton mode="modal">
+              <Button variant="filled" color="indigo">
+                Sign In to Get Started
+              </Button>
+            </SignInButton>
+          </Paper>
+        </Grid.Col>
+      </SignedOut>
+
+      {/* Your Notes Section - only when signed in */}
+      {isSignedIn && (
+        <Grid.Col span={12} data-testid="section-your-notes">
+          <Paper shadow="sm" p="md" withBorder radius="md">
+            <Group justify="space-between" mb="xs">
+              <div>
+                <Title order={2}>Your Notes</Title>
+                <Text size="sm" c="dimmed">Only you can see these notes</Text>
+              </div>
+              <Button
+                leftSection={<IconPlus size={18} />}
+                color="violet"
+                variant="filled"
+                onClick={() => openNoteModal(false)}
+              >
+                + Create Private Note
+              </Button>
+            </Group>
+            {loading && <Text>Loading your notes...</Text>}
+            {error && <Text c="red">{error}</Text>}
+            <NotesGrid
+              notes={privateNotes}
+              emptyMessage="No notes yet. Create your first note using the button above!"
+              showUser={false}
+              onNoteDeleted={handleNoteCreated}
+              onNoteUpdated={handleNoteCreated}
+            />
           </Paper>
         </Grid.Col>
       )}
 
-      {/* User View */}
-      {!isAdminLoggedIn && (
-        <>
-          {/* Public Notes Section */}
-          <Grid.Col span={12}>
-            <Paper shadow="sm" p="md" withBorder radius="md">
-              <Group justify="space-between" mb="md">
-                <Title order={2}>Public Notes</Title>
-                {isSignedIn && (
-                  <Button
-                    leftSection={<IconPlus size={18} />}
-                    color="green"
-                    variant="filled"
-                    onClick={() => openNoteModal(true)}
-                  >
-                    + Create Public Note
-                  </Button>
-                )}
-              </Group>
-              {loading && <Text>Loading public notes...</Text>}
-              {error && <Text c="red">{error}</Text>}
-              <NotesGrid
-                notes={publicNotes}
-                emptyMessage="No public notes yet. Be the first to create one!"
-                showUser={true}
-                onNoteDeleted={handleNoteCreated}
-                onNoteUpdated={handleNoteCreated}
-                currentUserNotes={privateNotes
-                  .filter((note) => note.isPublic === "true")
-                  .map((note) => note.id)}
-              />
-            </Paper>
-          </Grid.Col>
-
-          {/* Your Notes Section (only for signed-in users) */}
-          {isSignedIn && (
-            <Grid.Col span={12}>
-              <Paper shadow="sm" p="md" withBorder radius="md">
-                <Group justify="space-between" mb="md">
-                  <Title order={2}>Your Notes</Title>
-                  <Button
-                    leftSection={<IconPlus size={18} />}
-                    color="violet"
-                    variant="filled"
-                    onClick={() => openNoteModal(false)}
-                  >
-                    + Create Private Note
-                  </Button>
-                </Group>
-                {loading && <Text>Loading your notes...</Text>}
-                {error && <Text c="red">{error}</Text>}
-                <NotesGrid
-                  notes={privateNotes}
-                  emptyMessage="You haven't created any private notes yet."
-                  showUser={false}
-                  onNoteDeleted={handleNoteCreated}
-                  onNoteUpdated={handleNoteCreated}
-                />
-              </Paper>
-            </Grid.Col>
-          )}
-
-          {/* Anonymous Note Creation (only for non-signed in users) */}
-          {!isSignedIn && (
-            <Grid.Col span={12}>
-              <Paper shadow="sm" p="md" withBorder radius="md">
-                <Title order={2} mb="md">
-                  Create a Public Note
-                </Title>
-                <AnonymousNoteForm onNoteCreated={handleNoteCreated} />
-              </Paper>
-            </Grid.Col>
-          )}
-        </>
-      )}
-
-      {/* Note Creation Modal */}
+      {/* Note Creation Modal (signed in) */}
       {isSignedIn && (
         <NoteForm
           isOpen={noteModalOpen}
@@ -380,6 +396,35 @@ const HomePage = () => {
           onSubmitSuccess={handleNoteCreated}
         />
       )}
+
+      {/* Create Public Note modal (signed out) - opened by "+ Create Public Note" button */}
+      <Modal
+        title="Create Public Note"
+        opened={anonymousNoteModalOpen}
+        onClose={() => setAnonymousNoteModalOpen(false)}
+        centered
+      >
+        {anonymousSubmitError && (
+          <Alert color="red" mb="md" onClose={() => setAnonymousSubmitError(null)}>
+            {anonymousSubmitError}
+          </Alert>
+        )}
+        <form onSubmit={anonymousForm.onSubmit(handleAnonymousNoteSubmit)}>
+          <Stack>
+            <Textarea
+              placeholder="Write a public note..."
+              minRows={3}
+              {...anonymousForm.getInputProps("content")}
+              required
+            />
+            <Group justify="flex-end">
+              <Button type="submit" color="green">
+                Post Public Note
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
     </Grid>
   );
 };

@@ -1,0 +1,13 @@
+---
+description: Use Bun for package management and scripts in this repo
+alwaysApply: true
+---
+
+# Use Bun in This Repo
+
+- **Package manager**: Use `bun` for installs, never `npm`, `yarn`, or `pnpm`.
+  - Install: `bun install` (or from root: `bun run install:all`)
+  - Add dependency: `bun add <pkg>` / `bun add -d <pkg>` for dev
+- **Scripts**: Run via `bun run <script>` (e.g. `bun run build`, `bun run dev`, `bun run test`).
+- **Executing files**: Prefer `bun run` or `bun <file>` over `node` or `npx`.
+- In docs, examples, and terminal commands for this repo, always show Bun usage.

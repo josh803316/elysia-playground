@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import { notesStore } from '$lib/stores/notes';
   import { goto } from '$app/navigation';
   import { useClerkContext } from 'svelte-clerk/client';
+  import { SignedIn, SignedOut, SignInButton } from 'svelte-clerk/client';
   import { 
     Alert, 
     Button, 
@@ -398,6 +400,32 @@
     }
   }
 
+  // Delete a note (public section, your notes, or as admin)
+  async function deleteNote(note: Note, isFromPrivateSection: boolean = false) {
+    if (!confirm('Are you sure you want to delete this note?')) return;
+    try {
+      if (isAdminLoggedIn && adminApiKey) {
+        const res = await fetch(`/api/notes/${note.id}/admin`, { method: 'DELETE', headers: { 'X-API-Key': adminApiKey } });
+        if (!res.ok) throw new Error('Failed to delete');
+      } else if (isFromPrivateSection && userToken) {
+        const res = await fetch(`/api/private-notes/${note.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${userToken}` } });
+        if (!res.ok) throw new Error('Failed to delete');
+      } else if (note.userId && userToken && isCurrentUserAuthor(note)) {
+        const res = await fetch(`/api/notes/${note.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${userToken}` } });
+        if (!res.ok) throw new Error('Failed to delete');
+      } else if (!note.userId && (note.isPublic === 'true' || note.isPublic === true)) {
+        const res = await fetch(`/api/public-notes/${note.id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete');
+      } else {
+        throw new Error('Cannot delete this note');
+      }
+      await refreshAllNotes();
+    } catch (err) {
+      console.error('Delete note error:', err);
+      error = err instanceof Error ? err.message : 'Failed to delete note';
+    }
+  }
+
   // Function to refresh all notes after a change
   async function refreshAllNotes() {
     console.log('Refreshing all notes...');
@@ -462,29 +490,23 @@
               // Load all notes (both public and private)
               console.log('Fetching all user notes...');
               await fetchUserNotes();
-              
-              // Also fetch public notes to ensure we see all available notes
               console.log('Fetching all public notes...');
               await fetchPublicNotes();
             } else {
-              console.warn('No user token available - trying again with delay');
-              // If token wasn't available immediately, try again with a delay
-              setTimeout(async () => {
+              // Token not ready yet (Clerk may still be hydrating). Retry with short delays so notes load quickly after refresh.
+              const tryFetchWithToken = async (attempt: number) => {
                 userToken = await getClerkToken();
-                console.log('Token received after delay:', userToken ? 'Yes (token hidden)' : 'No');
-                
                 if (userToken) {
-                  // Load all notes after delay
-                  console.log('Fetching all user notes after delay...');
+                  console.log('Token received on retry', attempt);
                   await fetchUserNotes();
-                  
-                  // Also fetch public notes
-                  console.log('Fetching all public notes after delay...');
                   await fetchPublicNotes();
-                } else {
-                  console.error('Failed to get user token even after delay');
+                  return;
                 }
-              }, 1000); // Longer delay to ensure Clerk is fully initialized
+                if (attempt < 3) {
+                  setTimeout(() => tryFetchWithToken(attempt + 1), 80 * attempt); // 80ms, 160ms, 240ms
+                }
+              };
+              setTimeout(() => tryFetchWithToken(1), 80);
             }
           } catch (tokenError) {
             console.error('Error getting Clerk token:', tokenError);
@@ -501,7 +523,7 @@
       console.log('Clerk context not available, fetching public notes only...');
       await fetchPublicNotes();
     }
-    
+
     // Check for existing admin API key
     const storedApiKey = localStorage.getItem('adminApiKey');
     if (storedApiKey) {
@@ -510,15 +532,16 @@
       console.log('Admin login detected');
     }
 
-    // Fetch notes
-    console.log('Fetching public notes...');
-    await fetchPublicNotes();
-    
+    // Ensure public notes are loaded if not already (e.g. no Clerk context)
+    if (publicNotes.length === 0) {
+      await fetchPublicNotes();
+    }
+
     if (isAdminLoggedIn && adminApiKey) {
       console.log('Fetching all notes as admin...');
       await fetchAllNotes();
     }
-    
+
     initialized = true;
     console.log('Component initialization complete');
   });
@@ -591,34 +614,93 @@
   <meta name="description" content="A simple notes application" />
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8">
-  <main class="p-4">
+<!-- Layout matches HTMX/React: same section order and spacing when not logged in -->
+<div class="space-y-8">
     {#if error}
       <Alert color="red" rounded={true} class="my-4">
         <span class="font-medium">{error}</span>
       </Alert>
     {/if}
 
-    <!-- Anonymous: create public note prompt (matches React anonymous section) -->
-    {#if !isSignedIn}
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Create a Public Note</h2>
-        <p class="text-gray-600 mb-4">You can post public notes anonymously without signing in.</p>
-        <Button color="green" class="bg-green-600 hover:bg-green-700 text-white" onclick={() => {
-          editingNote = null;
-          createPublicNote = true;
-          createNoteModalOpen = true;
-        }}>
-          <span class="text-xl mr-2">+</span>
-          Create Public Note
-        </Button>
-      </div>
+    <!-- All Notes (Admin View) - at top when admin -->
+    {#if isAdminLoggedIn}
+      <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200" data-testid="section-admin-table">
+        <div class="mb-4">
+          <h2 class="text-2xl font-bold text-gray-800">All Notes (Admin View)</h2>
+          <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
+        </div>
+        {#if loading && allNotes.length === 0}
+          <div class="flex justify-center my-4">
+            <Spinner size="8" />
+          </div>
+        {:else if allNotes.length === 0}
+          <p class="text-center py-8 text-gray-500">No notes found in the system</p>
+        {:else}
+          <div class="overflow-x-auto rounded-lg border border-gray-200">
+            <Table hoverable={true} striped={true}>
+              <TableHead>
+                <TableHeadCell>Title</TableHeadCell>
+                <TableHeadCell>Content Preview</TableHeadCell>
+                <TableHeadCell>Status</TableHeadCell>
+                <TableHeadCell>Author</TableHeadCell>
+                <TableHeadCell>Created</TableHeadCell>
+                <TableHeadCell>Updated</TableHeadCell>
+                <TableHeadCell>Actions</TableHeadCell>
+              </TableHead>
+              <TableBody>
+                {#each allNotes as note}
+                  <TableBodyRow>
+                    <TableBodyCell>{note.title || 'Untitled'}</TableBodyCell>
+                    <TableBodyCell>{note.content && note.content.length > 50 ? note.content.substring(0, 50) + '...' : (note.content || '(No content)')}</TableBodyCell>
+                    <TableBodyCell>
+                      <Badge color={note.isPublic === 'true' ? 'green' : 'purple'} class={note.isPublic === 'true' ? 'bg-green-200 text-green-800' : 'bg-purple-200 text-purple-800'}>
+                        {note.isPublic === 'true' ? 'Public' : 'Private'}
+                      </Badge>
+                    </TableBodyCell>
+                    <TableBodyCell>
+                      {#if note.user && note.user.email}
+                        {note.user.email}
+                      {:else if note.user && (note.user.firstName || note.user.lastName)}
+                        {(note.user.firstName || '') + ' ' + (note.user.lastName || '')}
+                      {:else if note.userId}
+                        User #{note.userId}
+                      {:else}
+                        Anonymous
+                      {/if}
+                    </TableBodyCell>
+                    <TableBodyCell>{formatDate(note.createdAt)}</TableBodyCell>
+                    <TableBodyCell>{formatDate(note.updatedAt)}</TableBodyCell>
+                    <TableBodyCell>
+                      <div class="flex space-x-2">
+                        <Button size="xs" color="primary" class="px-4" onclick={() => { editingNote = note; createPublicNote = note.isPublic === 'true'; createNoteModalOpen = true; }}>
+                          Edit
+                        </Button>
+                        <Button size="xs" color="red" class="bg-red-600 hover:bg-red-700 text-white px-4" onclick={async () => {
+                          if (confirm('Are you sure you want to delete this note?')) {
+                            if (adminApiKey) {
+                              const res = await fetch(`/api/notes/${note.id}/admin`, { method: 'DELETE', headers: { 'X-API-Key': adminApiKey } });
+                              if (res.ok) fetchAllNotes();
+                            }
+                          }
+                        }}>Delete</Button>
+                      </div>
+                    </TableBodyCell>
+                  </TableBodyRow>
+                {/each}
+              </TableBody>
+            </Table>
+          </div>
+        {/if}
+      </section>
     {/if}
 
-    <div class="mt-6">
-      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
+    <!-- Public Notes Section (same order as HTMX/React: Admin → Public Notes → sign-in prompt → Your Notes) -->
+    <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200" data-testid="section-public-notes">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-2xl font-bold">Public Notes ({publicNotes.length || 0})</h2>
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">Public Notes</h2>
+            <p class="text-gray-600 text-sm">Visible to everyone</p>
+          </div>
           <Button color="green" class="flex items-center bg-green-600 hover:bg-green-700 text-white px-4" onclick={() => {
             editingNote = null;
             createPublicNote = true;
@@ -640,8 +722,8 @@
             <svg class="w-16 h-16 text-green-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="text-gray-600 text-lg font-medium">No public notes available.</p>
-            <p class="text-gray-500">Be the first one to post a public note!</p>
+            <p class="text-gray-600 text-lg font-medium">No public notes yet. Be the first to create one!</p>
+            <p class="text-gray-500">Use the button above to create a public note.</p>
             <Button color="green" class="mt-4 flex items-center mx-auto bg-green-600 hover:bg-green-700 text-white px-4" onclick={() => {
               editingNote = null;
               createPublicNote = true;
@@ -652,9 +734,9 @@
             </Button>
           </div>
         {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each publicNotes as note}
-              <Card padding="sm" class="bg-green-50 relative">
+              <Card padding="sm" class="bg-green-50 flex flex-col">
                 <div class="flex justify-between items-start mb-2">
                   <h3 class="text-lg font-semibold">{note.title || 'Untitled'}</h3>
                   <Badge color="green" class="font-semibold px-2.5 py-1 bg-green-200 text-green-800">PUBLIC</Badge>
@@ -664,8 +746,6 @@
                   <span>
                     {#if isCurrentUserAuthor(note)}
                       Posted by you
-                      <!-- Add a debug indicator for troubleshooting -->
-                      <span class="text-xs text-green-600 ml-1">(authored by you)</span>
                     {:else if note.user && note.user.email}
                       {note.user.email}
                     {:else if note.user && (note.user.firstName || note.user.lastName)}
@@ -676,32 +756,51 @@
                   </span>
                   <span>Created: {formatDate(note.createdAt)}</span>
                 </div>
-                <!-- Show edit button for notes owned by the user or for admin users -->
-                {#if isAdminLoggedIn || (isSignedIn && isCurrentUserAuthor(note))}
-                  <div class="absolute bottom-2 right-2">
-                    <Button size="xs" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 p-0 flex items-center justify-center" onclick={() => {
-                      editingNote = note;
-                      createPublicNote = true; // It's definitely a public note
-                      createNoteModalOpen = true;
-                    }}>
-                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
-                      </svg>
-                    </Button>
-                  </div>
+                <!-- Card footer: Edit | Delete (match HTMX) - show both when user can act on the note -->
+                {@const canAct = isAdminLoggedIn || (isSignedIn && isCurrentUserAuthor(note)) || (!note.userId && (note.isPublic === 'true' || note.isPublic === true))}
+                {#if canAct}
+                <div class="border-t border-gray-200 bg-gray-50 rounded-b-lg mt-auto px-4 py-3 flex justify-end gap-2 text-sm font-medium">
+                  <button
+                    type="button"
+                    class="text-orange-600 hover:text-orange-800 bg-transparent border-none cursor-pointer p-0"
+                    onclick={() => { editingNote = note; createPublicNote = true; createNoteModalOpen = true; }}
+                  >Edit</button>
+                  <span class="text-gray-400">|</span>
+                  <button
+                    type="button"
+                    class="text-red-600 hover:text-red-800 bg-transparent border-none cursor-pointer p-0"
+                    onclick={() => deleteNote(note, false)}
+                  >Delete</button>
+                </div>
                 {/if}
               </Card>
             {/each}
           </div>
         {/if}
-      </section>
-    </div>
+    </section>
 
-    <!-- Private Notes Section - Only show for signed in users -->
-    {#if isSignedIn}
-      <section class="bg-white rounded-lg shadow-sm p-6">
+    <!-- Want to create private notes? - only when signed out (match HTMX/React); client-only so prerender works -->
+    {#if browser}
+      <SignedOut>
+        <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 text-center" data-testid="section-sign-in-prompt">
+          <h2 class="text-xl font-semibold text-gray-700 mb-2">Want to create private notes?</h2>
+          <p class="text-gray-600 mb-4">Sign in to create and manage your own private notes.</p>
+          <SignInButton mode="modal">
+            <Button class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 font-medium">Sign In to Get Started</Button>
+          </SignInButton>
+        </section>
+      </SignedOut>
+    {/if}
+
+    <!-- Your Notes Section - only when signed in (use Clerk so it never shows when signed out) -->
+    {#if browser}
+      <SignedIn>
+        <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200" data-testid="section-your-notes">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-2xl font-bold">Your Notes ({privateNotes.length || 0})</h2>
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800">Your Notes</h2>
+            <p class="text-gray-600 text-sm">Only you can see these notes</p>
+          </div>
           <Button color="purple" class="flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4" onclick={() => {
             editingNote = null;
             createPublicNote = false;
@@ -723,13 +822,13 @@
             <svg class="w-16 h-16 text-purple-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="text-gray-600 text-lg font-medium">You don't have any notes yet.</p>
-            <p class="text-gray-500">Create your first note using one of the buttons above!</p>
+            <p class="text-gray-600 text-lg font-medium">No notes yet.</p>
+            <p class="text-gray-500">Create your first note using the button above!</p>
           </div>
         {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each privateNotes as note}
-              <Card padding="sm" class={note.isPublic === 'true' || note.isPublic === true ? "bg-green-50 relative" : "bg-purple-50 relative"}>
+              <Card padding="sm" class={note.isPublic === 'true' || note.isPublic === true ? "bg-green-50 flex flex-col" : "bg-purple-50 flex flex-col"}>
                 <div class="flex justify-between items-start mb-2">
                   <h3 class="text-lg font-semibold">{note.title || 'Untitled'}</h3>
                   <Badge color={note.isPublic === 'true' || note.isPublic === true ? "green" : "purple"} 
@@ -744,27 +843,27 @@
                   <span>Posted by you</span>
                   <span>Created: {formatDate(note.createdAt)}</span>
                 </div>
-                <!-- Show edit button for notes owned by the user or for admin users -->
-                {#if isAdminLoggedIn || (isSignedIn && isCurrentUserAuthor(note))}
-                  <div class="absolute bottom-2 right-2">
-                    <Button size="xs" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 p-0 flex items-center justify-center" onclick={() => {
-                      editingNote = note;
-                      createPublicNote = note.isPublic === 'true' || note.isPublic === true;
-                      createNoteModalOpen = true;
-                    }}>
-                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
-                      </svg>
-                    </Button>
-                  </div>
-                {/if}
+                <!-- Card footer: Edit | Delete (match HTMX) -->
+                <div class="border-t border-gray-200 bg-gray-50 rounded-b-lg mt-auto px-4 py-3 flex justify-end gap-2 text-sm font-medium">
+                  <button
+                    type="button"
+                    class="text-orange-600 hover:text-orange-800 bg-transparent border-none cursor-pointer p-0"
+                    onclick={() => { editingNote = note; createPublicNote = note.isPublic === 'true' || note.isPublic === true; createNoteModalOpen = true; }}
+                  >Edit</button>
+                  <span class="text-gray-400">|</span>
+                  <button
+                    type="button"
+                    class="text-red-600 hover:text-red-800 bg-transparent border-none cursor-pointer p-0"
+                    onclick={() => deleteNote(note, true)}
+                  >Delete</button>
+                </div>
               </Card>
             {/each}
           </div>
         {/if}
-      </section>
+        </section>
+      </SignedIn>
     {/if}
-  </main>
 </div>
 
 <!-- Note modal -->

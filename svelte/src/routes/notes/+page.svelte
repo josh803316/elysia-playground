@@ -240,7 +240,7 @@
   <div class="space-y-6">
     <section class="bg-white rounded-lg shadow-sm p-6">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold">{isAdminLoggedIn ? 'All Notes (Admin View)' : 'My Notes'}</h2>
+        <h2 class="text-2xl font-bold text-primary-700">{isAdminLoggedIn ? 'All Notes (Admin View)' : 'My Notes'}</h2>
         <Button color="primary" class="flex items-center px-4" onclick={handleCreateNote}>
           <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
@@ -270,22 +270,25 @@
           </Button>
         </div>
       {:else}
-        <Table hoverable={true} striped={true}>
+        <Table hoverable={true} striped={true} data-testid="admin-notes-table">
           <TableHead>
             <TableHeadCell>Title</TableHeadCell>
-            <TableHeadCell>Content</TableHeadCell>
+            <TableHeadCell>Content Preview</TableHeadCell>
             <TableHeadCell>Status</TableHeadCell>
             {#if isAdminLoggedIn}
               <TableHeadCell>Author</TableHeadCell>
             {/if}
             <TableHeadCell>Created</TableHeadCell>
+            {#if isAdminLoggedIn}
+              <TableHeadCell>Updated</TableHeadCell>
+            {/if}
             <TableHeadCell>Actions</TableHeadCell>
           </TableHead>
           <TableBody>
             {#each sortedNotes as note}
               <TableBodyRow>
                 <TableBodyCell>{note.title || 'Untitled'}</TableBodyCell>
-                <TableBodyCell>{note.content.length > 50 ? note.content.substring(0, 50) + '...' : note.content}</TableBodyCell>
+                <TableBodyCell>{note.content ? (note.content.length > 50 ? note.content.substring(0, 50) + '...' : note.content) : '(No content)'}</TableBodyCell>
                 <TableBodyCell>
                   <Badge 
                     color={note.isPublic === 'true' ? 'green' : 'purple'} 
@@ -294,7 +297,7 @@
                       "font-semibold px-2.5 py-1 bg-purple-200 text-purple-800"
                     }
                   >
-                    {note.isPublic === 'true' ? 'PUBLIC' : 'PRIVATE'}
+                    {note.isPublic === 'true' ? 'Public' : 'Private'}
                   </Badge>
                 </TableBodyCell>
                 {#if isAdminLoggedIn}
@@ -311,9 +314,12 @@
                   </TableBodyCell>
                 {/if}
                 <TableBodyCell>{formatDate(note.createdAt)}</TableBodyCell>
+                {#if isAdminLoggedIn}
+                  <TableBodyCell>{formatDate(note.updatedAt)}</TableBodyCell>
+                {/if}
                 <TableBodyCell>
                   <div class="flex space-x-2">
-                    <Button size="xs" color="blue" class="bg-blue-600 hover:bg-blue-700 text-white px-4" onclick={() => handleEditNote(note)}>
+                    <Button size="xs" color="primary" class="px-4" onclick={() => handleEditNote(note)}>
                       <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
                       </svg>

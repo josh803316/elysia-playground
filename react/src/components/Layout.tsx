@@ -180,7 +180,7 @@ export const Layout = ({ children }: LayoutProps) => {
           radius={0}
           style={{ background: "#fff", height: "100%", width: "100%" }}
         >
-          <Container size="xl">
+          <Container size="xl" style={{ maxWidth: 1320 }}>
             <Group justify="space-between" h="100%">
               <Text size="xl" fw={700}>
                 <Link
@@ -255,7 +255,7 @@ export const Layout = ({ children }: LayoutProps) => {
       </AppShell.Header>
 
       <AppShell.Main style={{ flex: 1 }}>
-        <Container size="xl" py="xl">
+        <Container size="xl" py="xl" style={{ maxWidth: 1320 }}>
           <Grid>
             <Grid.Col span={12}>{children}</Grid.Col>
           </Grid>
@@ -269,7 +269,7 @@ export const Layout = ({ children }: LayoutProps) => {
           radius={0}
           style={{ background: "#fff", height: "100%", width: "100%" }}
         >
-          <Container size="xl">
+          <Container size="xl" style={{ maxWidth: 1320 }}>
             <Group justify="space-between" h="100%">
               <Text size="sm">© 2024 Notes App</Text>
               <Group>
