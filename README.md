@@ -1,12 +1,13 @@
 # Elysia Playground
 
-Monorepo playground for comparing **three UI approaches** against one shared API:
+Monorepo playground for comparing **four UI approaches** against one shared API:
 
 - **React** app at `/react`
 - **Svelte** app at `/svelte`
 - **HTMX** app at `/htmx`
+- **Vanilla JS** app at `/vanilla-js`
 
-All three frontends talk to the same **Elysia + Bun** backend and Notes data model.
+All four frontends talk to the same **Elysia + Bun** backend and Notes data model.
 
 ## What This Repo Demonstrates
 
@@ -21,6 +22,7 @@ All three frontends talk to the same **Elysia + Bun** backend and Notes data mod
 - `react/` - React + Vite client
 - `svelte/` - SvelteKit client
 - `htmx/` - HTMX frontend assets/templates (served by server)
+- `vanilla-js/` - Vanilla JS frontend (static HTML/CSS/ES modules, served by server)
 
 ## Entry Points
 
@@ -29,6 +31,7 @@ When running locally, the backend serves a root landing page at `/` linking to:
 - `/react`
 - `/svelte`
 - `/htmx`
+- `/vanilla-js`
 
 ## Prerequisites
 
@@ -48,15 +51,17 @@ Create env files and fill values:
 - `react/.env` (if needed for local overrides)
 - `svelte/.env` (if needed for local overrides)
 
-Typical required server values:
+Typical required **server** values:
 
 - `CLERK_SECRET_KEY`
 - `CLERK_PUBLISHABLE_KEY`
+- `CLERK_FRONTEND_API` (e.g. `ample-garfish-72.clerk.accounts.dev`)
 - `ADMIN_API_KEY`
 
-For frontend Clerk usage:
+For **frontend** Clerk usage:
 
 - `VITE_CLERK_PUBLISHABLE_KEY` (React/Svelte as needed)
+- The Vanilla JS app reads `CLERK_PUBLISHABLE_KEY` and `CLERK_FRONTEND_API` indirectly from `server/.env` via a small `/vanilla-js/env.js` helper and does **not** hardcode any keys in the static assets.
 
 ## Development
 
