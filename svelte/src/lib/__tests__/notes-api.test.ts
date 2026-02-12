@@ -9,7 +9,7 @@ const {
   mockNoteByIdPut,
   mockNoteByIdDelete,
   mockPrivateNotesGet,
-  mockPrivateNotesPost,
+  mockPrivateNotesPut,
   mockPrivateNoteByIdGet,
   mockPrivateNoteByIdPut,
   mockPrivateNoteByIdDelete,
@@ -25,7 +25,7 @@ const {
   mockNoteByIdPut: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
   mockNoteByIdDelete: vi.fn().mockResolvedValue({ data: { success: true }, error: null }),
   mockPrivateNotesGet: vi.fn().mockResolvedValue({ data: [], error: null }),
-  mockPrivateNotesPost: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
+  mockPrivateNotesPut: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
   mockPrivateNoteByIdGet: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
   mockPrivateNoteByIdPut: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
   mockPrivateNoteByIdDelete: vi.fn().mockResolvedValue({ data: { success: true }, error: null }),
@@ -72,7 +72,7 @@ vi.mock("@elysiajs/eden", () => ({
           },
         ),
         "private-notes": new Proxy(
-          { get: mockPrivateNotesGet, post: mockPrivateNotesPost },
+          { get: mockPrivateNotesGet, put: mockPrivateNotesPut },
           {
             get(target, prop) {
               if (prop in target) return (target as Record<string, unknown>)[prop];
@@ -85,7 +85,7 @@ vi.mock("@elysiajs/eden", () => ({
         ),
         "public-notes": new Proxy(
           {
-            index: { get: mockPublicNotesGet },
+            get: mockPublicNotesGet,
             post: mockPublicNotesPost,
           },
           {
@@ -161,7 +161,7 @@ describe("Svelte Notes API Client", () => {
       const token = "test-jwt-token";
       const note = { title: "Secret", content: "Private content" };
       await apiClient.privateNotes.create(note, token);
-      expect(mockPrivateNotesPost).toHaveBeenCalledWith(note, {
+      expect(mockPrivateNotesPut).toHaveBeenCalledWith(note, {
         headers: { Authorization: "Bearer test-jwt-token" },
       });
     });

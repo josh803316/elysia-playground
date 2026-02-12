@@ -63,7 +63,7 @@ interface ExpectedClient {
       };
     };
     "public-notes": {
-      index: { get: Endpoint };
+      get: Endpoint;
     } & {
       // Index signature *only* for dynamic ID routes
       [id: string]: {
@@ -193,7 +193,7 @@ export const apiClient = {
   // Public Notes API (mounted under /api)
   publicNotes: {
     getAll: async () => {
-      return client.api["public-notes"].index.get();
+      return client.api["public-notes"].get();
     },
     getById: async (id: number) => {
       return client.api["public-notes"][id].get();

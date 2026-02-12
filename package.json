@@ -34,7 +34,7 @@
     "dev:server": "cd server && bun run dev",
     "build:server": "bun run build -w server",
     "start:server": "bun run start -w server",
-    "test:server": "bun test --bun"
+    "test:server": "bun test --bun server"
   },
   "overrides": {
     "esbuild": "^0.25.0"

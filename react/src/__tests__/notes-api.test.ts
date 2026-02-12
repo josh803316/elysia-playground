@@ -76,7 +76,7 @@ vi.mock("@elysiajs/eden", () => ({
           },
         ),
         "public-notes": new Proxy(
-          { index: { get: mockPublicNotesGet } },
+          { get: mockPublicNotesGet },
           {
             get(target, prop) {
               if (prop in target) return (target as Record<string, unknown>)[prop];
