@@ -80,6 +80,7 @@ const api = new Elysia({ prefix: "/api" })
 // Resolve static asset directories relative to this file
 const reactAssetsPath = resolve(new URL("../../react/dist", import.meta.url).pathname);
 const svelteAssetsPath = resolve(new URL("../../svelte/build", import.meta.url).pathname);
+const vanillaJsAssetsPath = resolve(new URL("../../vanilla-js", import.meta.url).pathname);
 
 const contentTypeByExt: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -213,6 +214,22 @@ app
     return { error: errorMsg || "Unknown error" };
   })
   .head("/", () => "")
+  // Expose a tiny JS payload for the Vanilla JS frontend with only
+  // public configuration derived from server environment variables.
+  // This avoids hard‑coding Clerk keys into the static assets.
+  .get("/vanilla-js/env.js", () => {
+    const payload = {
+      clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? "",
+      // Frontend API host for the instance, e.g. "ample-garfish-72.clerk.accounts.dev"
+      clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? "",
+    };
+
+    const body = `window.__VANILLA_ENV__ = ${JSON.stringify(payload)};`;
+
+    return new Response(body, {
+      headers: { "content-type": "application/javascript; charset=utf-8" },
+    });
+  })
   .get("/favicon.svg", () =>
     new Response(faviconSvg, {
       headers: { "content-type": "image/svg+xml" },
@@ -397,6 +414,12 @@ app
           "      text-transform: uppercase;",
           "      color: #e5e7eb;",
           "    }",
+          "    .logo-vanilla span {",
+          "      font-size: 0.72rem;",
+          "      font-weight: 700;",
+          "      color: #fbbf24;",
+          "      text-shadow: 0 0 8px rgba(251,191,36,0.6);",
+          "    }",
           "    .badge {",
           "      display: inline-flex;",
           "      align-items: center;",
@@ -559,7 +582,7 @@ app
           "          </span>",
           "          <h1>Frontend playground</h1>",
           "          <p class='summary'>",
-          "            Compare three different UI approaches that all talk to the same Elysia/Bun",
+          "            Compare four different UI approaches that all talk to the same Elysia/Bun",
           "            API – great for learning and architectural discussions.",
           "          </p>",
           "        </div>",
@@ -652,13 +675,39 @@ app
           "            <span class='icon'>↗</span>",
           "          </a>",
           "        </article>",
+          "        <article class='card'>",
+          "          <div class='card-header'>",
+          "            <div class='card-main'>",
+          "              <div class='logo logo-vanilla' aria-hidden='true'>",
+          "                <span>JS</span>",
+          "              </div>",
+          "              <div>",
+          "                <div class='title'>Vanilla JS <span>· zero frameworks</span></div>",
+          "                <p class='desc'>Pure HTML, CSS &amp; JavaScript – no build step, no dependencies beyond Clerk.</p>",
+          "              </div>",
+          "            </div>",
+          "            <div class='badge'>",
+          "              <span class='badge-dot'></span>",
+          "              No‑framework",
+          "            </div>",
+          "          </div>",
+          "          <div class='meta'>",
+          "            <span class='pill'><strong>Stack</strong> HTML · CSS · ES modules</span>",
+          "            <span class='pill'><strong>Model</strong> client‑side fetch, zero build</span>",
+          "          </div>",
+          "          <a href='/vanilla-js' class='link-btn'>",
+          "            <span>Open Vanilla JS demo</span>",
+          "            <span class='icon'>↗</span>",
+          "          </a>",
+          "        </article>",
           "      </section>",
           "      <aside class='notes'>",
           "        <h2>How this is wired</h2>",
           "        <ul>",
-          "          <li>All three UIs talk to the same Elysia API under <code>/api</code>.</li>",
+          "          <li>All four UIs talk to the same Elysia API under <code>/api</code>.</li>",
           "          <li>The React and Svelte apps are pre‑built assets served by Bun/Elysia.</li>",
           "          <li>The HTMX views are rendered directly from the Bun server.</li>",
+          "          <li>The Vanilla JS app uses plain ES modules – zero build step.</li>",
           "          <li>Great for workshops, demos, and architectural explorations.</li>",
           "        </ul>",
           "      </aside>",
@@ -688,7 +737,9 @@ app
   // Serve built React app at /react
   .use(serveSPA(reactAssetsPath, "/react"))
   // Serve built Svelte app at /svelte
-  .use(serveSPA(svelteAssetsPath, "/svelte"));
+  .use(serveSPA(svelteAssetsPath, "/svelte"))
+  // Serve Vanilla JS app at /vanilla-js
+  .use(serveSPA(vanillaJsAssetsPath, "/vanilla-js"));
 
 // Only start a local HTTP server when not running on Vercel.
 if (process.env.VERCEL !== "1") {

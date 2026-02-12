@@ -1,0 +1,2 @@
+# Vercel expects an output directory; Elysia serves all routes via the serverless function.
+# This folder is intentionally minimal so the build check passes.

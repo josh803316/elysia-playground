@@ -9,6 +9,7 @@ export const publicPaths = [
   "/htmx",
   "/react",
   "/svelte",
+  "/vanilla-js",
 ];
 
 export const isProtectedRoute = (path: string): boolean => {

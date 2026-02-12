@@ -1,0 +1,11 @@
+{
+  "name": "@josh803316/vanilla-js-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Vanilla JS is served by the Elysia server'",
+    "build": "echo 'Vanilla JS build - static files only'",
+    "test": "echo 'No tests yet'"
+  }
+}
