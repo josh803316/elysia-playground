@@ -260,9 +260,9 @@
 	<div class="min-h-screen bg-gray-50 flex flex-col">
 		<!-- Header - Tailored to match the React app -->
 		<header class="bg-white shadow-sm border-b">
-			<div class="container mx-auto px-4 flex justify-between items-center h-16">
+			<div class="container mx-auto px-4 flex justify-between items-center h-[60px]" style="max-width: 1320px;">
 				<!-- Logo/Brand -->
-				<a href={toBasePath('/')} class="text-lg font-semibold">Elysia Notes - Svelte</a>
+				<a href={toBasePath('/')} class="text-lg font-semibold text-primary-700 hover:text-primary-800">Elysia Notes - Svelte</a>
 				
 				<!-- Main Navigation Links - No hamburger, always visible -->
 				<div class="flex items-center space-x-6">
@@ -289,15 +289,15 @@
 					<SignedOut>
 						<span class="text-sm text-gray-700">Hello, Anonymous</span>
 						<SignInButton mode="modal">
-							<Button size="xs" color="primary" class="bg-blue-600 hover:bg-blue-700 text-white">Sign In</Button>
+							<Button size="xs" color="primary">Sign In</Button>
 						</SignInButton>
 					</SignedOut>
 					
 					<!-- Admin Button - Styled like in the screenshot -->
 					<Button 
 						size="xs" 
-						color={isAdminLoggedIn ? "red" : "blue"}
-						class={isAdminLoggedIn ? "bg-red-600 hover:bg-red-700 text-white font-semibold px-4" : "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4"}
+						color={isAdminLoggedIn ? "red" : "primary"}
+						class={isAdminLoggedIn ? "bg-red-600 hover:bg-red-700 text-white font-semibold px-4" : "font-semibold px-4"}
 						onclick={isAdminLoggedIn ? handleAdminLogout : () => (adminModalOpen = true)}
 					>
 						{isAdminLoggedIn ? "Admin Logout" : "Admin Login"}
@@ -308,7 +308,7 @@
 
 		<!-- Main Content -->
 		<main class="flex-grow">
-			<div class="container mx-auto px-4 py-6">
+			<div class="container mx-auto px-4 py-6" style="max-width: 1320px;">
 				{@render children()}
 			</div>
 		</main>
@@ -335,7 +335,7 @@
 					<Input id="apiKey" type="text" placeholder="Enter your admin API key" bind:value={adminKeyInput} />
 					<p class="mt-2 text-sm text-gray-500">Enter the admin API key to access admin features</p>
 				</div>
-				<Button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white">Login</Button>
+				<Button type="submit" class="w-full" color="primary">Login</Button>
 			</form>
 		</Modal>
 
@@ -361,7 +361,7 @@
 	<!-- Simple SSR-compatible layout -->
 	<header class="bg-white shadow-sm border-b">
 		<div class="container mx-auto px-4 flex justify-between items-center h-16">
-			<a href={toBasePath('/')} class="text-lg font-semibold">Elysia Notes - Svelte</a>
+			<a href={toBasePath('/')} class="text-lg font-semibold text-primary-700 hover:text-primary-800">Elysia Notes - Svelte</a>
 		</div>
 	</header>
 

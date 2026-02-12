@@ -62,6 +62,17 @@ describe("HTMX Controller", () => {
       expect(response.headers.get("Content-Type")).toContain("text/html");
     });
 
+    it("should include UX conformance section testids and subtitles", async () => {
+      const app = createApp();
+      const response = await app.handle(new Request("http://localhost/htmx/"));
+      const html = await response.text();
+      expect(html).toContain('data-testid="section-public-notes"');
+      expect(html).toContain('data-testid="section-your-notes"');
+      expect(html).toContain("Visible to everyone");
+      expect(html).toContain("Only you can see these notes");
+      expect(html).toContain("Elysia Notes - HTMX");
+    });
+
     it("should create a public note and return HTML card", async () => {
       const app = createApp();
       const response = await app.handle(

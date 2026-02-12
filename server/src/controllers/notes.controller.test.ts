@@ -318,6 +318,13 @@ describe("Notes Controller", () => {
     expect(data).toBeDefined();
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
+
+    // API conformance: note shape matches UX spec (all three UIs expect this shape)
+    const note = data[0] as Record<string, unknown>;
+    const requiredKeys = ["id", "title", "content", "isPublic", "createdAt", "updatedAt"];
+    for (const key of requiredKeys) {
+      expect(note).toHaveProperty(key);
+    }
   });
 
   it("should delete a note with admin API key", async () => {

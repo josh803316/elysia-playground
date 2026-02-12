@@ -462,29 +462,23 @@
               // Load all notes (both public and private)
               console.log('Fetching all user notes...');
               await fetchUserNotes();
-              
-              // Also fetch public notes to ensure we see all available notes
               console.log('Fetching all public notes...');
               await fetchPublicNotes();
             } else {
-              console.warn('No user token available - trying again with delay');
-              // If token wasn't available immediately, try again with a delay
-              setTimeout(async () => {
+              // Token not ready yet (Clerk may still be hydrating). Retry with short delays so notes load quickly after refresh.
+              const tryFetchWithToken = async (attempt: number) => {
                 userToken = await getClerkToken();
-                console.log('Token received after delay:', userToken ? 'Yes (token hidden)' : 'No');
-                
                 if (userToken) {
-                  // Load all notes after delay
-                  console.log('Fetching all user notes after delay...');
+                  console.log('Token received on retry', attempt);
                   await fetchUserNotes();
-                  
-                  // Also fetch public notes
-                  console.log('Fetching all public notes after delay...');
                   await fetchPublicNotes();
-                } else {
-                  console.error('Failed to get user token even after delay');
+                  return;
                 }
-              }, 1000); // Longer delay to ensure Clerk is fully initialized
+                if (attempt < 3) {
+                  setTimeout(() => tryFetchWithToken(attempt + 1), 80 * attempt); // 80ms, 160ms, 240ms
+                }
+              };
+              setTimeout(() => tryFetchWithToken(1), 80);
             }
           } catch (tokenError) {
             console.error('Error getting Clerk token:', tokenError);
@@ -501,7 +495,7 @@
       console.log('Clerk context not available, fetching public notes only...');
       await fetchPublicNotes();
     }
-    
+
     // Check for existing admin API key
     const storedApiKey = localStorage.getItem('adminApiKey');
     if (storedApiKey) {
@@ -510,15 +504,16 @@
       console.log('Admin login detected');
     }
 
-    // Fetch notes
-    console.log('Fetching public notes...');
-    await fetchPublicNotes();
-    
+    // Ensure public notes are loaded if not already (e.g. no Clerk context)
+    if (publicNotes.length === 0) {
+      await fetchPublicNotes();
+    }
+
     if (isAdminLoggedIn && adminApiKey) {
       console.log('Fetching all notes as admin...');
       await fetchAllNotes();
     }
-    
+
     initialized = true;
     console.log('Component initialization complete');
   });
@@ -591,7 +586,7 @@
   <meta name="description" content="A simple notes application" />
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8" style="max-width: 1320px;">
   <main class="p-4">
     {#if error}
       <Alert color="red" rounded={true} class="my-4">
@@ -599,10 +594,82 @@
       </Alert>
     {/if}
 
-    <!-- Anonymous: create public note prompt (matches React anonymous section) -->
+    <!-- All Notes (Admin View) - at top when admin -->
+    {#if isAdminLoggedIn}
+      <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6" data-testid="section-admin-table">
+        <div class="mb-4">
+          <h2 class="text-2xl font-bold text-primary-700">All Notes (Admin View)</h2>
+          <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
+        </div>
+        {#if loading && allNotes.length === 0}
+          <div class="flex justify-center my-4">
+            <Spinner size="8" />
+          </div>
+        {:else if allNotes.length === 0}
+          <p class="text-center py-8 text-gray-500">No notes found in the system</p>
+        {:else}
+          <div class="overflow-x-auto rounded-lg border border-gray-200">
+            <Table hoverable={true} striped={true}>
+              <TableHead>
+                <TableHeadCell>Title</TableHeadCell>
+                <TableHeadCell>Content Preview</TableHeadCell>
+                <TableHeadCell>Status</TableHeadCell>
+                <TableHeadCell>Author</TableHeadCell>
+                <TableHeadCell>Created</TableHeadCell>
+                <TableHeadCell>Updated</TableHeadCell>
+                <TableHeadCell>Actions</TableHeadCell>
+              </TableHead>
+              <TableBody>
+                {#each allNotes as note}
+                  <TableBodyRow>
+                    <TableBodyCell>{note.title || 'Untitled'}</TableBodyCell>
+                    <TableBodyCell>{note.content && note.content.length > 50 ? note.content.substring(0, 50) + '...' : (note.content || '(No content)')}</TableBodyCell>
+                    <TableBodyCell>
+                      <Badge color={note.isPublic === 'true' ? 'green' : 'purple'} class={note.isPublic === 'true' ? 'bg-green-200 text-green-800' : 'bg-purple-200 text-purple-800'}>
+                        {note.isPublic === 'true' ? 'Public' : 'Private'}
+                      </Badge>
+                    </TableBodyCell>
+                    <TableBodyCell>
+                      {#if note.user && note.user.email}
+                        {note.user.email}
+                      {:else if note.user && (note.user.firstName || note.user.lastName)}
+                        {(note.user.firstName || '') + ' ' + (note.user.lastName || '')}
+                      {:else if note.userId}
+                        User #{note.userId}
+                      {:else}
+                        Anonymous
+                      {/if}
+                    </TableBodyCell>
+                    <TableBodyCell>{formatDate(note.createdAt)}</TableBodyCell>
+                    <TableBodyCell>{formatDate(note.updatedAt)}</TableBodyCell>
+                    <TableBodyCell>
+                      <div class="flex space-x-2">
+                        <Button size="xs" color="primary" class="px-4" onclick={() => { editingNote = note; createPublicNote = note.isPublic === 'true'; createNoteModalOpen = true; }}>
+                          Edit
+                        </Button>
+                        <Button size="xs" color="red" class="bg-red-600 hover:bg-red-700 text-white px-4" onclick={async () => {
+                          if (confirm('Are you sure you want to delete this note?')) {
+                            if (adminApiKey) {
+                              const res = await fetch(`/api/notes/${note.id}/admin`, { method: 'DELETE', headers: { 'X-API-Key': adminApiKey } });
+                              if (res.ok) fetchAllNotes();
+                            }
+                          }
+                        }}>Delete</Button>
+                      </div>
+                    </TableBodyCell>
+                  </TableBodyRow>
+                {/each}
+              </TableBody>
+            </Table>
+          </div>
+        {/if}
+      </section>
+    {/if}
+
+    <!-- Anonymous: create public note prompt -->
     {#if !isSignedIn}
       <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Create a Public Note</h2>
+        <h2 class="text-2xl font-bold text-primary-700 mb-2">Create a Public Note</h2>
         <p class="text-gray-600 mb-4">You can post public notes anonymously without signing in.</p>
         <Button color="green" class="bg-green-600 hover:bg-green-700 text-white" onclick={() => {
           editingNote = null;
@@ -616,9 +683,12 @@
     {/if}
 
     <div class="mt-6">
-      <section class="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-2xl font-bold">Public Notes ({publicNotes.length || 0})</h2>
+      <section class="bg-white rounded-lg shadow-sm p-6 mb-6" data-testid="section-public-notes">
+        <div class="flex justify-between items-center mb-2">
+          <div>
+            <h2 class="text-2xl font-bold text-primary-700">Public Notes</h2>
+            <p class="text-gray-600 text-sm">Visible to everyone</p>
+          </div>
           <Button color="green" class="flex items-center bg-green-600 hover:bg-green-700 text-white px-4" onclick={() => {
             editingNote = null;
             createPublicNote = true;
@@ -640,8 +710,8 @@
             <svg class="w-16 h-16 text-green-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="text-gray-600 text-lg font-medium">No public notes available.</p>
-            <p class="text-gray-500">Be the first one to post a public note!</p>
+            <p class="text-gray-600 text-lg font-medium">No public notes yet. Be the first to create one!</p>
+            <p class="text-gray-500">Use the button above to create a public note.</p>
             <Button color="green" class="mt-4 flex items-center mx-auto bg-green-600 hover:bg-green-700 text-white px-4" onclick={() => {
               editingNote = null;
               createPublicNote = true;
@@ -664,8 +734,6 @@
                   <span>
                     {#if isCurrentUserAuthor(note)}
                       Posted by you
-                      <!-- Add a debug indicator for troubleshooting -->
-                      <span class="text-xs text-green-600 ml-1">(authored by you)</span>
                     {:else if note.user && note.user.email}
                       {note.user.email}
                     {:else if note.user && (note.user.firstName || note.user.lastName)}
@@ -679,9 +747,9 @@
                 <!-- Show edit button for notes owned by the user or for admin users -->
                 {#if isAdminLoggedIn || (isSignedIn && isCurrentUserAuthor(note))}
                   <div class="absolute bottom-2 right-2">
-                    <Button size="xs" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 p-0 flex items-center justify-center" onclick={() => {
+                    <Button size="xs" color="primary" class="rounded-full w-8 h-8 p-0 flex items-center justify-center" onclick={() => {
                       editingNote = note;
-                      createPublicNote = true; // It's definitely a public note
+                      createPublicNote = true;
                       createNoteModalOpen = true;
                     }}>
                       <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
@@ -697,11 +765,14 @@
       </section>
     </div>
 
-    <!-- Private Notes Section - Only show for signed in users -->
+    <!-- Your Notes Section - Only show for signed in users -->
     {#if isSignedIn}
-      <section class="bg-white rounded-lg shadow-sm p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-2xl font-bold">Your Notes ({privateNotes.length || 0})</h2>
+      <section class="bg-white rounded-lg shadow-sm p-6" data-testid="section-your-notes">
+        <div class="flex justify-between items-center mb-2">
+          <div>
+            <h2 class="text-2xl font-bold text-primary-700">Your Notes</h2>
+            <p class="text-gray-600 text-sm">Only you can see these notes</p>
+          </div>
           <Button color="purple" class="flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4" onclick={() => {
             editingNote = null;
             createPublicNote = false;
@@ -723,8 +794,8 @@
             <svg class="w-16 h-16 text-purple-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="text-gray-600 text-lg font-medium">You don't have any notes yet.</p>
-            <p class="text-gray-500">Create your first note using one of the buttons above!</p>
+            <p class="text-gray-600 text-lg font-medium">No notes yet.</p>
+            <p class="text-gray-500">Create your first note using the button above!</p>
           </div>
         {:else}
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -747,7 +818,7 @@
                 <!-- Show edit button for notes owned by the user or for admin users -->
                 {#if isAdminLoggedIn || (isSignedIn && isCurrentUserAuthor(note))}
                   <div class="absolute bottom-2 right-2">
-                    <Button size="xs" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-8 h-8 p-0 flex items-center justify-center" onclick={() => {
+                    <Button size="xs" color="primary" class="rounded-full w-8 h-8 p-0 flex items-center justify-center" onclick={() => {
                       editingNote = note;
                       createPublicNote = note.isPublic === 'true' || note.isPublic === true;
                       createNoteModalOpen = true;

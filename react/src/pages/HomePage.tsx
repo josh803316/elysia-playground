@@ -5,8 +5,9 @@ import { IconPlus } from "@tabler/icons-react";
 import AnonymousNoteForm from "../components/AnonymousNoteForm";
 import NotesGrid from "../components/NotesGrid";
 import { NoteForm } from "../components/NoteForm";
+import { AdminNotesTable } from "../components/AdminNotesTable";
 import { useNoteContext } from "../context/NoteContext";
-import { API_URL, getApiBase } from "../api/client";
+import { getApiBase } from "../api/client";
 
 interface Note {
   id: string;
@@ -16,6 +17,11 @@ interface Note {
   isPublic: string;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
 }
 
 const HomePage = () => {
@@ -245,126 +251,82 @@ const HomePage = () => {
 
   return (
     <Grid>
-      {/* Admin View - All Notes */}
+      {/* All Notes (Admin View) - single table at top when admin */}
       {isAdminLoggedIn && (
-        <Grid.Col span={12}>
-          <Paper shadow="xs" p="md" withBorder>
-            <Title order={2} mb="md">
-              Admin Dashboard
-            </Title>
-            {loading && <Text>Loading all notes...</Text>}
-            {error && <Text c="red">{error}</Text>}
-
-            {/* Admin View - Public Notes */}
-            <div
-              className="admin-notes-section public-notes"
-              style={{ marginBottom: "2rem" }}
-            >
-              <Title order={3} mb="md">
-                Public Notes
-              </Title>
-              <NotesGrid
-                notes={allNotes.filter((note) => note.isPublic === "true")}
-                emptyMessage="No public notes found in the system."
-                showUser={true}
-                onNoteDeleted={handleNoteCreated}
-                onNoteUpdated={handleNoteCreated}
-                isAdmin={true}
-              />
-            </div>
-
-            {/* Admin View - Private Notes */}
-            <div className="admin-notes-section private-notes">
-              <Title order={3} mb="md">
-                Private Notes
-              </Title>
-              <NotesGrid
-                notes={allNotes.filter((note) => note.isPublic !== "true")}
-                emptyMessage="No private notes found in the system."
-                showUser={true}
-                onNoteDeleted={handleNoteCreated}
-                onNoteUpdated={handleNoteCreated}
-                isAdmin={true}
-              />
-            </div>
-          </Paper>
+        <Grid.Col span={12} data-testid="section-admin-table">
+          <AdminNotesTable
+            notes={allNotes}
+            loading={loading}
+            error={error}
+            adminApiKey={adminApiKey}
+            onRefetch={() => fetchAllNotes()}
+            showCreateButton={false}
+          />
         </Grid.Col>
       )}
 
-      {/* User View */}
-      {!isAdminLoggedIn && (
-        <>
-          {/* Public Notes Section */}
-          <Grid.Col span={12}>
-            <Paper shadow="sm" p="md" withBorder radius="md">
-              <Group justify="space-between" mb="md">
-                <Title order={2}>Public Notes</Title>
-                {isSignedIn && (
-                  <Button
-                    leftSection={<IconPlus size={18} />}
-                    color="green"
-                    variant="filled"
-                    onClick={() => openNoteModal(true)}
-                  >
-                    + Create Public Note
-                  </Button>
-                )}
-              </Group>
-              {loading && <Text>Loading public notes...</Text>}
-              {error && <Text c="red">{error}</Text>}
-              <NotesGrid
-                notes={publicNotes}
-                emptyMessage="No public notes yet. Be the first to create one!"
-                showUser={true}
-                onNoteDeleted={handleNoteCreated}
-                onNoteUpdated={handleNoteCreated}
-                currentUserNotes={privateNotes
-                  .filter((note) => note.isPublic === "true")
-                  .map((note) => note.id)}
-              />
-            </Paper>
-          </Grid.Col>
+      {/* Public Notes Section - for everyone */}
+      <Grid.Col span={12} data-testid="section-public-notes">
+        <Paper shadow="sm" p="md" withBorder radius="md">
+          <Group justify="space-between" mb="xs">
+            <div>
+              <Title order={2}>Public Notes</Title>
+              <Text size="sm" c="dimmed">Visible to everyone</Text>
+            </div>
+            {isSignedIn && (
+              <Button
+                leftSection={<IconPlus size={18} />}
+                color="green"
+                variant="filled"
+                onClick={() => openNoteModal(true)}
+              >
+                + Create Public Note
+              </Button>
+            )}
+          </Group>
+          {loading && <Text>Loading public notes...</Text>}
+          {error && <Text c="red">{error}</Text>}
+          <NotesGrid
+            notes={publicNotes}
+            emptyMessage="No public notes yet. Be the first to create one!"
+            showUser={true}
+            onNoteDeleted={handleNoteCreated}
+            onNoteUpdated={handleNoteCreated}
+            currentUserNotes={isSignedIn ? privateNotes.filter((n) => n.isPublic === "true").map((n) => n.id) : undefined}
+          />
+          {!isSignedIn && <AnonymousNoteForm onNoteCreated={handleNoteCreated} />}
+        </Paper>
+      </Grid.Col>
 
-          {/* Your Notes Section (only for signed-in users) */}
-          {isSignedIn && (
-            <Grid.Col span={12}>
-              <Paper shadow="sm" p="md" withBorder radius="md">
-                <Group justify="space-between" mb="md">
-                  <Title order={2}>Your Notes</Title>
-                  <Button
-                    leftSection={<IconPlus size={18} />}
-                    color="violet"
-                    variant="filled"
-                    onClick={() => openNoteModal(false)}
-                  >
-                    + Create Private Note
-                  </Button>
-                </Group>
-                {loading && <Text>Loading your notes...</Text>}
-                {error && <Text c="red">{error}</Text>}
-                <NotesGrid
-                  notes={privateNotes}
-                  emptyMessage="You haven't created any private notes yet."
-                  showUser={false}
-                  onNoteDeleted={handleNoteCreated}
-                  onNoteUpdated={handleNoteCreated}
-                />
-              </Paper>
-            </Grid.Col>
-          )}
-
-          {/* Anonymous Note Creation (only for non-signed in users) */}
-          {!isSignedIn && (
-            <Grid.Col span={12}>
-              <Paper shadow="sm" p="md" withBorder radius="md">
-                <Title order={2} mb="md">
-                  Create a Public Note
-                </Title>
-                <AnonymousNoteForm onNoteCreated={handleNoteCreated} />
-              </Paper>
-            </Grid.Col>
-          )}
-        </>
+      {/* Your Notes Section - only when signed in */}
+      {isSignedIn && (
+        <Grid.Col span={12} data-testid="section-your-notes">
+          <Paper shadow="sm" p="md" withBorder radius="md">
+            <Group justify="space-between" mb="xs">
+              <div>
+                <Title order={2}>Your Notes</Title>
+                <Text size="sm" c="dimmed">Only you can see these notes</Text>
+              </div>
+              <Button
+                leftSection={<IconPlus size={18} />}
+                color="violet"
+                variant="filled"
+                onClick={() => openNoteModal(false)}
+              >
+                + Create Private Note
+              </Button>
+            </Group>
+            {loading && <Text>Loading your notes...</Text>}
+            {error && <Text c="red">{error}</Text>}
+            <NotesGrid
+              notes={privateNotes}
+              emptyMessage="No notes yet. Create your first note using the button above!"
+              showUser={false}
+              onNoteDeleted={handleNoteCreated}
+              onNoteUpdated={handleNoteCreated}
+            />
+          </Paper>
+        </Grid.Col>
       )}
 
       {/* Note Creation Modal */}
