@@ -284,24 +284,30 @@
 					<SignedIn>
 						<span class="text-sm text-gray-700">Hello, {isAdminLoggedIn ? 'Admin' : (userName || 'User')}</span>
 						<UserButton />
+						<Button 
+							size="xs" 
+							class={isAdminLoggedIn 
+								? "bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded shadow-sm" 
+								: "bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2 rounded shadow-sm"}
+							onclick={isAdminLoggedIn ? handleAdminLogout : () => (adminModalOpen = true)}
+						>
+							{isAdminLoggedIn ? "Admin Logout" : "Admin Login"}
+						</Button>
 					</SignedIn>
 					
 					<SignedOut>
 						<span class="text-sm text-gray-700">Hello, Anonymous</span>
 						<SignInButton mode="modal">
-							<Button size="xs" color="primary">Sign In</Button>
+							<Button size="xs" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded shadow-sm">Sign In</Button>
 						</SignInButton>
+						<Button 
+							size="xs" 
+							class="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2 rounded shadow-sm"
+							onclick={() => (adminModalOpen = true)}
+						>
+							Admin Login
+						</Button>
 					</SignedOut>
-					
-					<!-- Admin Button - Styled like in the screenshot -->
-					<Button 
-						size="xs" 
-						color={isAdminLoggedIn ? "red" : "primary"}
-						class={isAdminLoggedIn ? "bg-red-600 hover:bg-red-700 text-white font-semibold px-4" : "font-semibold px-4"}
-						onclick={isAdminLoggedIn ? handleAdminLogout : () => (adminModalOpen = true)}
-					>
-						{isAdminLoggedIn ? "Admin Logout" : "Admin Login"}
-					</Button>
 				</div>
 			</div>
 		</header>
