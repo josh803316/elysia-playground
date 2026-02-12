@@ -97,7 +97,10 @@ export function useLogger(app: Elysia) {
           body: ctx.body,
           params: ctx.params,
           query: ctx.query,
-          status: ctx.set.status,
+          status:
+            typeof (ctx as any).response?.status === "number"
+              ? (ctx as any).response.status
+              : ctx.set.status,
           request: {
             method: ctx.request.method,
             url: ctx.request.url,

@@ -16,20 +16,7 @@ import { apiKeyGuard } from "./guards/api-key-guard.js";
 import { authGuard } from "./guards/auth-guard.js";
 import { useLogger } from "./middleware/logger.middleware.js";
 import { getAllowedOrigins } from "./config/origins.js";
-
-// Define public paths that don't require auth
-export const publicPaths = [
-  "/",
-  "/health",
-  "/docs",
-  "/docs/json",
-  "/webhooks",
-  "/versions",
-  "/api/public-notes",
-  "/htmx",
-  "/react",
-  "/svelte",
-];
+import { isProtectedRoute } from "./config/route-protection.js";
 
 // Helper to safely get error message
 const getErrorMessage = (error: any): string => {
@@ -191,7 +178,7 @@ app
       // Skip authentication for public paths
       // Using type assertion since runtime may support this even if types don't
       protectedRoutes: (path: string) => {
-        return !publicPaths.some((publicPath) => path.startsWith(publicPath));
+        return isProtectedRoute(path);
       },
     } as any)
   )

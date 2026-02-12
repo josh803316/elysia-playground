@@ -428,12 +428,20 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
       try {
         authData = typedCtx.auth();
       } catch (e) {
+        console.warn("HTMX private notes auth check failed", {
+          path: new URL(typedCtx.request.url).pathname,
+          hasAuthorizationHeader: !!typedCtx.request.headers.get("authorization"),
+        });
         return new Response(authRequiredMessage(), {
           headers: { "Content-Type": "text/html" },
         });
       }
 
       if (!authData?.userId) {
+        console.warn("HTMX private notes missing userId", {
+          path: new URL(typedCtx.request.url).pathname,
+          hasAuthorizationHeader: !!typedCtx.request.headers.get("authorization"),
+        });
         return new Response(authRequiredMessage(), {
           headers: { "Content-Type": "text/html" },
         });
@@ -477,6 +485,10 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         try {
           authData = typedCtx.auth();
         } catch (e) {
+          console.warn("HTMX private note create auth check failed", {
+            path: new URL(typedCtx.request.url).pathname,
+            hasAuthorizationHeader: !!typedCtx.request.headers.get("authorization"),
+          });
           return new Response(errorMessage("Authentication required"), {
             status: 401,
             headers: { "Content-Type": "text/html" },
@@ -484,6 +496,10 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         }
 
         if (!authData?.userId) {
+          console.warn("HTMX private note create missing userId", {
+            path: new URL(typedCtx.request.url).pathname,
+            hasAuthorizationHeader: !!typedCtx.request.headers.get("authorization"),
+          });
           return new Response(errorMessage("Authentication required"), {
             status: 401,
             headers: { "Content-Type": "text/html" },
@@ -556,6 +572,10 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
       try {
         authData = typedCtx.auth();
       } catch (e) {
+        console.warn("HTMX private note delete auth check failed", {
+          path: new URL(typedCtx.request.url).pathname,
+          hasAuthorizationHeader: !!typedCtx.request.headers.get("authorization"),
+        });
         return new Response(errorMessage("Authentication required"), {
           status: 401,
           headers: { "Content-Type": "text/html" },
@@ -563,6 +583,10 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
       }
 
       if (!authData?.userId) {
+        console.warn("HTMX private note delete missing userId", {
+          path: new URL(typedCtx.request.url).pathname,
+          hasAuthorizationHeader: !!typedCtx.request.headers.get("authorization"),
+        });
         return new Response(errorMessage("Authentication required"), {
           status: 401,
           headers: { "Content-Type": "text/html" },
