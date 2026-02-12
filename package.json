@@ -8,8 +8,7 @@
     "react",
     "svelte",
     "server",
-    "htmx",
-    "vanilla-js"
+    "htmx"
   ],
   "scripts": {
     "dev": "bun run dev:all",
