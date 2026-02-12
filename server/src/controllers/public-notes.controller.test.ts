@@ -33,7 +33,7 @@ describe("Public Notes Controller", () => {
 
     const client = treaty(app) as any;
 
-    const response = await client.api["public-notes"].index.get();
+    const response = await client.api["public-notes"].get();
 
     expect(response.status).toBe(200);
     expect(response.data).toBeDefined();
@@ -59,7 +59,7 @@ describe("Public Notes Controller", () => {
       content: "This is a new public note",
     };
 
-    const response = await client.api["public-notes"].index.post(noteData);
+    const response = await client.api["public-notes"].post(noteData);
 
     expect(response.status).toBe(200);
     expect(response.data).toBeDefined();
@@ -75,7 +75,7 @@ describe("Public Notes Controller", () => {
     const noteId = response.data.id;
 
     // Verify we can get it back
-    const getAllResponse = await client.api["public-notes"].index.get();
+    const getAllResponse = await client.api["public-notes"].get();
     const noteExists = getAllResponse.data.some(
       (note: any) => note.id === noteId
     );
@@ -98,7 +98,7 @@ describe("Public Notes Controller", () => {
       content: "This public note will be deleted",
     };
 
-    const createResponse = await client.api["public-notes"].index.post(
+    const createResponse = await client.api["public-notes"].post(
       noteData
     );
     const noteId = createResponse.data.id;
@@ -115,7 +115,7 @@ describe("Public Notes Controller", () => {
     expect(data).toHaveProperty("success", true);
 
     // Verify it's gone
-    const getAllResponse = await client.api["public-notes"].index.get();
+    const getAllResponse = await client.api["public-notes"].get();
     const noteExists = getAllResponse.data.some(
       (note: any) => note.id === noteId
     );

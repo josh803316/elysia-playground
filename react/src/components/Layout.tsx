@@ -10,7 +10,7 @@ import {
   Divider,
   Badge,
 } from "@mantine/core";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   SignInButton,
@@ -28,6 +28,7 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
+  const navigate = useNavigate();
   const { user, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const { refreshTrigger } = useNoteContext();
@@ -141,9 +142,8 @@ export const Layout = ({ children }: LayoutProps) => {
 
     // Refresh note counts to show admin counts
     fetchNoteCounts();
-
-    // Force page reload to update admin state across components
-    window.location.reload();
+    // Send admins directly to the table view on first login.
+    navigate("/notes");
   };
 
   const handleAdminLogout = () => {

@@ -2,17 +2,55 @@ import { treaty } from "@elysiajs/eden";
 // Import the App type from the server
 import type { App } from "../../../server/src/index";
 
-// Get the API URL from environment variables (used by Eden and by fetch() for consistency)
-// In production (Vercel), default to same-origin calls.
+// Resolve API base URL safely.
+// In production (Vercel), default to same-origin unless an explicit valid
+// absolute/root-relative VITE_API_URL is provided.
+const rawApiUrl = (import.meta.env.VITE_API_URL ?? "").trim();
+const normalizedApiUrl = rawApiUrl.toLowerCase();
+const isPlaceholderApiHost =
+  normalizedApiUrl === "api" ||
+  normalizedApiUrl === "//api" ||
+  normalizedApiUrl === "http://api" ||
+  normalizedApiUrl === "https://api";
+const isAbsoluteApiUrl = /^https?:\/\//i.test(rawApiUrl);
+const isRootRelativeApiUrl = rawApiUrl.startsWith("/");
+const isInvalidApiUrl =
+  !!rawApiUrl &&
+  !isPlaceholderApiHost &&
+  !isAbsoluteApiUrl &&
+  !isRootRelativeApiUrl;
+
 export const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? "" : "http://localhost:3000");
+  typeof window !== "undefined"
+    ? rawApiUrl && !isPlaceholderApiHost
+      ? isAbsoluteApiUrl
+        ? rawApiUrl.replace(/\/+$/, "")
+        : isRootRelativeApiUrl
+          ? `${window.location.origin}${rawApiUrl.replace(/\/+$/, "")}`
+          : window.location.origin
+      : window.location.origin
+    : rawApiUrl && !isPlaceholderApiHost && isAbsoluteApiUrl
+      ? rawApiUrl.replace(/\/+$/, "")
+      : typeof process !== "undefined" && process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+
+if (typeof console !== "undefined") {
+  if (isPlaceholderApiHost) {
+    console.warn(
+      `[api/client] Ignoring invalid VITE_API_URL="${rawApiUrl}". ` +
+        "Using same-origin API base instead."
+    );
+  } else if (isInvalidApiUrl) {
+    console.warn(
+      `[api/client] VITE_API_URL="${rawApiUrl}" is not absolute or root-relative. ` +
+        "Using same-origin API base instead."
+    );
+  }
+}
 
 /** In dev (Vite on 5173), use relative path so the proxy forwards to the server and we avoid CORS. */
 export function getApiBase(): string {
-  if (typeof window !== "undefined" && window.location.port === "5173") {
-    return "";
-  }
   return API_URL.replace(/\/$/, "");
 }
 
@@ -63,7 +101,7 @@ interface ExpectedClient {
       };
     };
     "public-notes": {
-      index: { get: Endpoint };
+      get: Endpoint;
     } & {
       // Index signature *only* for dynamic ID routes
       [id: string]: {
@@ -193,7 +231,7 @@ export const apiClient = {
   // Public Notes API (mounted under /api)
   publicNotes: {
     getAll: async () => {
-      return client.api["public-notes"].index.get();
+      return client.api["public-notes"].get();
     },
     getById: async (id: number) => {
       return client.api["public-notes"][id].get();

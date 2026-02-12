@@ -2,6 +2,7 @@
 	import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from 'svelte-clerk/client';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { versionStore } from '$lib/stores/version';
 	
 	// Import Flowbite components
@@ -48,6 +49,7 @@
 	let createPublicNote = $state(true);
 	let editingNote = $state<any>(null);
 	let userToken = $state<string | null>(null);
+	const toBasePath = (path: string) => `${base}${path}`;
 
 	// Fetch note counts
 	async function fetchNoteCounts() {
@@ -115,7 +117,35 @@
 		}
 	}
 
-	onMount(async () => {
+	onMount(() => {
+		let intervalId: ReturnType<typeof setInterval> | undefined;
+		const onClerkUserUpdate = async () => {
+			try {
+				// @ts-ignore - Clerk types handling
+				const clerk = window.Clerk;
+				if (clerk && clerk.user) {
+					userName = clerk.user.firstName || clerk.user.username || 'User';
+					console.log('User name updated to:', userName);
+				}
+				
+				// Refresh token when user updates
+				if (clerk && clerk.session) {
+					try {
+						const token = await clerk.session.getToken();
+						if (token) {
+							userToken = token;
+							console.log('User token refreshed');
+						}
+					} catch (err) {
+						console.error('Error refreshing token:', err);
+					}
+				}
+			} catch (err) {
+				console.error('Error updating user data from Clerk:', err);
+			}
+		};
+
+		const initialize = async () => {
 		// Check for existing admin API key
 		const storedApiKey = localStorage.getItem('adminApiKey');
 		if (storedApiKey) {
@@ -159,41 +189,19 @@
 			fetchNoteCounts();
 			
 			// Set up an interval to refresh counts every minute
-			const intervalId = setInterval(fetchNoteCounts, 60000);
+			intervalId = setInterval(fetchNoteCounts, 60000);
 			
 			// Set up an event listener for when clerk loads/changes
-			document.addEventListener('clerk-user-update', async () => {
-				try {
-					// @ts-ignore - Clerk types handling
-					const clerk = window.Clerk;
-					if (clerk && clerk.user) {
-						userName = clerk.user.firstName || clerk.user.username || 'User';
-						console.log('User name updated to:', userName);
-					}
-					
-					// Refresh token when user updates
-					if (clerk && clerk.session) {
-						try {
-							const token = await clerk.session.getToken();
-							if (token) {
-								userToken = token;
-								console.log('User token refreshed');
-							}
-						} catch (err) {
-							console.error('Error refreshing token:', err);
-						}
-					}
-				} catch (err) {
-					console.error('Error updating user data from Clerk:', err);
-				}
-			});
-			
-			// Clean up interval on component unmount
-			return () => {
-				clearInterval(intervalId);
-				document.removeEventListener('clerk-user-update', () => {});
-			}
+			document.addEventListener('clerk-user-update', onClerkUserUpdate);
 		}
+		};
+
+		void initialize();
+
+		return () => {
+			if (intervalId) clearInterval(intervalId);
+			document.removeEventListener('clerk-user-update', onClerkUserUpdate);
+		};
 	});
 
 	function handleAdminLogin() {
@@ -254,13 +262,13 @@
 		<header class="bg-white shadow-sm border-b">
 			<div class="container mx-auto px-4 flex justify-between items-center h-16">
 				<!-- Logo/Brand -->
-				<a href="/" class="text-lg font-semibold">Elysia Notes - Svelte</a>
+				<a href={toBasePath('/')} class="text-lg font-semibold">Elysia Notes - Svelte</a>
 				
 				<!-- Main Navigation Links - No hamburger, always visible -->
 				<div class="flex items-center space-x-6">
-					<button type="button" class="text-gray-700 hover:text-gray-900" onclick={() => goto('/')}>Home</button>
+					<button type="button" class="text-gray-700 hover:text-gray-900" onclick={() => goto(toBasePath('/'))}>Home</button>
 					<SignedIn>
-						<a href="/notes" class="text-gray-700 hover:text-gray-900 flex items-center">
+						<a href={toBasePath('/notes')} class="text-gray-700 hover:text-gray-900 flex items-center">
 							{isAdminLoggedIn ? 'All Notes' : 'My Notes'}
 							<div class="flex space-x-1 ml-2">
 								<Badge color="green" rounded class="text-xs py-0.5 px-1.5 bg-green-200 text-green-800">Public: {publicNotesCount}</Badge>
@@ -311,9 +319,9 @@
 				<div class="flex justify-between items-center py-4">
 					<span class="text-sm text-gray-500">© 2024 Notes App</span>
 					<div class="flex gap-4 text-sm text-gray-500">
-						<a href="#" class="hover:text-gray-700">Privacy Policy</a>
-						<a href="#" class="hover:text-gray-700">Terms of Service</a>
-						<a href="#" class="hover:text-gray-700">Contact Us</a>
+						<a href={toBasePath('/')} class="hover:text-gray-700">Privacy Policy</a>
+						<a href={toBasePath('/')} class="hover:text-gray-700">Terms of Service</a>
+						<a href={toBasePath('/')} class="hover:text-gray-700">Contact Us</a>
 					</div>
 				</div>
 			</div>
@@ -353,7 +361,7 @@
 	<!-- Simple SSR-compatible layout -->
 	<header class="bg-white shadow-sm border-b">
 		<div class="container mx-auto px-4 flex justify-between items-center h-16">
-			<a href="/" class="text-lg font-semibold">Elysia Notes - Svelte</a>
+			<a href={toBasePath('/')} class="text-lg font-semibold">Elysia Notes - Svelte</a>
 		</div>
 	</header>
 

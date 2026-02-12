@@ -15,20 +15,8 @@ import { getDB, initDB } from "./db/index.js";
 import { apiKeyGuard } from "./guards/api-key-guard.js";
 import { authGuard } from "./guards/auth-guard.js";
 import { useLogger } from "./middleware/logger.middleware.js";
-
-// Define public paths that don't require auth
-export const publicPaths = [
-  "/",
-  "/health",
-  "/docs",
-  "/docs/json",
-  "/webhooks",
-  "/versions",
-  "/api/public-notes",
-  "/htmx",
-  "/react",
-  "/svelte",
-];
+import { getAllowedOrigins } from "./config/origins.js";
+import { isProtectedRoute } from "./config/route-protection.js";
 
 // Helper to safely get error message
 const getErrorMessage = (error: any): string => {
@@ -171,6 +159,7 @@ const serveSPA = (assetsDir: string, prefix: string) => {
 
 // Create the main app
 const app = new Elysia();
+const allowedOrigins = getAllowedOrigins();
 
 // Add custom logger middleware
 useLogger(app);
@@ -184,22 +173,18 @@ app
     clerkPlugin({
       publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
       secretKey: process.env.CLERK_SECRET_KEY,
-      // Allow tokens from dev origins (Clerk validates request origin; proxy sends Origin from browser)
-      authorizedParties: [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:6173",
-      ],
+      // Allow auth from local dev and deployed frontend origins.
+      authorizedParties: allowedOrigins,
       // Skip authentication for public paths
       // Using type assertion since runtime may support this even if types don't
       protectedRoutes: (path: string) => {
-        return !publicPaths.some((publicPath) => path.startsWith(publicPath));
+        return isProtectedRoute(path);
       },
     } as any)
   )
   .use(
     cors({
-      origin: ["http://localhost:5173", "http://localhost:6173", "http://localhost:3000"],
+      origin: allowedOrigins,
       credentials: true,
     })
   )

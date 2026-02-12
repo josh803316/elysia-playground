@@ -65,7 +65,7 @@ interface ExpectedClient {
     };
     "private-notes": {
       get: (options?: { headers?: Record<string, string> }) => Promise<unknown>;
-      post: (
+      put: (
         data: unknown,
         options?: { headers?: Record<string, string> }
       ) => Promise<unknown>;
@@ -83,7 +83,7 @@ interface ExpectedClient {
       };
     };
     "public-notes": {
-      index: { get: () => Promise<unknown> };
+      get: () => Promise<unknown>;
       post: (data: unknown) => Promise<unknown>;
       [key: number]: { get: () => Promise<unknown> };
     };
@@ -188,7 +188,7 @@ export const apiClient = {
       note: { title: string; content: string },
       token?: string
     ) => {
-      return client.api["private-notes"].post(note, {
+      return client.api["private-notes"].put(note, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
     },
@@ -211,7 +211,7 @@ export const apiClient = {
   // Public Notes API (mounted under /api)
   publicNotes: {
     getAll: async () => {
-      return client.api["public-notes"].index.get();
+      return client.api["public-notes"].get();
     },
     getById: async (id: number) => {
       return client.api["public-notes"][id].get();
