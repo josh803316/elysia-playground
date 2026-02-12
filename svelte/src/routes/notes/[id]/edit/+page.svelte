@@ -3,10 +3,11 @@
   import { useClerkContext } from 'svelte-clerk/client';
   import { notesStore } from '$lib/stores/notes';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { Button, Input, Textarea, Label, Alert, Checkbox, Spinner } from 'flowbite-svelte';
 
-  const noteId = parseInt($page.params.id);
+  const noteId = parseInt($page.params.id ?? '');
   let title = $state('');
   let content = $state('');
   let isPublic = $state(false);
@@ -24,12 +25,12 @@
         isSignedIn = true;
         userToken = await clerkCtx.session?.getToken() || null;
       } else {
-        goto('/');
+        goto(`${base}/`);
         return;
       }
 
       if (!isSignedIn || !userToken) {
-        goto('/');
+        goto(`${base}/`);
         return;
       }
 
@@ -94,7 +95,7 @@
         throw new Error('Failed to update note');
       }
 
-      goto('/notes');
+      goto(`${base}/notes`);
     } catch (err) {
       error = err instanceof Error ? err : new Error('Failed to update note');
     } finally {
@@ -113,10 +114,10 @@
 
     {#if !note && !error}
       <div class="flex justify-center items-center h-64">
-        <Spinner size="xl" />
+        <Spinner size="8" />
       </div>
     {:else if note}
-      <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
         <div>
           <Label for="title" class="mb-1">Title</Label>
           <Input
@@ -148,7 +149,7 @@
         <div class="flex justify-end space-x-4">
           <Button 
             color="light"
-            onclick={() => goto('/notes')}
+            onclick={() => goto(`${base}/notes`)}
           >
             Cancel
           </Button>

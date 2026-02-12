@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import { useClerkContext } from 'svelte-clerk/client';
   import { 
     Alert, 
@@ -214,19 +215,19 @@
             await fetchPrivateNotes();
           } else {
             console.warn('No user token available - redirecting to home');
-            goto('/');
+            goto(`${base}/`);
           }
         } else {
           // Redirect if not signed in
           console.log('User not signed in, redirecting to home page');
-          goto('/');
+          goto(`${base}/`);
         }
       } catch (err) {
         console.error('Error using Clerk context:', err);
       }
     } else {
       console.log('Clerk context not available - redirecting to home');
-      goto('/');
+      goto(`${base}/`);
     }
   });
 </script>

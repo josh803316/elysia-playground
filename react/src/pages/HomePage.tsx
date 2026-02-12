@@ -125,8 +125,9 @@ const HomePage = () => {
   };
 
   // Fetch all notes (admin only)
-  const fetchAllNotes = async () => {
-    if (!isAdminLoggedIn || !adminApiKey) return;
+  const fetchAllNotes = async (apiKeyOverride?: string) => {
+    const effectiveApiKey = apiKeyOverride ?? adminApiKey;
+    if (!isAdminLoggedIn || !effectiveApiKey) return;
 
     try {
       setLoading(true);
@@ -137,7 +138,7 @@ const HomePage = () => {
       const allUrl = base ? `${base}/api/notes/all` : "/api/notes/all";
       const response = await fetch(allUrl, {
         headers: {
-          "X-API-Key": adminApiKey,
+          "X-API-Key": effectiveApiKey,
         },
       });
 
@@ -195,9 +196,16 @@ const HomePage = () => {
     if (storedApiKey) {
       setAdminApiKey(storedApiKey);
       setIsAdminLoggedIn(true);
-      fetchAllNotes();
+      fetchAllNotes(storedApiKey);
     }
   }, []);
+
+  // Ensure admin dashboard data loads whenever admin auth state becomes active.
+  useEffect(() => {
+    if (isAdminLoggedIn && adminApiKey) {
+      fetchAllNotes(adminApiKey);
+    }
+  }, [isAdminLoggedIn, adminApiKey]);
 
   // Handle note creation
   const handleNoteCreated = () => {
