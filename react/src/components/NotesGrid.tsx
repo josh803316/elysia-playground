@@ -165,6 +165,32 @@ const NotesGrid = ({
   const handleEditSave = async (noteId: string) => {
     try {
       setError(null);
+      const note = notes.find((n) => String(n.id) === String(noteId));
+      const isAnonymousPublic =
+        note &&
+        !note.userId &&
+        (note.isPublic === "true" || note.isPublic === true);
+
+      if (isAnonymousPublic) {
+        // Anonymous public notes: no auth required
+        const response = await fetch(`/api/public-notes/${noteId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: editFormData.title,
+            content: editFormData.content,
+            isPublic: editFormData.isPublic,
+          }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to update note");
+        }
+        setEditInPlaceId(null);
+        if (onNoteUpdated) onNoteUpdated();
+        return;
+      }
+
       const token = isAdmin
         ? localStorage.getItem("adminApiKey") || ""
         : await getToken();
@@ -417,7 +443,7 @@ const NotesGrid = ({
       )}
       <Grid grow gutter="md" style={{ width: "100%" }}>
         {notes.map((note) => (
-          <Grid.Col key={note.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
+          <Grid.Col key={note.id} span={{ base: 12, sm: 6, md: 6, lg: 4 }}>
             <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
               <Stack justify="space-between" h="100%">
                 <div>
@@ -472,49 +498,83 @@ const NotesGrid = ({
                   )}
                 </div>
 
-                <Flex justify="space-between" align="center" mt="md">
-                  <Text size="xs" c="dimmed">
-                    {new Date(note.createdAt).toLocaleString()}
-                  </Text>
+                <Text size="xs" c="dimmed" mt="md">
+                  {new Date(note.createdAt).toLocaleString()}
+                </Text>
 
-                  {editInPlaceId === note.id ? (
-                    // Edit mode actions
-                    <Group>
-                      <ActionIcon
-                        color="green"
-                        onClick={() => handleEditSave(note.id)}
-                      >
-                        <IconCheck size={18} />
-                      </ActionIcon>
-                      <ActionIcon color="red" onClick={handleEditCancel}>
-                        <IconX size={18} />
-                      </ActionIcon>
-                    </Group>
-                  ) : (
-                    // View mode actions
-                    <Group>
-                      {canEditNote(note) && (
-                        <Button
-                          color="blue"
-                          size="xs"
-                          onClick={() => handleEditClick(note)}
-                          leftSection={<IconEdit size={14} />}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                      <Button
-                        color="red"
-                        size="xs"
-                        onClick={() => handleDelete(note)}
-                        loading={deletingId === note.id}
-                      >
-                        Delete
-                      </Button>
-                    </Group>
-                  )}
-                </Flex>
+                {editInPlaceId === note.id ? (
+                  <Group mt="md" gap="xs">
+                    <ActionIcon
+                      color="green"
+                      onClick={() => handleEditSave(note.id)}
+                    >
+                      <IconCheck size={18} />
+                    </ActionIcon>
+                    <ActionIcon color="red" onClick={handleEditCancel}>
+                      <IconX size={18} />
+                    </ActionIcon>
+                  </Group>
+                ) : null}
               </Stack>
+
+              {/* Card footer: Edit | Delete (match HTMX visual) */}
+              {editInPlaceId !== note.id && canEditNote(note) && (
+                <div
+                  style={{
+                    borderTop: "1px solid var(--mantine-color-gray-2)",
+                    background: "var(--mantine-color-gray-0)",
+                    padding: "12px 20px",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleEditClick(note)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "var(--mantine-color-indigo-6)",
+                      padding: 0,
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.color = "var(--mantine-color-indigo-8)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.color = "var(--mantine-color-indigo-6)";
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <span style={{ color: "var(--mantine-color-gray-5)" }}>|</span>
+                  <button
+                      type="button"
+                      onClick={() => handleDelete(note)}
+                      disabled={deletingId === note.id}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: deletingId === note.id ? "wait" : "pointer",
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: "var(--mantine-color-red-6)",
+                        padding: 0,
+                      }}
+                      onMouseOver={(e) => {
+                        if (deletingId !== note.id) e.currentTarget.style.color = "var(--mantine-color-red-8)";
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.color = "var(--mantine-color-red-6)";
+                      }}
+                    >
+                      {deletingId === note.id ? "Deleting…" : "Delete"}
+                    </button>
+                </div>
+              )}
             </Card>
           </Grid.Col>
         ))}

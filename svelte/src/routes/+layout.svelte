@@ -306,9 +306,9 @@
 			</div>
 		</header>
 
-		<!-- Main Content -->
+		<!-- Main Content - match HTMX/React: 1320px container, 2rem vertical / 1rem horizontal padding -->
 		<main class="flex-grow">
-			<div class="container mx-auto px-4 py-6" style="max-width: 1320px;">
+			<div class="mx-auto px-4 py-8" style="max-width: 1320px;">
 				{@render children()}
 			</div>
 		</main>
@@ -367,7 +367,7 @@
 
 	<!-- Main Content -->
 	<main class="flex-grow">
-		<div class="container mx-auto px-4 py-6">
+		<div class="mx-auto px-4 py-8" style="max-width: 1320px;">
 			{@render children()}
 		</div>
 	</main>
