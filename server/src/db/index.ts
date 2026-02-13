@@ -4,9 +4,14 @@ import { PGlite } from "@electric-sql/pglite";
 import * as schema from "./schema.js";
 import { notes, users } from "./schema.js";
 import { sql } from "drizzle-orm";
+import { createSupabaseDB, type SupabaseDatabase } from "./supabase.js";
 
-// Database type
-export type Database = PgliteDatabase<typeof schema>;
+// Database type - union of PGlite and Supabase Drizzle instances
+export type Database = PgliteDatabase<typeof schema> | SupabaseDatabase;
+
+// Check if we should use PGlite (tests or explicit opt-in)
+const usePGlite = () =>
+  process.env.USE_PGLITE === "true" || process.env.NODE_ENV === "test";
 
 // Database singleton
 let pgLiteInstance: PGlite | null = null;
@@ -14,9 +19,9 @@ let db: Database | null = null;
 let isInitialized = false;
 
 /**
- * Create a drizzle database instance with the schema
+ * Create a PGlite drizzle database instance with the schema
  */
-export const createDB = (client: PGlite): Database => {
+export const createDB = (client: PGlite): PgliteDatabase<typeof schema> => {
   return drizzle(client, { schema });
 };
 
@@ -27,25 +32,32 @@ export const initDB = async (options: { seed?: boolean } = {}) => {
   if (isInitialized && db) return db;
 
   try {
-    console.log("Initializing PGlite database...");
+    if (usePGlite()) {
+      console.log("Initializing PGlite database...");
 
-    // Create a new PGlite instance (in-memory Postgres)
-    pgLiteInstance = new PGlite();
+      // Create a new PGlite instance (in-memory Postgres)
+      pgLiteInstance = new PGlite();
 
-    // Initialize the database with schema
-    db = createDB(pgLiteInstance);
+      // Initialize the database with schema
+      db = createDB(pgLiteInstance);
 
-    // Create tables using SQL
-    await createTables(pgLiteInstance);
+      // Create tables using SQL
+      await createTables(pgLiteInstance);
 
-    // Seed database if requested
-    if (options.seed) {
-      await seedDatabase(db);
+      // Seed database if requested
+      if (options.seed) {
+        await seedDatabase(db);
+      }
+
+      console.log("PGlite database initialized successfully");
+    } else {
+      console.log("Connecting to Supabase database...");
+      db = createSupabaseDB();
+      console.log("Supabase database connected successfully");
+      // No seeding for Supabase - data persists
     }
 
-    console.log("Database initialized successfully");
     isInitialized = true;
-
     return db;
   } catch (error) {
     console.error("Error initializing database:", error);
@@ -54,7 +66,7 @@ export const initDB = async (options: { seed?: boolean } = {}) => {
 };
 
 /**
- * Create database tables
+ * Create database tables (PGlite only)
  */
 async function createTables(client: PGlite) {
   console.log("Creating database tables...");
@@ -89,7 +101,7 @@ async function createTables(client: PGlite) {
 
     // Verify tables were created
     const tables = await client.query(`
-      SELECT table_name FROM information_schema.tables 
+      SELECT table_name FROM information_schema.tables
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
     `);
 
@@ -101,7 +113,7 @@ async function createTables(client: PGlite) {
 }
 
 /**
- * Seed the database with initial data
+ * Seed the database with initial data (PGlite only)
  */
 async function seedDatabase(db: Database) {
   console.log("Seeding database...");

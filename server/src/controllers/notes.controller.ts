@@ -277,6 +277,70 @@ export class NotesController extends BaseApiController<Note> {
               )
           );
         })
+        // Authenticated user endpoint - delete all my notes
+        .delete("/notes/all", async (ctx: any) => {
+          try {
+            const typedCtx = ctx as unknown as Context;
+            const auth = typedCtx.auth();
+
+            // Get the database user ID from the clerk ID
+            const user = await this.usersModel.findOrCreateByClerkId(
+              typedCtx.db,
+              String(auth.userId),
+              typedCtx.clerk
+            );
+
+            const result = await this.notesModel.deleteAllByUserId(
+              typedCtx.db,
+              user.id
+            );
+
+            return {
+              success: true,
+              deletedCount: result.deletedCount,
+            };
+          } catch (err) {
+            console.error("Error deleting all user notes:", err);
+            return new Response("Server error deleting notes", { status: 500 });
+          }
+        }, {
+          beforeHandle: [authGuard],
+        })
+        // Admin endpoint - delete ALL notes in the system
+        .delete("/notes/all/admin", async (ctx: any) => {
+          try {
+            const typedCtx = ctx as unknown as Context;
+
+            // Check for API key in headers
+            let apiKey;
+            if (typeof typedCtx.request.headers.get === "function") {
+              apiKey = typedCtx.request.headers.get("x-api-key");
+            } else {
+              const headers = typedCtx.request.headers as Record<string, string>;
+              apiKey =
+                headers["x-api-key"] ||
+                headers["X-API-Key"] ||
+                headers["X-Api-Key"];
+            }
+
+            if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+              return new Response(
+                "Unauthorized: Invalid or missing API key",
+                { status: 401 }
+              );
+            }
+
+            const result = await this.notesModel.deleteAllNotes(typedCtx.db);
+
+            return {
+              success: true,
+              deletedCount: result.deletedCount,
+            };
+          } catch (err) {
+            console.error("Error deleting all notes (admin):", err);
+            return new Response("Server error deleting all notes", { status: 500 });
+          }
+        })
         // Admin endpoints - no guards needed as they use API key auth
         .get("/notes/all", async (ctx: any) => {
           try {

@@ -4,8 +4,9 @@ import { useAuth } from "../hooks/useAuth";
 import { NoteForm } from "../components/NoteForm";
 import NoteList from "../components/NoteList";
 import { AdminNotesTable } from "../components/AdminNotesTable";
-import { Title, Text, Paper, Button, Group, Stack } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { Title, Text, Paper, Button, Group, Stack, Modal } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { useNoteContext } from "../context/NoteContext";
@@ -27,11 +28,14 @@ interface Note {
 }
 
 export const NotesPage = () => {
-  const { notes, deleteNote, isLoading, error } = useNotes();
+  const { notes, deleteNote, deleteAllNotes, isLoading, error } = useNotes();
   const { isSignedIn } = useAuth();
   const { triggerRefresh } = useNoteContext();
   const [editingNote, setEditingNote] = useState<number | null>(null);
   const navigate = useNavigate();
+  const [deleteAllOpened, { open: openDeleteAll, close: closeDeleteAll }] = useDisclosure(false);
+  const [adminDeleteAllOpened, { open: openAdminDeleteAll, close: closeAdminDeleteAll }] = useDisclosure(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   // Admin state
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -97,6 +101,37 @@ export const NotesPage = () => {
     setEditingNote(id);
   };
 
+  const handleDeleteAllMyNotes = async () => {
+    try {
+      setDeletingAll(true);
+      await deleteAllNotes();
+      triggerRefresh();
+      closeDeleteAll();
+    } catch (err) {
+      console.error("Error deleting all notes:", err);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
+  const handleAdminDeleteAll = async () => {
+    if (!adminApiKey) return;
+    try {
+      setDeletingAll(true);
+      const response = await fetch("/api/notes/all/admin", {
+        method: "DELETE",
+        headers: { "X-API-Key": adminApiKey },
+      });
+      if (!response.ok) throw new Error("Failed to delete all notes");
+      closeAdminDeleteAll();
+      fetchAllNotes(adminApiKey);
+    } catch (err) {
+      console.error("Error deleting all notes (admin):", err);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   if (!isSignedIn) {
     return (
       <Layout>
@@ -137,6 +172,16 @@ export const NotesPage = () => {
     return (
       <Layout>
         <Stack data-testid="section-admin-table">
+          <Group justify="flex-end" mb="sm">
+            <Button
+              color="red"
+              variant="outline"
+              leftSection={<IconTrash size={16} />}
+              onClick={openAdminDeleteAll}
+            >
+              Delete All Notes
+            </Button>
+          </Group>
           <AdminNotesTable
             notes={allNotes}
             loading={adminLoading}
@@ -147,6 +192,17 @@ export const NotesPage = () => {
             onCreateClick={() => navigate("/notes/new")}
           />
         </Stack>
+        <Modal opened={adminDeleteAllOpened} onClose={closeAdminDeleteAll} title="Delete All Notes">
+          <Text mb="md">
+            Are you sure you want to delete ALL notes in the system? This action cannot be undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeAdminDeleteAll}>Cancel</Button>
+            <Button color="red" onClick={handleAdminDeleteAll} loading={deletingAll}>
+              Delete All Notes
+            </Button>
+          </Group>
+        </Modal>
       </Layout>
     );
   }
@@ -158,12 +214,23 @@ export const NotesPage = () => {
         <Paper p="md" withBorder shadow="sm">
           <Group justify="space-between" mb="md">
             <Title order={1}>My Notes</Title>
-            <Button
-              leftSection={<IconPlus size={16} />}
-              onClick={() => navigate("/notes/new")}
-            >
-              Create New Note
-            </Button>
+            <Group>
+              <Button
+                color="red"
+                variant="outline"
+                leftSection={<IconTrash size={16} />}
+                onClick={openDeleteAll}
+                disabled={!notes || notes.length === 0}
+              >
+                Delete All My Notes
+              </Button>
+              <Button
+                leftSection={<IconPlus size={16} />}
+                onClick={() => navigate("/notes/new")}
+              >
+                Create New Note
+              </Button>
+            </Group>
           </Group>
         </Paper>
         <Paper p="md" withBorder shadow="sm">
@@ -190,6 +257,17 @@ export const NotesPage = () => {
           )}
         </Paper>
       </Stack>
+      <Modal opened={deleteAllOpened} onClose={closeDeleteAll} title="Delete All My Notes">
+        <Text mb="md">
+          Are you sure you want to delete all your notes? This action cannot be undone.
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={closeDeleteAll}>Cancel</Button>
+          <Button color="red" onClick={handleDeleteAllMyNotes} loading={deletingAll}>
+            Delete All My Notes
+          </Button>
+        </Group>
+      </Modal>
     </Layout>
   );
 };

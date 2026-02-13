@@ -105,7 +105,7 @@ export class UsersModel extends BaseApiModel<User> {
       };
 
       // Use a transaction for the insert to handle race conditions
-      const inserted = await db.transaction(async (tx: Database) => {
+      const inserted = await (db as any).transaction(async (tx: any) => {
         // Check one more time inside transaction to avoid race conditions
         const existingUserInTx = await tx
           .select()
