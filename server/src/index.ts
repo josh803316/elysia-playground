@@ -39,6 +39,7 @@ const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 </svg>`;
 
 // Initialize/seed DB once per cold start. Do not hard-exit on failure in serverless.
+// Seeding only applies to PGlite (in-memory) mode; Supabase data persists.
 const dbSetupPromise = initDB({ seed: true }).catch((error) => {
   console.error("Database setup failed during startup:", error);
   return null;

@@ -105,14 +105,23 @@
       return;
     }
 
-    // If creating or converting to a private note, we need a valid user token
-    if (!finalPublicState && !userToken) {
+    // If creating or converting to a private note, we need a valid user token.
+    // Try to get token from Clerk if parent didn't pass one (e.g. layout not yet hydrated).
+    let tokenForPrivate = userToken;
+    if (!finalPublicState && !tokenForPrivate && typeof window !== 'undefined' && (window as any).Clerk?.session) {
+      try {
+        tokenForPrivate = await (window as any).Clerk.session.getToken() ?? null;
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    if (!finalPublicState && !tokenForPrivate) {
       error = new Error('You must be signed in to create a private note');
       return;
     }
 
     try {
-      console.log('Submitting note with token:', userToken ? 'Present' : 'Missing', 
+      console.log('Submitting note with token:', (tokenForPrivate || userToken) ? 'Present' : 'Missing', 
                  'Is public:', finalPublicState ? 'Yes' : 'No',
                  'Checkbox checked:', isPublic ? 'Yes' : 'No');
       
@@ -146,8 +155,9 @@
           const headers: Record<string, string> = {
             'Content-Type': 'application/json'
           };
-          if (userToken) {
-            headers['Authorization'] = `Bearer ${userToken}`;
+          const authToken = tokenForPrivate ?? userToken;
+          if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
           }
           const response = await fetch(`/api/notes/${noteId}`, {
             method: 'PUT',
@@ -167,10 +177,9 @@
         // Create new note
         console.log('Creating new note as', finalPublicState ? 'public' : 'private');
 
-        // Resolve token only when needed for authenticated/private requests.
-        // For anonymous public notes this stays non-blocking.
-        let tokenToUse = userToken;
-        if (!finalPublicState && typeof window !== 'undefined' && (window as any).Clerk?.session) {
+        // Use token we already resolved for private notes, or refresh for public-but-authenticated.
+        let tokenToUse = !finalPublicState ? tokenForPrivate : userToken;
+        if (finalPublicState && typeof window !== 'undefined' && (window as any).Clerk?.session) {
           try {
             const fresh = await (window as any).Clerk.session.getToken();
             if (fresh) tokenToUse = fresh;

@@ -194,9 +194,17 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
     });
     document.body.addEventListener('htmx:configRequest', function(evt) {
       var el = evt.detail && evt.detail.elt;
-      var url = (el && el.getAttribute && el.getAttribute('hx-get')) || (evt.detail.pathInfo && evt.detail.pathInfo.requestPath) || '';
+      var getUrl = el && el.getAttribute && el.getAttribute('hx-get');
+      var putUrl = el && el.getAttribute && el.getAttribute('hx-put');
+      var postUrl = el && el.getAttribute && el.getAttribute('hx-post');
+      var deleteUrl = el && el.getAttribute && el.getAttribute('hx-delete');
+      var pathInfoUrl = evt.detail.pathInfo && evt.detail.pathInfo.requestPath;
+      var url = pathInfoUrl || getUrl || putUrl || postUrl || deleteUrl || '';
       if ((url.indexOf('/htmx/admin/notes') !== -1 || url === '/htmx/admin/notes') && window.getAdminApiKey()) {
         evt.detail.headers['X-API-Key'] = window.getAdminApiKey();
+      }
+      if (url.indexOf('/htmx/private-notes') !== -1 && window.__clerkToken) {
+        evt.detail.headers['Authorization'] = 'Bearer ' + window.__clerkToken;
       }
     });
     document.body.addEventListener('htmx:afterRequest', function(evt) {
@@ -237,8 +245,10 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
             htmx.trigger('#private-notes-container', 'refreshPrivateNotes');
             // Refresh nav note counts (Public/Private badges)
             const token = await window.Clerk.session.getToken();
+            window.__clerkToken = token || null;
             if (window.refreshNavNoteCounts) window.refreshNavNoteCounts(token);
           } else {
+            window.__clerkToken = null;
             document.body.classList.remove('clerk-signed-in');
             document.body.classList.add('clerk-signed-out');
             if (window.refreshNavNoteCounts) window.refreshNavNoteCounts();

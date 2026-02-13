@@ -5,13 +5,7 @@ export default {
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    // These values are not actually used with pglite
-    host: "localhost",
-    port: 5432,
-    user: "postgres",
-    password: "postgres",
-    database: "postgres",
-    ssl: false,
+    url: process.env.DIRECT_URL!,
   },
   verbose: true,
   strict: true,

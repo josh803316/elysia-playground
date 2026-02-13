@@ -91,6 +91,21 @@ export function useNotes() {
     }
   };
 
+  const deleteAllNotes = async () => {
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("No authentication token available");
+      }
+      const result = await apiClient.deleteAllMyNotes(token);
+      await fetchNotes();
+      return result;
+    } catch (err) {
+      console.error("Error deleting all notes:", err);
+      throw err instanceof Error ? err : new Error("Failed to delete all notes");
+    }
+  };
+
   useEffect(() => {
     if (!initialized) {
       fetchNotes();
@@ -104,6 +119,7 @@ export function useNotes() {
     createNote,
     updateNote,
     deleteNote,
+    deleteAllNotes,
     refresh: fetchNotes,
   };
 }

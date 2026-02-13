@@ -79,17 +79,18 @@
     }
   }
 
-  // Function to get Clerk token
+  // Function to get Clerk token (tries context first, then window.Clerk so we get a token when layout has one)
   async function getClerkToken(): Promise<string | null> {
     try {
-      if (!clerkCtx || !clerkCtx.session) {
-        console.log('No active Clerk session available');
-        return null;
+      if (clerkCtx?.session) {
+        const token = await clerkCtx.session.getToken();
+        if (token) return token;
       }
-
-      const token = await clerkCtx.session.getToken();
-      console.log('Clerk token retrieved successfully');
-      return token;
+      if (typeof window !== 'undefined' && (window as any).Clerk?.session) {
+        const token = await (window as any).Clerk.session.getToken();
+        if (token) return token;
+      }
+      return null;
     } catch (error) {
       console.error('Error getting Clerk token:', error);
       return null;
@@ -115,10 +116,11 @@
     }
   }
 
-  // Fetch authenticated private notes endpoint
-  async function fetchAuthenticatedPrivateNotes() {
-    if (!isSignedIn || !userToken) {
-      console.log('Not fetching private notes - user not signed in or no token', { isSignedIn, hasToken: !!userToken });
+  // Fetch authenticated private notes from /api/private-notes. Pass token when parent userToken may not be set yet.
+  async function fetchAuthenticatedPrivateNotes(token?: string | null) {
+    const authToken = token ?? userToken;
+    if (!isSignedIn || !authToken) {
+      console.log('Not fetching private notes - user not signed in or no token', { isSignedIn, hasToken: !!authToken });
       return;
     }
 
@@ -126,11 +128,10 @@
       console.log('Starting authenticated request to /api/private-notes');
       loading = true;
       
-      // Get user's private notes from the private notes endpoint
       const response = await fetch('/api/private-notes', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${userToken}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -161,10 +162,11 @@
     }
   }
 
-  // Fetch all user notes (both private and public)
-  async function fetchUserNotes() {
-    if (!isSignedIn || !userToken) {
-      console.log('Not fetching user notes - user not signed in or no token');
+  // Fetch all user notes (both private and public). Pass token when parent userToken may not be set yet (e.g. after modal save).
+  async function fetchUserNotes(token?: string | null) {
+    const authToken = token ?? userToken;
+    if (!isSignedIn || !authToken) {
+      console.log('Not fetching user notes - user not signed in or no token', { isSignedIn, hasToken: !!authToken });
       return;
     }
 
@@ -174,10 +176,10 @@
       
       // Get all user notes from all endpoints
       const [privateResponse, publicResponse] = await Promise.all([
-        // Get user's private notes
+        // Get user's notes (private + public they own)
         fetch('/api/notes', {
           headers: {
-            'Authorization': `Bearer ${userToken}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           }
         }),
@@ -438,10 +440,13 @@
       // Start with fetching public notes
       await fetchPublicNotes();
       
-      // Then fetch user's notes if signed in
-      if (isSignedIn && userToken) {
-        console.log('Fetching user notes with token');
-        await fetchUserNotes();
+      // Then fetch user's notes if signed in (get token so we refresh even when parent userToken not set yet, e.g. after modal save)
+      if (isSignedIn) {
+        const token = userToken ?? await getClerkToken();
+        if (token) {
+          console.log('Fetching user notes with token');
+          await fetchUserNotes(token);
+        }
       }
       
       // Fetch admin notes if logged in as admin
@@ -468,60 +473,72 @@
 
   onMount(async () => {
     console.log('Component mounted, initializing...');
-    
-    // Only access Clerk context after component is mounted
-    if (clerkCtx) {
-      try {
-        console.log('Checking Clerk authentication status...');
-        
-        // Check if user is signed in
-        isSignedIn = clerkCtx.auth?.userId !== null;
-        console.log('User signed in:', isSignedIn);
-        
-        // If signed in, get the token for future API calls
-        if (isSignedIn) {
-          console.log('Getting JWT token for authenticated requests...');
-          
-          try {
-            userToken = await getClerkToken();
-            console.log('Token received immediately:', userToken ? 'Yes (token hidden)' : 'No');
-            
-            if (userToken) {
-              // Load all notes (both public and private)
-              console.log('Fetching all user notes...');
-              await fetchUserNotes();
-              console.log('Fetching all public notes...');
-              await fetchPublicNotes();
-            } else {
-              // Token not ready yet (Clerk may still be hydrating). Retry with short delays so notes load quickly after refresh.
-              const tryFetchWithToken = async (attempt: number) => {
-                userToken = await getClerkToken();
-                if (userToken) {
-                  console.log('Token received on retry', attempt);
-                  await fetchUserNotes();
-                  await fetchPublicNotes();
-                  return;
-                }
-                if (attempt < 3) {
-                  setTimeout(() => tryFetchWithToken(attempt + 1), 80 * attempt); // 80ms, 160ms, 240ms
-                }
-              };
-              setTimeout(() => tryFetchWithToken(1), 80);
-            }
-          } catch (tokenError) {
-            console.error('Error getting Clerk token:', tokenError);
-          }
-        } else {
-          // Even if not signed in, still fetch public notes
-          console.log('User not signed in, fetching public notes only...');
-          await fetchPublicNotes();
-        }
-      } catch (err) {
-        console.error('Error using Clerk context:', err);
+
+    async function loadPrivateNotesWhenReady() {
+      const clerk = typeof window !== 'undefined' ? (window as any).Clerk : null;
+      if (!clerk?.user) return false;
+      console.log('Clerk ready (window.Clerk.user), loading private notes...');
+      isSignedIn = true;
+      const token = await getClerkToken();
+      if (token) {
+        userToken = token;
+        await fetchUserNotes(token);
+        if (privateNotes.length === 0) await fetchAuthenticatedPrivateNotes(token);
       }
-    } else {
-      console.log('Clerk context not available, fetching public notes only...');
+      return true;
+    }
+
+    function scheduleClerkReadyCheck() {
+      const maxAttempts = 12;
+      const delays = [0, 100, 250, 500, 750, 1000, 1300, 1700, 2100, 2600, 3200, 4000];
+      let attempt = 0;
+      const tryLoad = async () => {
+        if (await loadPrivateNotesWhenReady()) return;
+        attempt += 1;
+        if (attempt < maxAttempts) setTimeout(tryLoad, delays[attempt] ?? 500);
+      };
+      tryLoad();
+      // When Clerk appears, also subscribe so we run once when auth state is set
+      const pollForClerk = (tries: number) => {
+        const clerk = (window as any).Clerk;
+        if (clerk) {
+          clerk.addListener(() => void loadPrivateNotesWhenReady());
+          void loadPrivateNotesWhenReady();
+          return;
+        }
+        if (tries < 30) setTimeout(() => pollForClerk(tries + 1), 100);
+      };
+      setTimeout(() => pollForClerk(0), 50);
+    }
+    
+    // Layout shows SignedIn via window.Clerk; page's clerkCtx often lags (not hydrated yet). So we always
+    // fetch public notes first, then rely on window.Clerk for auth and run scheduleClerkReadyCheck so we
+    // load private notes when Clerk is ready (same source as layout).
+    try {
+      console.log('Checking Clerk authentication status (window.Clerk is source of truth)...');
+      const clerkNow = typeof window !== 'undefined' ? (window as any).Clerk : null;
+      const signedInNow = !!(clerkNow?.user);
+      isSignedIn = signedInNow;
+      console.log('User signed in (from window.Clerk):', signedInNow);
+
+      if (signedInNow) {
+        let token = await getClerkToken();
+        if (token) userToken = token;
+        if (token) {
+          await fetchUserNotes(token);
+          if (privateNotes.length === 0) await fetchAuthenticatedPrivateNotes(token);
+        }
+        await fetchPublicNotes();
+        // In case token wasn't ready yet, still schedule a follow-up check
+        if (privateNotes.length === 0) scheduleClerkReadyCheck();
+      } else {
+        await fetchPublicNotes();
+        scheduleClerkReadyCheck();
+      }
+    } catch (err) {
+      console.error('Error during notes init:', err);
       await fetchPublicNotes();
+      scheduleClerkReadyCheck();
     }
 
     // Check for existing admin API key

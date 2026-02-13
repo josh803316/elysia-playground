@@ -1,7 +1,7 @@
 import { BaseApiModel } from "./base-api.model.js";
 import { notes } from "../db/schema.js";
 import type { Database } from "../db/index.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 // Define the Note type based on the schema
 export interface Note {
@@ -119,5 +119,29 @@ export class NotesModel extends BaseApiModel<Note> {
   ): Promise<boolean> {
     const note = await this.findById(db, noteId);
     return !!note && note.userId === userId;
+  }
+
+  /**
+   * Delete all notes for a specific user
+   */
+  async deleteAllByUserId(
+    db: Database,
+    userId: number
+  ): Promise<{ deletedCount: number }> {
+    const result = await db
+      .delete(notes)
+      .where(eq(notes.userId, userId))
+      .returning();
+    return { deletedCount: result.length };
+  }
+
+  /**
+   * Delete all notes in the system (admin only)
+   */
+  async deleteAllNotes(
+    db: Database
+  ): Promise<{ deletedCount: number }> {
+    const result = await db.delete(notes).returning();
+    return { deletedCount: result.length };
   }
 }

@@ -238,6 +238,33 @@ export const apiClient = {
     },
   },
 
+  // Delete all notes
+  deleteAllMyNotes: async (token: string) => {
+    const response = await fetch(`${API_URL}/api/notes/all`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to delete all notes: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  deleteAllNotesAdmin: async (apiKey: string) => {
+    const response = await fetch(`${API_URL}/api/notes/all/admin`, {
+      method: "DELETE",
+      headers: {
+        "X-API-Key": apiKey,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to delete all notes (admin): ${response.status}`);
+    }
+    return response.json();
+  },
+
   // Auth example (mounted at root /)
   auth: {
     example: async (token?: string) => {
