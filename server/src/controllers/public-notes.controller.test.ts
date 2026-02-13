@@ -24,6 +24,8 @@ describe("Public Notes Controller", () => {
     }
   });
 
+  // Core area: public notes. Only "not signed in" (anonymous) applies; no auth or admin.
+  describe("Not signed in (anonymous access)", () => {
   it("should get all public notes", async () => {
     const { app } = await createTestApp({
       controller: publicNotesController,
@@ -136,5 +138,6 @@ describe("Public Notes Controller", () => {
     );
 
     expect(deleteResponse.status).toBe(404);
+  });
   });
 });

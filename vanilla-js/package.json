@@ -6,6 +6,6 @@
   "scripts": {
     "dev": "echo 'Vanilla JS is served by the Elysia server'",
     "build": "echo 'Vanilla JS build - static files only'",
-    "test": "echo 'No tests yet'"
+    "test": "bun test"
   }
 }
