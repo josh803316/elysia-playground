@@ -8,7 +8,8 @@
     "react",
     "svelte",
     "server",
-    "htmx"
+    "htmx",
+    "vanilla-js"
   ],
   "scripts": {
     "dev": "bun run dev:all",
@@ -45,7 +46,7 @@
     "elysia": "^1.4.24"
   },
   "devDependencies": {
-    "turbo": "^2.8.6",
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "turbo": "^2.8.7"
   }
 }

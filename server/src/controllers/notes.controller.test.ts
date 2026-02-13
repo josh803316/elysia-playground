@@ -53,6 +53,26 @@ describe("Notes Controller", () => {
     delete process.env.ADMIN_API_KEY;
   });
 
+  describe("Not signed in", () => {
+  it("should return unauthorized when not authenticated", async () => {
+    const { app } = await createTestApp({
+      controller: notesController,
+      dbUtils,
+      withAuth: false,
+    });
+
+    if (!app) throw new Error("App not initialized");
+    const api = treaty(app) as any;
+
+    const { data, error } = await api.api.notes.get();
+
+    expect(error).toBeDefined();
+    expect(error.status).toBe(401);
+    expect(data).toBeNull();
+  });
+  });
+
+  describe("Signed in", () => {
   it("should get user notes when authenticated", async () => {
     const { app, token } = await createTestApp({
       controller: notesController,
@@ -72,23 +92,6 @@ describe("Notes Controller", () => {
     expect(error).toBeNull();
     expect(data).toBeDefined();
     expect(Array.isArray(data)).toBe(true);
-  });
-
-  it("should return unauthorized when not authenticated", async () => {
-    const { app } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      withAuth: false,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    const { data, error } = await api.api.notes.get();
-
-    expect(error).toBeDefined();
-    expect(error.status).toBe(401);
-    expect(data).toBeNull();
   });
 
   it("should create a new note", async () => {
@@ -269,6 +272,25 @@ describe("Notes Controller", () => {
     expect(getError).toBeDefined();
     expect([403, 404]).toContain(getError.status);
   });
+  });
+
+  describe("Admin (API key)", () => {
+  it("should return 401 when getting all notes without admin API key", async () => {
+    const { app } = await createTestApp({
+      controller: notesController,
+      dbUtils,
+      withAuth: false,
+    });
+
+    if (!app) throw new Error("App not initialized");
+    const api = treaty(app) as any;
+
+    const { data, error } = await api.api.notes.all.get();
+
+    expect(error).toBeDefined();
+    expect(error?.status).toBe(401);
+    expect(data).toBeNull();
+  });
 
   it("should get all notes with admin API key", async () => {
     // First create a note as a regular user
@@ -327,6 +349,35 @@ describe("Notes Controller", () => {
     }
   });
 
+  it("should return 401 when deleting note as admin without API key", async () => {
+    const { app, token } = await createTestApp({
+      controller: notesController,
+      dbUtils,
+      userId: TEST_USER_ID,
+    });
+
+    if (!app) throw new Error("App not initialized");
+    const api = treaty(app) as any;
+
+    // Create a note first
+    const { data: createdNote } = await api.api.notes.post(
+      {
+        title: "Admin No-Key Delete Test",
+        content: "Should not be deletable without API key",
+        isPublic: false,
+      },
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const noteId = createdNote!.id;
+
+    // Try admin delete without X-API-Key
+    const { data, error } = await api.api.notes[noteId].admin.delete({});
+
+    expect(error).toBeDefined();
+    expect(error?.status).toBe(401);
+    expect(data).toBeNull();
+  });
+
   it("should delete a note with admin API key", async () => {
     // First create a note as a regular user
     const { app: userApp, token } = await createTestApp({
@@ -378,5 +429,6 @@ describe("Notes Controller", () => {
     expect(data).toBeDefined();
     expect(data).toHaveProperty("success", true);
     expect(data.message).toContain("admin");
+  });
   });
 });

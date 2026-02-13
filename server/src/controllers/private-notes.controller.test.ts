@@ -70,6 +70,32 @@ describe("Private Notes Controller", () => {
     }
   });
 
+  describe("Not signed in", () => {
+  it("should not allow unauthorized access", async () => {
+    // Create app with auth function that returns null userId
+    const { app } = await createTestApp({
+      controller: privateNotesController,
+      dbUtils,
+      withAuth: false,
+    });
+
+    if (!app) throw new Error("App not initialized");
+    const api = treaty(app) as any;
+
+    // Try to create a note - should get 401 since auth() returns userId: null
+    const { data, error } = await api.api["private-notes"].put({
+      data: "This is a test private note",
+    });
+
+    console.log({ data, error });
+
+    expect(error).toBeDefined();
+    expect(error?.status).toBe(401);
+    expect(data).toBeNull();
+  });
+  });
+
+  describe("Signed in", () => {
   it("should create a new private note", async () => {
     const { app, token } = await createTestApp({
       controller: privateNotesController,
@@ -194,29 +220,6 @@ describe("Private Notes Controller", () => {
     expect(getError?.status).toBe(404);
   });
 
-  it("should not allow unauthorized access", async () => {
-    // Create app with auth function that returns null userId
-    const { app } = await createTestApp({
-      controller: privateNotesController,
-      dbUtils,
-      withAuth: false,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    // Try to create a note - should get 401 since auth() returns userId: null
-    const { data, error } = await api.api["private-notes"].put({
-      data: "This is a test private note",
-    });
-
-    console.log({ data, error });
-
-    expect(error).toBeDefined();
-    expect(error?.status).toBe(401);
-    expect(data).toBeNull();
-  });
-
   it("should not allow access to other users' notes", async () => {
     // Create first user context
     const { app: app1, token: token1 } = await createTestApp({
@@ -265,5 +268,6 @@ describe("Private Notes Controller", () => {
 
     expect(error).toBeDefined();
     expect(error?.status).toBe(403); // Should be 403 Forbidden
+  });
   });
 });
