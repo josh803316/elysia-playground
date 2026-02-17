@@ -29,7 +29,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "install:all": "bun install && bun run install:workspaces",
-    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server && bun run install:htmx && bun run install:angular",
+    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server && bun run install:htmx && bun run install:vanilla-js && bun run install:angular",
     "install:react": "cd react && bun install",
     "install:svelte": "cd svelte && bun install",
     "install:server": "cd server && bun install",
@@ -37,7 +37,7 @@
     "install:vanilla-js": "cd vanilla-js && bun install",
     "install:angular": "cd angular && bun install",
     "dev:angular": "turbo run dev --filter=./angular --filter=./server",
-    "build:angular": "cd angular && ./node_modules/.bin/ng build",
+    "build:angular": "cd angular && bun run build",
     "dev:server": "cd server && bun run dev",
     "build:server": "bun run build -w server",
     "start:server": "bun run start -w server",
@@ -51,6 +51,6 @@
   },
   "devDependencies": {
     "bun-types": "latest",
-    "turbo": "^2.8.7"
+    "turbo": "^2.8.9"
   }
 }
