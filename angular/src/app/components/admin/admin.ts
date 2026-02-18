@@ -61,14 +61,15 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
   `,
   styles: `
     .section { padding: 4px 0; }
-    .subtitle { color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px; }
+    .subtitle { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px; }
     .api-key-form {
       display: flex;
       gap: 8px;
       margin-bottom: 16px;
     }
+    .api-key-form .input { flex: 1; }
     .count {
-      color: #94a3b8;
+      color: var(--text-secondary);
       font-size: 0.85rem;
       margin-bottom: 12px;
     }
@@ -85,9 +86,10 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       justify-content: space-between;
       gap: 12px;
       padding: 10px 14px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 8px;
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
     }
     .note-info {
       flex: 1;
@@ -95,16 +97,17 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       flex-direction: column;
       gap: 2px;
     }
+    .note-content { color: var(--text); font-size: 0.875rem; }
     .note-meta {
       font-size: 0.75rem;
-      color: #64748b;
+      color: var(--text-muted);
     }
-    .loading, .empty { color: #64748b; font-size: 0.9rem; }
+    .loading, .empty { color: var(--text-muted); font-size: 0.9rem; }
     .error {
-      color: #f87171;
-      background: rgba(248, 113, 113, 0.1);
+      color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: var(--radius);
       margin-bottom: 12px;
       font-size: 0.85rem;
     }

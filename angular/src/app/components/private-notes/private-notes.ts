@@ -57,11 +57,11 @@ import { AuthService } from '../../services/auth.service';
   `,
   styles: `
     .section { padding: 4px 0; }
-    .subtitle { color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px; }
+    .subtitle { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px; }
     .sign-in-prompt {
       text-align: center;
       padding: 32px;
-      color: #94a3b8;
+      color: var(--text-secondary);
     }
     .sign-in-prompt p { margin-bottom: 16px; }
     .note-form {
@@ -69,6 +69,7 @@ import { AuthService } from '../../services/auth.service';
       gap: 8px;
       margin-bottom: 16px;
     }
+    .note-form .input { flex: 1; }
     .note-list {
       list-style: none;
       padding: 0;
@@ -82,17 +83,18 @@ import { AuthService } from '../../services/auth.service';
       justify-content: space-between;
       gap: 12px;
       padding: 10px 14px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 8px;
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
     }
-    .note-content { flex: 1; }
-    .loading, .empty { color: #64748b; font-size: 0.9rem; }
+    .note-content { flex: 1; color: var(--text); font-size: 0.875rem; }
+    .loading, .empty { color: var(--text-muted); font-size: 0.9rem; }
     .error {
-      color: #f87171;
-      background: rgba(248, 113, 113, 0.1);
+      color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: var(--radius);
       margin-bottom: 12px;
       font-size: 0.85rem;
     }

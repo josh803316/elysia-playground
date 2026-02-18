@@ -44,6 +44,7 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
                     [(ngModel)]="editContent"
                     name="editContent"
                     class="input"
+                    placeholder="Note content..."
                   />
                   <button type="submit" class="btn btn-small">Save</button>
                   <button type="button" class="btn btn-small btn-outline" (click)="cancelEdit()">
@@ -67,17 +68,19 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
   `,
   styles: `
     .section { padding: 4px 0; }
-    .subtitle { color: #94a3b8; font-size: 0.85rem; margin-bottom: 16px; }
+    .subtitle { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px; }
     .note-form {
       display: flex;
       gap: 8px;
       margin-bottom: 16px;
     }
+    .note-form .input { flex: 1; }
     .edit-form {
       display: flex;
       gap: 8px;
       flex: 1;
     }
+    .edit-form .input { flex: 1; min-width: 0; }
     .note-list {
       list-style: none;
       padding: 0;
@@ -91,18 +94,19 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       justify-content: space-between;
       gap: 12px;
       padding: 10px 14px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 8px;
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
     }
-    .note-content { flex: 1; }
+    .note-content { flex: 1; color: var(--text); font-size: 0.875rem; }
     .note-actions { display: flex; gap: 6px; }
-    .loading, .empty { color: #64748b; font-size: 0.9rem; }
+    .loading, .empty { color: var(--text-muted); font-size: 0.9rem; }
     .error {
-      color: #f87171;
-      background: rgba(248, 113, 113, 0.1);
+      color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: var(--radius);
       margin-bottom: 12px;
       font-size: 0.85rem;
     }
@@ -116,6 +120,7 @@ export class PublicNotesComponent implements OnInit {
   error = signal('');
   newContent = signal('');
   editingId = signal<number | null>(null);
+  editingNote = signal<Note | null>(null);
   editContent = signal('');
 
   ngOnInit() {
@@ -151,20 +156,29 @@ export class PublicNotesComponent implements OnInit {
 
   startEdit(note: Note) {
     this.editingId.set(note.id);
-    this.editContent.set(note.content);
+    this.editingNote.set(note);
+    this.editContent.set(note.content ?? '');
   }
 
   cancelEdit() {
     this.editingId.set(null);
+    this.editingNote.set(null);
     this.editContent.set('');
   }
 
   async saveEdit(id: number, event: Event) {
     event.preventDefault();
     this.error.set('');
+    const note = this.editingNote();
     try {
-      await this.api.updatePublicNote(id, { content: this.editContent() });
+      await this.api.updatePublicNote(id, {
+        title: note?.title ?? 'Public Note',
+        content: this.editContent(),
+        isPublic: true,
+      });
       this.editingId.set(null);
+      this.editingNote.set(null);
+      this.editContent.set('');
       await this.loadNotes();
     } catch (e: any) {
       this.error.set(e.message);
