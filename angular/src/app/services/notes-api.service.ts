@@ -1,0 +1,101 @@
+import { Injectable } from '@angular/core';
+
+export interface Note {
+  id: number;
+  title?: string;
+  content: string;
+  isPublic?: boolean;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+@Injectable({ providedIn: 'root' })
+export class NotesApiService {
+  private readonly baseUrl = '/api';
+
+  // ── Public Notes ──────────────────────────────────────────────
+
+  async fetchPublicNotes(): Promise<Note[]> {
+    const res = await fetch(`${this.baseUrl}/public-notes`);
+    if (!res.ok) throw new Error('Failed to fetch public notes');
+    return res.json();
+  }
+
+  async createPublicNote(content: string): Promise<Note> {
+    const res = await fetch(`${this.baseUrl}/public-notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    if (!res.ok) throw new Error('Failed to create public note');
+    return res.json();
+  }
+
+  async updatePublicNote(
+    id: number,
+    data: { title?: string; content?: string; isPublic?: boolean }
+  ): Promise<Note> {
+    const res = await fetch(`${this.baseUrl}/public-notes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update public note');
+    return res.json();
+  }
+
+  async deletePublicNote(id: number): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/public-notes/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete public note');
+  }
+
+  // ── Private Notes (Bearer token) ─────────────────────────────
+
+  async fetchPrivateNotes(token: string): Promise<Note[]> {
+    const res = await fetch(`${this.baseUrl}/private-notes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Failed to fetch private notes');
+    return res.json();
+  }
+
+  async createPrivateNote(token: string, data: string): Promise<Note> {
+    const res = await fetch(`${this.baseUrl}/private-notes`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ data }),
+    });
+    if (!res.ok) throw new Error('Failed to create private note');
+    return res.json();
+  }
+
+  async deletePrivateNote(token: string, id: number): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/private-notes/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Failed to delete private note');
+  }
+
+  // ── Admin (X-API-Key header) ─────────────────────────────────
+
+  async fetchAllNotesAdmin(apiKey: string): Promise<Note[]> {
+    const res = await fetch(`${this.baseUrl}/notes/all`, {
+      headers: { 'X-API-Key': apiKey },
+    });
+    if (!res.ok) throw new Error('Failed to fetch admin notes');
+    return res.json();
+  }
+
+  async deleteNoteAdmin(apiKey: string, id: number): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/notes/${id}/admin`, {
+      method: 'DELETE',
+      headers: { 'X-API-Key': apiKey },
+    });
+    if (!res.ok) throw new Error('Failed to delete note (admin)');
+  }
+}

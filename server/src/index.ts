@@ -82,6 +82,7 @@ const api = new Elysia({ prefix: "/api" })
 const reactAssetsPath = resolve(new URL("../../react/dist", import.meta.url).pathname);
 const svelteAssetsPath = resolve(new URL("../../svelte/build", import.meta.url).pathname);
 const vanillaJsAssetsPath = resolve(new URL("../../vanilla-js", import.meta.url).pathname);
+const angularAssetsPath = resolve(new URL("../../angular/dist/angular/browser", import.meta.url).pathname);
 
 const contentTypeByExt: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -226,6 +227,18 @@ app
     };
 
     const body = `window.__VANILLA_ENV__ = ${JSON.stringify(payload)};`;
+
+    return new Response(body, {
+      headers: { "content-type": "application/javascript; charset=utf-8" },
+    });
+  })
+  .get("/angular/env.js", () => {
+    const payload = {
+      clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? "",
+      clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? "",
+    };
+
+    const body = `window.__ANGULAR_ENV__ = ${JSON.stringify(payload)};`;
 
     return new Response(body, {
       headers: { "content-type": "application/javascript; charset=utf-8" },
@@ -421,6 +434,9 @@ app
           "      color: #fbbf24;",
           "      text-shadow: 0 0 8px rgba(251,191,36,0.6);",
           "    }",
+          "    .logo-angular svg {",
+          "      filter: drop-shadow(0 0 6px rgba(221,51,51,0.9));",
+          "    }",
           "    .badge {",
           "      display: inline-flex;",
           "      align-items: center;",
@@ -583,7 +599,7 @@ app
           "          </span>",
           "          <h1>Frontend playground</h1>",
           "          <p class='summary'>",
-          "            Compare four different UI approaches that all talk to the same Elysia/Bun",
+          "            Compare five different UI approaches that all talk to the same Elysia/Bun",
           "            API – great for learning and architectural discussions.",
           "          </p>",
           "        </div>",
@@ -701,12 +717,41 @@ app
           "            <span class='icon'>↗</span>",
           "          </a>",
           "        </article>",
+          "        <article class='card'>",
+          "          <div class='card-header'>",
+          "            <div class='card-main'>",
+          "              <div class='logo logo-angular' aria-hidden='true'>",
+          "                <svg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'>",
+          "                  <path d='M128 0L0 45.2l19.5 169.4L128 256l108.5-41.4L256 45.2z' fill='#dd3333'/>",
+          "                  <path d='M128 0v256l108.5-41.4L256 45.2z' fill='#c3002f'/>",
+          "                  <path d='M128 30.2L47.7 208.5h29.9l16.2-40.4h68.2l16.2 40.4h29.9zm0 64.8l28.1 66.7h-56.2z' fill='#fff'/>",
+          "                </svg>",
+          "              </div>",
+          "              <div>",
+          "                <div class='title'>Angular <span>· standalone components</span></div>",
+          "                <p class='desc'>Angular SPA with signals, standalone components, and Clerk auth.</p>",
+          "              </div>",
+          "            </div>",
+          "            <div class='badge'>",
+          "              <span class='badge-dot'></span>",
+          "              SPA",
+          "            </div>",
+          "          </div>",
+          "          <div class='meta'>",
+          "            <span class='pill'><strong>Stack</strong> Angular · Signals · Router</span>",
+          "            <span class='pill'><strong>UX</strong> Component‑driven, typed</span>",
+          "          </div>",
+          "          <a href='/angular' class='link-btn'>",
+          "            <span>Open Angular demo</span>",
+          "            <span class='icon'>↗</span>",
+          "          </a>",
+          "        </article>",
           "      </section>",
           "      <aside class='notes'>",
           "        <h2>How this is wired</h2>",
           "        <ul>",
-          "          <li>All four UIs talk to the same Elysia API under <code>/api</code>.</li>",
-          "          <li>The React and Svelte apps are pre‑built assets served by Bun/Elysia.</li>",
+          "          <li>All five UIs talk to the same Elysia API under <code>/api</code>.</li>",
+          "          <li>The React, Svelte, and Angular apps are pre‑built assets served by Bun/Elysia.</li>",
           "          <li>The HTMX views are rendered directly from the Bun server.</li>",
           "          <li>The Vanilla JS app uses plain ES modules – zero build step.</li>",
           "          <li>Great for workshops, demos, and architectural explorations.</li>",
@@ -740,7 +785,9 @@ app
   // Serve built Svelte app at /svelte
   .use(serveSPA(svelteAssetsPath, "/svelte"))
   // Serve Vanilla JS app at /vanilla-js
-  .use(serveSPA(vanillaJsAssetsPath, "/vanilla-js"));
+  .use(serveSPA(vanillaJsAssetsPath, "/vanilla-js"))
+  // Serve Angular app at /angular
+  .use(serveSPA(angularAssetsPath, "/angular"));
 
 // Only start a local HTTP server when not running on Vercel.
 if (process.env.VERCEL !== "1") {

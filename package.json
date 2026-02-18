@@ -9,7 +9,8 @@
     "svelte",
     "server",
     "htmx",
-    "vanilla-js"
+    "vanilla-js",
+    "angular"
   ],
   "scripts": {
     "dev": "bun run dev:all",
@@ -22,18 +23,21 @@
     "build": "turbo run build",
     "build:react": "turbo run build --filter=./react",
     "build:svelte": "turbo run build --filter=./svelte",
-    "build:frontends": "bun run build:react && bun run build:svelte",
-    "dev:monolith": "bun run build:react && bun run build:svelte && bun run dev:server",
+    "build:frontends": "bun run build:react && bun run build:svelte && bun run build:angular",
+    "dev:monolith": "bun run build:react && bun run build:svelte && bun run build:angular && bun run dev:server",
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "install:all": "bun install && bun run install:workspaces",
-    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server && bun run install:htmx",
+    "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server && bun run install:htmx && bun run install:vanilla-js && bun run install:angular",
     "install:react": "cd react && bun install",
     "install:svelte": "cd svelte && bun install",
     "install:server": "cd server && bun install",
     "install:htmx": "cd htmx && bun install",
     "install:vanilla-js": "cd vanilla-js && bun install",
+    "install:angular": "cd angular && bun install",
+    "dev:angular": "turbo run dev --filter=./angular --filter=./server",
+    "build:angular": "cd angular && bun run build",
     "dev:server": "cd server && bun run dev",
     "build:server": "bun run build -w server",
     "start:server": "bun run start -w server",
@@ -47,6 +51,6 @@
   },
   "devDependencies": {
     "bun-types": "latest",
-    "turbo": "^2.8.7"
+    "turbo": "^2.8.9"
   }
 }
