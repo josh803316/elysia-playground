@@ -297,7 +297,7 @@ const HomePage = () => {
 
       {/* Public Notes Section - match HTMX/Svelte: wide section, green button in header for everyone */}
       <Grid.Col span={12} data-testid="section-public-notes">
-        <Paper shadow="sm" p="md" withBorder radius="md">
+        <Paper shadow="sm" style={{ padding: "1.5rem", borderColor: "#e5e7eb" }} withBorder radius="md">
           <Group justify="space-between" mb="md">
             <div>
               <Title order={2}>Public Notes</Title>
@@ -336,7 +336,7 @@ const HomePage = () => {
       {/* Want to create private notes? - only when signed out (match HTMX) */}
       <SignedOut>
         <Grid.Col span={12}>
-          <Paper shadow="sm" p="md" withBorder radius="md" style={{ textAlign: "center" }}>
+          <Paper shadow="sm" style={{ padding: "1.5rem", borderColor: "#e5e7eb", textAlign: "center" }} withBorder radius="md">
             <Title order={2} mb="xs">
               Want to create private notes?
             </Title>
@@ -344,7 +344,7 @@ const HomePage = () => {
               Sign in to create and manage your own private notes.
             </Text>
             <SignInButton mode="modal">
-              <Button variant="filled" color="indigo">
+              <Button variant="filled" color="teal">
                 Sign In to Get Started
               </Button>
             </SignInButton>
@@ -355,7 +355,7 @@ const HomePage = () => {
       {/* Your Notes Section - only when signed in */}
       {isSignedIn && (
         <Grid.Col span={12} data-testid="section-your-notes">
-          <Paper shadow="sm" p="md" withBorder radius="md">
+          <Paper shadow="sm" style={{ padding: "1.5rem", borderColor: "#e5e7eb" }} withBorder radius="md">
             <Group justify="space-between" mb="xs">
               <div>
                 <Title order={2}>Your Notes</Title>
@@ -363,8 +363,8 @@ const HomePage = () => {
               </div>
               <Button
                 leftSection={<IconPlus size={18} />}
-                color="violet"
                 variant="filled"
+                style={{ background: "#7c3aed" }}
                 onClick={() => openNoteModal(false)}
               >
                 + Create Private Note

@@ -4,6 +4,7 @@ import {
   notesPage,
   notesTablePage,
   adminNotesGrid,
+  adminUnauthorizedMessage,
   type Note,
 } from "./htmx-templates";
 
@@ -92,5 +93,19 @@ describe("HTMX templates UX conformance", () => {
     const html = notesTablePage(undefined);
     expect(html).toContain("All Notes");
     expect(html).toContain("Back to Notes home");
+  });
+
+  it("notes table page shows invalid or missing admin key message when no key", () => {
+    const html = notesTablePage(undefined);
+    expect(html).toContain("Invalid or missing admin key");
+    expect(html).toContain("Admin API Key");
+  });
+
+  it("adminUnauthorizedMessage uses current copy", () => {
+    const html = adminUnauthorizedMessage();
+    expect(html).toContain("Invalid or missing admin key");
+    expect(html).toContain(
+      "Use Admin Login in the nav and enter your Admin API Key"
+    );
   });
 });

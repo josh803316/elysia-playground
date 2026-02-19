@@ -4,10 +4,11 @@ export interface Note {
   id: number;
   title?: string;
   content: string;
-  isPublic?: boolean;
-  userId?: string;
+  isPublic?: boolean | string;
+  userId?: string | number;
   createdAt?: string;
   updatedAt?: string;
+  user?: { firstName?: string; lastName?: string; email?: string };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -22,11 +23,11 @@ export class NotesApiService {
     return res.json();
   }
 
-  async createPublicNote(content: string): Promise<Note> {
+  async createPublicNote(data: { title?: string; content: string }): Promise<Note> {
     const res = await fetch(`${this.baseUrl}/public-notes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ title: data.title?.trim() || 'Public Note', content: data.content }),
     });
     if (!res.ok) throw new Error('Failed to create public note');
     return res.json();

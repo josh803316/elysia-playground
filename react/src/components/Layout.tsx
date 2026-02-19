@@ -159,7 +159,7 @@ export const Layout = ({ children }: LayoutProps) => {
     <AppShell
       styles={{
         main: {
-          background: "#f8f9fa",
+          background: "#f3f4f6",
           minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
@@ -205,10 +205,10 @@ export const Layout = ({ children }: LayoutProps) => {
                     <Group gap={8}>
                       <Text>{isAdminLoggedIn ? "All Notes" : "My Notes"}</Text>
                       <Group gap={4}>
-                        <Badge color="blue" size="sm">
+                        <Badge color="green" size="sm">
                           Public: {publicNotesCount}
                         </Badge>
-                        <Badge color="green" size="sm">
+                        <Badge color="grape" size="sm">
                           Private: {privateNotesCount}
                         </Badge>
                       </Group>
@@ -226,7 +226,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
                 <SignedOut>
                   <SignInButton mode="modal">
-                    <Button size="xs" variant="filled" color="indigo">
+                    <Button size="xs" variant="filled" color="teal">
                       Sign In
                     </Button>
                   </SignInButton>
@@ -242,7 +242,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 ) : (
                   <Button
                     size="xs"
-                    color="blue"
+                    color="teal"
                     onClick={() => setAdminModalOpen(true)}
                   >
                     Admin Login
@@ -263,23 +263,18 @@ export const Layout = ({ children }: LayoutProps) => {
       </AppShell.Main>
 
       <AppShell.Footer>
-        <Paper
-          p="md"
-          withBorder
-          radius={0}
-          style={{ background: "#fff", height: "100%", width: "100%" }}
-        >
-          <Container size="xl" style={{ maxWidth: 1320 }}>
+        <div style={{ background: "#1f2937", height: "100%", width: "100%", display: "flex", alignItems: "center" }}>
+          <Container size="xl" style={{ maxWidth: 1320, width: "100%" }}>
             <Group justify="space-between" h="100%">
-              <Text size="sm">© 2024 Notes App</Text>
-              <Group>
-                <Text size="sm">Privacy Policy</Text>
-                <Text size="sm">Terms of Service</Text>
-                <Text size="sm">Contact Us</Text>
+              <Text size="sm" c="gray.5">© 2024 Notes App</Text>
+              <Group gap="md">
+                <Text size="sm" c="gray.5" style={{ cursor: "pointer" }}>Privacy Policy</Text>
+                <Text size="sm" c="gray.5" style={{ cursor: "pointer" }}>Terms of Service</Text>
+                <Text size="sm" c="gray.5" style={{ cursor: "pointer" }}>Contact Us</Text>
               </Group>
             </Group>
           </Container>
-        </Paper>
+        </div>
       </AppShell.Footer>
 
       {/* Admin Login Modal */}

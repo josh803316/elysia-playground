@@ -20,7 +20,7 @@ import {
 
 let isSignedIn = false;
 let userName = "";
-let adminApiKey = sessionStorage.getItem("adminApiKey") || "";
+let adminApiKey = localStorage.getItem("adminApiKey") || "";
 let publicNotes = [];
 let privateNotes = [];
 let adminNotes = [];
@@ -115,10 +115,10 @@ async function loadAdminNotes() {
   } catch (err) {
     console.error(err);
     adminApiKey = "";
-    sessionStorage.removeItem("adminApiKey");
+    localStorage.removeItem("adminApiKey");
     body.classList.remove("admin-active");
     adminTableContainer.innerHTML = "";
-    adminTableContainer.appendChild(emptyState("Invalid API key. Please log in again."));
+    adminTableContainer.appendChild(emptyState("Invalid or missing admin key. Use Admin Login and try again."));
   }
 }
 
@@ -137,9 +137,9 @@ function closeModal() {
 
 // ── Action handlers ──────────────────────────────────────────
 
-async function handleCreatePublic(content) {
+async function handleCreatePublic(data) {
   try {
-    await api.createPublicNote(content);
+    await api.createPublicNote(data);
     closeModal();
     await loadPublicNotes();
   } catch (err) {
@@ -235,7 +235,7 @@ function bindNavButtons() {
       adminLoginModal({
         onSubmit: (key) => {
           adminApiKey = key;
-          sessionStorage.setItem("adminApiKey", key);
+          localStorage.setItem("adminApiKey", key);
           body.classList.add("admin-active");
           closeModal();
           loadAdminNotes();
@@ -247,7 +247,7 @@ function bindNavButtons() {
 
   $("#btn-admin-logout").addEventListener("click", () => {
     adminApiKey = "";
-    sessionStorage.removeItem("adminApiKey");
+    localStorage.removeItem("adminApiKey");
     body.classList.remove("admin-active");
     adminNotes = [];
     adminTableContainer.innerHTML = "";

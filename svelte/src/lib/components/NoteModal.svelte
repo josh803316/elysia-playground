@@ -61,15 +61,8 @@
   
   // UI-related derived state
   $: modalButtonColor = finalPublicState ? "bg-green-600 hover:bg-green-700" : "bg-purple-600 hover:bg-purple-700";
-  $: modalColor = finalPublicState ? "green" : "purple"; 
-  $: console.log('Note state:', { 
-    initialPublic, 
-    toggleState,
-    finalPublicState,
-    editing: isEditing,
-    checkboxState: isPublic
-  });
-  
+  $: modalColor = finalPublicState ? "green" : "purple";
+
   // Derived state for form validation - allow public notes without a title
   $: isFormValid = (finalPublicState ? content.trim() !== '' : (title.trim() !== '' && content.trim() !== ''));
 

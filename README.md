@@ -1,13 +1,14 @@
 # Elysia Playground
 
-Monorepo playground for comparing **four UI approaches** against one shared API:
+Monorepo playground for comparing **five UI approaches** against one shared API:
 
 - **React** app at `/react`
 - **Svelte** app at `/svelte`
+- **Angular** app at `/angular`
 - **HTMX** app at `/htmx`
 - **Vanilla JS** app at `/vanilla-js`
 
-All four frontends talk to the same **Elysia + Bun** backend and Notes data model.
+All five frontends talk to the same **Elysia + Bun** backend and Notes data model.
 
 ## What This Repo Demonstrates
 
@@ -21,6 +22,7 @@ All four frontends talk to the same **Elysia + Bun** backend and Notes data mode
 - `server/` - Elysia API, data access, auth/guards, HTMX routes
 - `react/` - React + Vite client
 - `svelte/` - SvelteKit client
+- `angular/` - Angular client
 - `htmx/` - HTMX frontend assets/templates (served by server)
 - `vanilla-js/` - Vanilla JS frontend (static HTML/CSS/ES modules, served by server)
 
@@ -30,6 +32,7 @@ When running locally, the backend serves a root landing page at `/` linking to:
 
 - `/react`
 - `/svelte`
+- `/angular`
 - `/htmx`
 - `/vanilla-js`
 
@@ -50,6 +53,7 @@ Create env files and fill values:
 - `server/.env`
 - `react/.env` (if needed for local overrides)
 - `svelte/.env` (if needed for local overrides)
+- `angular/.env` (if needed for local overrides)
 
 Typical required **server** values:
 
@@ -72,7 +76,9 @@ bun run dev
 # Targeted combinations
 bun run dev:react
 bun run dev:svelte
+bun run dev:angular
 bun run dev:htmx
+bun run dev:vanilla-js
 bun run dev:server
 ```
 
@@ -95,6 +101,7 @@ bun run build
 # Build specific workspaces
 bun run build:react
 bun run build:svelte
+bun run build:angular
 bun run build:server
 ```
 

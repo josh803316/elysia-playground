@@ -26,6 +26,11 @@ export default defineConfig({
             if (auth) {
               proxyReq.setHeader("Authorization", auth);
             }
+            // Forward X-API-Key for admin routes (e.g. /api/notes/all)
+            const apiKey = req.headers?.["x-api-key"] ?? req.headers?.["X-API-Key"];
+            if (apiKey) {
+              proxyReq.setHeader("X-API-Key", apiKey);
+            }
           });
           proxy.on("proxyRes", (proxyRes, req, _res) => {
             console.log(

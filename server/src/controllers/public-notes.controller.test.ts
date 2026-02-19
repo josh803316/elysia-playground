@@ -86,6 +86,32 @@ describe("Public Notes Controller", () => {
     return noteId;
   });
 
+  it("should create a public note with custom title when provided", async () => {
+    const { app } = await createTestApp({
+      controller: publicNotesController,
+      dbUtils,
+      withAuth: false,
+    });
+
+    const client = treaty(app) as any;
+
+    const noteData = {
+      title: "My Custom Title",
+      content: "Public note with custom title",
+    };
+
+    const response = await client.api["public-notes"].post(noteData);
+
+    expect(response.status).toBe(200);
+    expect(response.data).toBeDefined();
+    expect(response.data).toHaveProperty("title", "My Custom Title");
+    expect(response.data).toHaveProperty(
+      "content",
+      "Public note with custom title"
+    );
+    expect(response.data).toHaveProperty("isPublic", "true");
+  });
+
   it("should delete a public note", async () => {
     const { app } = await createTestApp({
       controller: publicNotesController,

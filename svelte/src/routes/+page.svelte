@@ -661,7 +661,6 @@
                 <TableHeadCell>Status</TableHeadCell>
                 <TableHeadCell>Author</TableHeadCell>
                 <TableHeadCell>Created</TableHeadCell>
-                <TableHeadCell>Updated</TableHeadCell>
                 <TableHeadCell>Actions</TableHeadCell>
               </TableHead>
               <TableBody>
@@ -670,7 +669,7 @@
                     <TableBodyCell>{note.title || 'Untitled'}</TableBodyCell>
                     <TableBodyCell>{note.content && note.content.length > 50 ? note.content.substring(0, 50) + '...' : (note.content || '(No content)')}</TableBodyCell>
                     <TableBodyCell>
-                      <Badge color={note.isPublic === 'true' ? 'green' : 'purple'} class={note.isPublic === 'true' ? 'bg-green-200 text-green-800' : 'bg-purple-200 text-purple-800'}>
+                      <Badge color={note.isPublic === 'true' ? 'green' : 'purple'} class={note.isPublic === 'true' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}>
                         {note.isPublic === 'true' ? 'Public' : 'Private'}
                       </Badge>
                     </TableBodyCell>
@@ -686,10 +685,9 @@
                       {/if}
                     </TableBodyCell>
                     <TableBodyCell>{formatDate(note.createdAt)}</TableBodyCell>
-                    <TableBodyCell>{formatDate(note.updatedAt)}</TableBodyCell>
                     <TableBodyCell>
                       <div class="flex space-x-2">
-                        <Button size="xs" color="primary" class="px-4" onclick={() => { editingNote = note; createPublicNote = note.isPublic === 'true'; createNoteModalOpen = true; }}>
+                        <Button size="xs" class="bg-teal-600 hover:bg-teal-700 text-white px-4" onclick={() => { editingNote = note; createPublicNote = note.isPublic === 'true'; createNoteModalOpen = true; }}>
                           Edit
                         </Button>
                         <Button size="xs" color="red" class="bg-red-600 hover:bg-red-700 text-white px-4" onclick={async () => {
@@ -753,44 +751,31 @@
         {:else}
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each publicNotes as note}
-              <Card padding="sm" class="bg-green-50 flex flex-col">
-                <div class="flex justify-between items-start mb-2">
-                  <h3 class="text-lg font-semibold">{note.title || 'Untitled'}</h3>
-                  <Badge color="green" class="font-semibold px-2.5 py-1 bg-green-200 text-green-800">PUBLIC</Badge>
+              <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
+                <div class="p-5 flex-1">
+                  <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">{note.title || 'Untitled'}</h3>
+                    <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 ml-2 flex-shrink-0">Public</span>
+                  </div>
+                  <p class="text-gray-600 text-sm mb-4 line-clamp-3">{note.content}</p>
+                  <div class="flex justify-between items-center text-xs text-gray-500">
+                    <span>By {#if isCurrentUserAuthor(note)}you{:else if note.user && note.user.firstName}{note.user.firstName} {note.user.lastName || ''}{:else if note.user && note.user.email}{note.user.email}{:else}Anonymous{/if}</span>
+                    <span>{new Date(note.createdAt || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
                 </div>
-                <p class="text-gray-600 mb-4">{note.content}</p>
-                <div class="flex justify-between items-center text-sm text-gray-500">
-                  <span>
-                    {#if isCurrentUserAuthor(note)}
-                      Posted by you
-                    {:else if note.user && note.user.email}
-                      {note.user.email}
-                    {:else if note.user && (note.user.firstName || note.user.lastName)}
-                      {(note.user.firstName || '') + ' ' + (note.user.lastName || '')}
-                    {:else}
-                      Anonymous
-                    {/if}
-                  </span>
-                  <span>Created: {formatDate(note.createdAt)}</span>
-                </div>
-                <!-- Card footer: Edit | Delete (match HTMX) - show both when user can act on the note -->
-                {@const canAct = isAdminLoggedIn || (isSignedIn && isCurrentUserAuthor(note)) || (!note.userId && (note.isPublic === 'true' || note.isPublic === true))}
-                {#if canAct}
-                <div class="border-t border-gray-200 bg-gray-50 rounded-b-lg mt-auto px-4 py-3 flex justify-end gap-2 text-sm font-medium">
+                <div class="border-t bg-gray-50 px-5 py-3 flex justify-end gap-2">
                   <button
                     type="button"
-                    class="text-orange-600 hover:text-orange-800 bg-transparent border-none cursor-pointer p-0"
+                    class="text-teal-600 hover:text-teal-800 text-sm font-medium bg-transparent border-none cursor-pointer p-0 transition-colors"
                     onclick={() => { editingNote = note; createPublicNote = true; createNoteModalOpen = true; }}
                   >Edit</button>
-                  <span class="text-gray-400">|</span>
                   <button
                     type="button"
-                    class="text-red-600 hover:text-red-800 bg-transparent border-none cursor-pointer p-0"
+                    class="text-red-600 hover:text-red-800 text-sm font-medium bg-transparent border-none cursor-pointer p-0 transition-colors"
                     onclick={() => deleteNote(note, false)}
                   >Delete</button>
                 </div>
-                {/if}
-              </Card>
+              </div>
             {/each}
           </div>
         {/if}
@@ -803,7 +788,7 @@
           <h2 class="text-xl font-semibold text-gray-700 mb-2">Want to create private notes?</h2>
           <p class="text-gray-600 mb-4">Sign in to create and manage your own private notes.</p>
           <SignInButton mode="modal">
-            <Button class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 font-medium">Sign In to Get Started</Button>
+            <Button class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 font-medium">Sign In to Get Started</Button>
           </SignInButton>
         </section>
       </SignedOut>
@@ -845,36 +830,34 @@
         {:else}
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each privateNotes as note}
-              <Card padding="sm" class={note.isPublic === 'true' || note.isPublic === true ? "bg-green-50 flex flex-col" : "bg-purple-50 flex flex-col"}>
-                <div class="flex justify-between items-start mb-2">
-                  <h3 class="text-lg font-semibold">{note.title || 'Untitled'}</h3>
-                  <Badge color={note.isPublic === 'true' || note.isPublic === true ? "green" : "purple"} 
-                         class={note.isPublic === 'true' || note.isPublic === true ? 
-                         "font-semibold px-2.5 py-1 bg-green-200 text-green-800" : 
-                         "font-semibold px-2.5 py-1 bg-purple-200 text-purple-800"}>
-                    {note.isPublic === 'true' || note.isPublic === true ? "PUBLIC" : "PRIVATE"}
-                  </Badge>
+              {@const isNotePublic = note.isPublic === 'true' || note.isPublic === true}
+              <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col border-l-4 {isNotePublic ? 'border-green-500' : 'border-purple-500'}">
+                <div class="p-5 flex-1">
+                  <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">{note.title || 'Untitled'}</h3>
+                    <span class="text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0 {isNotePublic ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}">
+                      {isNotePublic ? 'Public' : 'Private'}
+                    </span>
+                  </div>
+                  <p class="text-gray-600 text-sm mb-4 line-clamp-3">{note.content}</p>
+                  <div class="flex justify-between items-center text-xs text-gray-500">
+                    <span>By you</span>
+                    <span>{new Date(note.createdAt || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
                 </div>
-                <p class="text-gray-600 mb-4">{note.content}</p>
-                <div class="flex justify-between items-center text-sm text-gray-500">
-                  <span>Posted by you</span>
-                  <span>Created: {formatDate(note.createdAt)}</span>
-                </div>
-                <!-- Card footer: Edit | Delete (match HTMX) -->
-                <div class="border-t border-gray-200 bg-gray-50 rounded-b-lg mt-auto px-4 py-3 flex justify-end gap-2 text-sm font-medium">
+                <div class="border-t bg-gray-50 px-5 py-3 flex justify-end gap-2">
                   <button
                     type="button"
-                    class="text-orange-600 hover:text-orange-800 bg-transparent border-none cursor-pointer p-0"
-                    onclick={() => { editingNote = note; createPublicNote = note.isPublic === 'true' || note.isPublic === true; createNoteModalOpen = true; }}
+                    class="text-teal-600 hover:text-teal-800 text-sm font-medium bg-transparent border-none cursor-pointer p-0 transition-colors"
+                    onclick={() => { editingNote = note; createPublicNote = isNotePublic; createNoteModalOpen = true; }}
                   >Edit</button>
-                  <span class="text-gray-400">|</span>
                   <button
                     type="button"
-                    class="text-red-600 hover:text-red-800 bg-transparent border-none cursor-pointer p-0"
+                    class="text-red-600 hover:text-red-800 text-sm font-medium bg-transparent border-none cursor-pointer p-0 transition-colors"
                     onclick={() => deleteNote(note, true)}
                   >Delete</button>
                 </div>
-              </Card>
+              </div>
             {/each}
           </div>
         {/if}

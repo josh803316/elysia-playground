@@ -3,7 +3,7 @@ import { createTheme } from "@mantine/core";
 // Create a custom theme - extracted to a separate file for better code splitting
 export const theme = createTheme({
   /** Theme customizations */
-  primaryColor: "indigo",
+  primaryColor: "teal",
   colors: {
     // Add custom colors
     brand: [

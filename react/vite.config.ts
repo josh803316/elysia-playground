@@ -12,10 +12,12 @@ export default defineConfig(({ command }) => ({
     compression({
       algorithm: "gzip",
       ext: ".gz",
+      verbose: false, // avoid misleading absolute-path log (files still written to dist/assets)
     }),
     compression({
       algorithm: "brotliCompress",
       ext: ".br",
+      verbose: false,
     }),
     // Add bundle analyzer (generates stats.html in project root when building)
     visualizer({

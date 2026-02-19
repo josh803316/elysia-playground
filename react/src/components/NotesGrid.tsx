@@ -1,23 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import {
-  Grid,
-  Card,
-  Text,
-  Group,
-  Badge,
-  Button,
-  Title,
-  Flex,
-  Divider,
-  Stack,
-  Alert,
-  TextInput,
-  Textarea,
-  Checkbox,
-  ActionIcon,
-} from "@mantine/core";
-import { IconEdit, IconCheck, IconX } from "@tabler/icons-react";
+import { Text, Alert } from "@mantine/core";
 import EditNoteModal from "./EditNoteModal";
 
 interface Note {
@@ -28,7 +11,6 @@ interface Note {
   isPublic: boolean | string;
   createdAt: string;
   updatedAt: string;
-  // Optional user information that might be included for admin view
   user?: {
     firstName?: string;
     lastName?: string;
@@ -43,7 +25,7 @@ interface NotesGridProps {
   onNoteDeleted?: () => void;
   onNoteUpdated?: () => void;
   isAdmin?: boolean;
-  currentUserNotes?: string[]; // IDs of notes owned by the current user
+  currentUserNotes?: string[];
 }
 
 const NotesGrid = ({
@@ -59,16 +41,6 @@ const NotesGrid = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [editInPlaceId, setEditInPlaceId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<{
-    title: string;
-    content: string;
-    isPublic: boolean;
-  }>({
-    title: "",
-    content: "",
-    isPublic: false,
-  });
 
   if (notes.length === 0) {
     return (
@@ -79,17 +51,13 @@ const NotesGrid = ({
   }
 
   const handleDelete = async (note: Note) => {
-    if (!window.confirm(`Are you sure you want to delete this note?`)) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to delete this note?")) return;
 
     setDeletingId(note.id);
     setError(null);
 
     try {
       let response;
-
-      // Get either auth token or admin API key depending on user type
       const token = isAdmin
         ? localStorage.getItem("adminApiKey") || ""
         : await getToken();
@@ -100,29 +68,20 @@ const NotesGrid = ({
         return;
       }
 
-      // For admin users, always use the X-API-Key header
       if (isAdmin) {
         response = await fetch(`/api/notes/${note.id}/admin`, {
           method: "DELETE",
           headers: { "X-API-Key": token as string },
         });
+      } else if (note.isPublic === "true" && !note.userId) {
+        response = await fetch(`/api/public-notes/${note.id}`, {
+          method: "DELETE",
+        });
       } else {
-        // Choose endpoint based on note type, not user status
-        if (note.isPublic === "true" && !note.userId) {
-          // Public anonymous notes use the public-notes endpoint
-          response = await fetch(`/api/public-notes/${note.id}`, {
-            method: "DELETE",
-            headers: {},
-          });
-        } else {
-          // User's own notes use the notes endpoint with auth
-          response = await fetch(`/api/notes/${note.id}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        }
+        response = await fetch(`/api/notes/${note.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
       }
 
       if (!response.ok) {
@@ -130,9 +89,7 @@ const NotesGrid = ({
         throw new Error(errorData.message || "Failed to delete note");
       }
 
-      if (onNoteDeleted) {
-        onNoteDeleted();
-      }
+      if (onNoteDeleted) onNoteDeleted();
     } catch (err) {
       console.error("Error deleting note:", err);
       setError(err instanceof Error ? err.message : "Failed to delete note");
@@ -141,298 +98,44 @@ const NotesGrid = ({
     }
   };
 
-  const handleEditClick = (note: Note) => {
-    if (note.id === editInPlaceId) {
-      return; // Already editing this note
-    }
-
-    // Set up in-place editing
-    setEditInPlaceId(note.id);
-    setEditFormData({
-      title: note.title,
-      content: note.content,
-      isPublic:
-        typeof note.isPublic === "string"
-          ? note.isPublic === "true"
-          : (note.isPublic ?? false),
-    });
-  };
-
-  const handleEditCancel = () => {
-    setEditInPlaceId(null);
-  };
-
-  const handleEditSave = async (noteId: string) => {
-    try {
-      setError(null);
-      const note = notes.find((n) => String(n.id) === String(noteId));
-      const isAnonymousPublic =
-        note &&
-        !note.userId &&
-        (note.isPublic === "true" || note.isPublic === true);
-
-      if (isAnonymousPublic) {
-        // Anonymous public notes: no auth required
-        const response = await fetch(`/api/public-notes/${noteId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: editFormData.title,
-            content: editFormData.content,
-            isPublic: editFormData.isPublic,
-          }),
-        });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Failed to update note");
-        }
-        setEditInPlaceId(null);
-        if (onNoteUpdated) onNoteUpdated();
-        return;
-      }
-
-      const token = isAdmin
-        ? localStorage.getItem("adminApiKey") || ""
-        : await getToken();
-
-      if (isAdmin && !token) {
-        setError("Admin API key not found. Please login again.");
-        return;
-      }
-
-      let url = `/api/notes/${noteId}`;
-      let headers: Record<string, string> = {};
-
-      if (isAdmin) {
-        url = `/api/notes/${noteId}/admin`;
-        headers = { "X-API-Key": token as string };
-      } else {
-        headers = { Authorization: `Bearer ${token}` };
-      }
-
-      const response = await fetch(url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
-        body: JSON.stringify({
-          title: editFormData.title,
-          content: editFormData.content,
-          isPublic: editFormData.isPublic,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to update note");
-      }
-
-      setEditInPlaceId(null);
-      if (onNoteUpdated) {
-        onNoteUpdated();
-      }
-    } catch (err) {
-      console.error("Error updating note:", err);
-      setError(err instanceof Error ? err.message : "Failed to update note");
-    }
-  };
-
-  const handleEditSuccess = () => {
-    if (onNoteUpdated) {
-      onNoteUpdated();
-    }
-  };
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setEditFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setEditFormData((prev) => ({
-      ...prev,
-      isPublic: checked,
-    }));
-  };
-
-  // Helper to determine author display
-  const getAuthorDisplay = (note: Note) => {
-    // For admin view, show user details from the API
-    if (showUser && note.user) {
-      return (
-        <>
-          <Text size="sm" c="dimmed">
-            By: {note.user.firstName} {note.user.lastName}{" "}
-            {note.user.email && `(${note.user.email})`}
-          </Text>
-        </>
-      );
-    }
-
-    // For public notes with titles that indicate the author
-    if (
-      showUser &&
-      note.isPublic === "true" &&
-      note.title.includes("'s Note")
-    ) {
-      const authorName = note.title.replace("'s Note", "");
-      return (
-        <Text size="sm" c="dimmed">
-          Posted by {authorName}
-        </Text>
-      );
-    }
-
-    // If the logged-in user is the author of the note (has userId), should show "Posted by you"
-    // regardless of whether it's public or private
-    if (note.userId && note.userId === localStorage.getItem("currentUserId")) {
-      return (
-        <Text size="sm" c="blue">
-          Posted by you
-        </Text>
-      );
-    }
-
-    // If in private notes section (showUser=false), we know it's the user's note
-    if (!showUser) {
-      return (
-        <Text size="sm" c="blue">
-          Posted by you
-        </Text>
-      );
-    }
-
-    // Check if this note's ID is in the localStorage userNoteIds
-    const storedIds = localStorage.getItem("userNoteIds");
-    if (storedIds) {
-      try {
-        const userIds = JSON.parse(storedIds);
-        if (userIds.includes(note.id)) {
-          return (
-            <Text size="sm" c="blue">
-              Posted by you
-            </Text>
-          );
-        }
-      } catch (e) {
-        console.error("Error parsing user note IDs:", e);
-      }
-    }
-
-    // Check if note is in the explicitly passed currentUserNotes list
-    if (currentUserNotes.includes(note.id)) {
-      return (
-        <Text size="sm" c="blue">
-          Posted by you
-        </Text>
-      );
-    }
-
-    // If the note has a userId (but not the current user's), fetch user email if possible
-    if (note.userId) {
-      // If we have user info
-      if (note.user && note.user.email) {
-        return (
-          <Text size="sm" c="dimmed">
-            Posted by {note.user.email}
-          </Text>
-        );
-      }
-
-      return (
-        <Text size="sm" c="dimmed">
-          Posted by user #{note.userId}
-        </Text>
-      );
-    }
-
-    // Anonymous notes (no userId)
-    if (!note.userId) {
-      return (
-        <Text size="sm" c="dimmed">
-          Posted anonymously
-        </Text>
-      );
-    }
-
-    // Look for name information in the note title or content
-    // Test pattern: Try to extract a name from note fields
-    const extractName = () => {
-      // If the title format is "John's Note" or similar
-      if (note.title && note.title.includes("'s Note")) {
-        return note.title.replace("'s Note", "");
-      }
-
-      // If the note has a name in Test User Name format in content
-      if (note.content && note.content.includes("Test User")) {
-        const match = note.content.match(/Test User (\w+)/);
-        if (match && match[1]) return `Test User ${match[1]}`;
-      }
-
-      return null;
-    };
-
-    const authorName = extractName();
-    if (authorName) {
-      return (
-        <Text size="sm" c="dimmed">
-          Posted by {authorName}
-        </Text>
-      );
-    }
-
-    // Default to anonymous for all other cases
-    return (
-      <Text size="sm" c="dimmed">
-        Posted anonymously
-      </Text>
-    );
-  };
-
-  // Helper to determine if note can be edited by current user
   const canEditNote = (note: Note) => {
-    // Admin can edit any note
     if (isAdmin) return true;
-
-    // For anonymous notes (no userId), only allow if it's a public note
-    if (
-      !note.userId &&
-      (typeof note.isPublic === "string"
-        ? note.isPublic === "true"
-        : note.isPublic)
-    ) {
-      return true;
-    }
-
-    // Check if this note's ID is in the localStorage userNoteIds
-    const storedIds = localStorage.getItem("userNoteIds");
-    if (storedIds) {
-      try {
-        const userIds = JSON.parse(storedIds);
-        if (userIds.includes(note.id)) {
-          return true;
-        }
-      } catch (e) {
-        console.error("Error parsing user note IDs:", e);
-      }
-    }
-
-    // Check if note is in the explicitly passed currentUserNotes list
-    if (currentUserNotes.includes(note.id)) {
-      return true;
-    }
-
-    // If we're in the private notes section (showUser=false), we know it's the user's note
-    if (!showUser) {
-      return true;
-    }
-
-    // Default to not editable
+    // All public notes are community-editable (matches HTMX behavior)
+    const noteIsPublic =
+      typeof note.isPublic === "string" ? note.isPublic === "true" : note.isPublic;
+    if (noteIsPublic) return true;
+    // Private notes: user must own them
+    if (!showUser) return true;
+    try {
+      const ids = JSON.parse(localStorage.getItem("userNoteIds") || "[]");
+      if (ids.includes(note.id)) return true;
+    } catch {}
+    if (currentUserNotes.includes(note.id)) return true;
     return false;
   };
+
+  const getAuthorName = (note: Note): string => {
+    if (showUser && note.user) {
+      if (note.user.firstName)
+        return `${note.user.firstName} ${note.user.lastName || ""}`.trim();
+      if (note.user.email) return note.user.email;
+    }
+    if (!showUser) return "you";
+    try {
+      const ids = JSON.parse(localStorage.getItem("userNoteIds") || "[]");
+      if (ids.includes(note.id)) return "you";
+    } catch {}
+    if (currentUserNotes.includes(note.id)) return "you";
+    if (!note.userId) return "Anonymous";
+    return "a user";
+  };
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
   return (
     <>
@@ -441,144 +144,181 @@ const NotesGrid = ({
           {error}
         </Alert>
       )}
-      <Grid grow gutter="md" style={{ width: "100%" }}>
-        {notes.map((note) => (
-          <Grid.Col key={note.id} span={{ base: 12, sm: 6, md: 6, lg: 4 }}>
-            <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-              <Stack justify="space-between" h="100%">
-                <div>
-                  {editInPlaceId === note.id ? (
-                    // Edit mode
-                    <>
-                      <TextInput
-                        value={editFormData.title}
-                        onChange={(e) =>
-                          handleInputChange("title", e.target.value)
-                        }
-                        placeholder="Note title"
-                        mb="xs"
-                      />
-                      <Textarea
-                        value={editFormData.content}
-                        onChange={(e) =>
-                          handleInputChange("content", e.target.value)
-                        }
-                        placeholder="Note content"
-                        minRows={3}
-                        mb="xs"
-                      />
-                      <Group>
-                        <Checkbox
-                          label="Public"
-                          checked={editFormData.isPublic}
-                          onChange={(e) =>
-                            handleCheckboxChange(e.target.checked)
-                          }
-                        />
-                      </Group>
-                    </>
-                  ) : (
-                    // View mode
-                    <>
-                      <Group justify="space-between" mb="xs">
-                        <Title order={4}>{note.title}</Title>
-                        <Badge
-                          color={note.isPublic === "true" ? "green" : "blue"}
-                        >
-                          {note.isPublic === "true" ? "Public" : "Private"}
-                        </Badge>
-                      </Group>
 
-                      {/* Show author information */}
-                      {getAuthorDisplay(note)}
-                      <Divider my="xs" />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: "1.5rem",
+        }}
+      >
+        {notes.map((note) => {
+          const noteIsPublic =
+            typeof note.isPublic === "string"
+              ? note.isPublic === "true"
+              : note.isPublic;
+          const authorName = getAuthorName(note);
+          const canEdit = canEditNote(note);
 
-                      <Text>{note.content}</Text>
-                    </>
-                  )}
-                </div>
-
-                <Text size="xs" c="dimmed" mt="md">
-                  {new Date(note.createdAt).toLocaleString()}
-                </Text>
-
-                {editInPlaceId === note.id ? (
-                  <Group mt="md" gap="xs">
-                    <ActionIcon
-                      color="green"
-                      onClick={() => handleEditSave(note.id)}
-                    >
-                      <IconCheck size={18} />
-                    </ActionIcon>
-                    <ActionIcon color="red" onClick={handleEditCancel}>
-                      <IconX size={18} />
-                    </ActionIcon>
-                  </Group>
-                ) : null}
-              </Stack>
-
-              {/* Card footer: Edit | Delete (match HTMX visual) */}
-              {editInPlaceId !== note.id && canEditNote(note) && (
+          return (
+            <div
+              key={note.id}
+              style={{
+                background: "white",
+                borderRadius: "0.5rem",
+                boxShadow:
+                  "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                transition: "box-shadow 0.15s",
+                ...(!noteIsPublic && !isAdmin
+                  ? { borderLeft: "4px solid #7c3aed" }
+                  : {}),
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.boxShadow =
+                  "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.boxShadow =
+                  "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)";
+              }}
+            >
+              {/* Card body */}
+              <div style={{ padding: "1.25rem", flex: 1 }}>
+                {/* Title + badge */}
                 <div
                   style={{
-                    borderTop: "1px solid var(--mantine-color-gray-2)",
-                    background: "var(--mantine-color-gray-0)",
-                    padding: "12px 20px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: "0.75rem",
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: "1.125rem",
+                      fontWeight: 600,
+                      color: "#111827",
+                      overflow: "hidden",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: "vertical" as const,
+                      marginRight: "0.5rem",
+                      flex: 1,
+                      margin: "0 0.5rem 0 0",
+                    }}
+                  >
+                    {note.title}
+                  </h3>
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 500,
+                      padding: "0.125rem 0.5rem",
+                      borderRadius: 999,
+                      flexShrink: 0,
+                      background: noteIsPublic ? "#dcfce7" : "#ede9fe",
+                      color: noteIsPublic ? "#15803d" : "#7c3aed",
+                    }}
+                  >
+                    {noteIsPublic ? "Public" : "Private"}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <p
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "#4b5563",
+                    marginBottom: "1rem",
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical" as const,
+                    margin: "0 0 1rem 0",
+                  }}
+                >
+                  {note.content}
+                </p>
+
+                {/* Author + date meta */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "0.75rem",
+                    color: "#6b7280",
+                  }}
+                >
+                  <span>By {authorName}</span>
+                  <span>{formatDate(note.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* Card footer: Edit | Delete */}
+              {canEdit && (
+                <div
+                  style={{
+                    borderTop: "1px solid #f3f4f6",
+                    background: "#f9fafb",
+                    padding: "0.75rem 1.25rem",
                     display: "flex",
                     justifyContent: "flex-end",
-                    gap: 8,
+                    gap: "0.75rem",
                   }}
                 >
                   <button
                     type="button"
-                    onClick={() => handleEditClick(note)}
+                    onClick={() => setEditingNote(note)}
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
                       fontSize: 14,
                       fontWeight: 500,
-                      color: "var(--mantine-color-indigo-6)",
+                      color: "#0d9488",
                       padding: 0,
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.color = "var(--mantine-color-indigo-8)";
+                      e.currentTarget.style.color = "#0f766e";
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.color = "var(--mantine-color-indigo-6)";
+                      e.currentTarget.style.color = "#0d9488";
                     }}
                   >
                     Edit
                   </button>
-                  <span style={{ color: "var(--mantine-color-gray-5)" }}>|</span>
                   <button
-                      type="button"
-                      onClick={() => handleDelete(note)}
-                      disabled={deletingId === note.id}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: deletingId === note.id ? "wait" : "pointer",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: "var(--mantine-color-red-6)",
-                        padding: 0,
-                      }}
-                      onMouseOver={(e) => {
-                        if (deletingId !== note.id) e.currentTarget.style.color = "var(--mantine-color-red-8)";
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.color = "var(--mantine-color-red-6)";
-                      }}
-                    >
-                      {deletingId === note.id ? "Deleting…" : "Delete"}
-                    </button>
+                    type="button"
+                    onClick={() => handleDelete(note)}
+                    disabled={deletingId === note.id}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: deletingId === note.id ? "wait" : "pointer",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "#dc2626",
+                      padding: 0,
+                    }}
+                    onMouseOver={(e) => {
+                      if (deletingId !== note.id)
+                        e.currentTarget.style.color = "#b91c1c";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.color = "#dc2626";
+                    }}
+                  >
+                    {deletingId === note.id ? "Deleting…" : "Delete"}
+                  </button>
                 </div>
               )}
-            </Card>
-          </Grid.Col>
-        ))}
-      </Grid>
+            </div>
+          );
+        })}
+      </div>
 
       {editingNote && (
         <EditNoteModal
@@ -593,7 +333,10 @@ const NotesGrid = ({
           }}
           isOpen={!!editingNote}
           onClose={() => setEditingNote(null)}
-          onSuccess={handleEditSuccess}
+          onSuccess={() => {
+            setEditingNote(null);
+            if (onNoteUpdated) onNoteUpdated();
+          }}
           isAdmin={isAdmin}
         />
       )}

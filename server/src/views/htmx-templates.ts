@@ -318,7 +318,7 @@ export function notesTablePage(clerkPublishableKey?: string): string {
           var container = document.getElementById('notes-table-container');
           if (!container) return;
           if (!window.getAdminApiKey || !window.getAdminApiKey()) {
-            container.innerHTML = '<div class="text-center py-8 text-amber-700 bg-amber-50 rounded-lg border border-amber-200"><div class="text-4xl mb-2">🔑</div><p class="font-medium">Admin login required</p><p class="text-sm mt-1">Use Admin Login in the nav, then refresh this page.</p><a href="/htmx" class="inline-block mt-4 text-teal-600 hover:underline">Back to Notes home</a></div>';
+            container.innerHTML = '<div class="text-center py-8 text-amber-700 bg-amber-50 rounded-lg border border-amber-200"><div class="text-4xl mb-2">🔑</div><p class="font-medium">Invalid or missing admin key</p><p class="text-sm mt-1">Use Admin Login in the nav, enter your Admin API Key, then refresh this page.</p><a href="/htmx" class="inline-block mt-4 text-teal-600 hover:underline">Back to Notes home</a></div>';
             return;
           }
           if (typeof htmx !== 'undefined') htmx.trigger(document.body, 'notesTableLoad');
@@ -797,8 +797,8 @@ export function adminUnauthorizedMessage(): string {
   return `
     <div class="text-center py-8 text-amber-700 bg-amber-50 rounded-lg border border-amber-200">
       <div class="text-4xl mb-2">🔑</div>
-      <p class="font-medium">Invalid or expired admin key</p>
-      <p class="text-sm mt-1">Please log in again with your Admin API Key.</p>
+      <p class="font-medium">Invalid or missing admin key</p>
+      <p class="text-sm mt-1">Use Admin Login in the nav and enter your Admin API Key.</p>
     </div>
   `;
 }

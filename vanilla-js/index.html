@@ -37,25 +37,35 @@
         </div>
 
         <!-- Admin buttons -->
-        <button class="btn btn-outline hide-when-admin" id="btn-admin-login">Admin</button>
-        <button class="btn btn-outline show-when-admin" id="btn-admin-logout">Admin Logout</button>
+        <button class="btn btn-primary hide-when-admin" id="btn-admin-login">Admin Login</button>
+        <button class="btn btn-danger show-when-admin" id="btn-admin-logout">Admin Logout</button>
       </div>
     </div>
   </nav>
 
   <!-- Main Content -->
   <main class="container">
-    <!-- Hero -->
-    <section class="hero">
-      <h2>Welcome to Notes App</h2>
-      <p>A simple app for creating and sharing notes &ndash; Vanilla JS Edition</p>
+    <!-- Admin Section (visible when admin; match HTMX order) -->
+    <section class="section show-when-admin-block">
+      <div class="section-box">
+        <div class="section-header">
+          <h2>All Notes (Admin View)</h2>
+          <p class="section-subtitle">View and manage all notes in the system</p>
+        </div>
+        <div id="admin-table-container">
+          <div class="empty-state">Loading admin notes...</div>
+        </div>
+      </div>
     </section>
 
-    <!-- Public Notes -->
+    <!-- Public Notes (match HTMX: same heading and button) -->
     <section class="section">
       <div class="section-box">
         <div class="section-header">
-          <h2>Public Notes</h2>
+          <div>
+            <h2>Public Notes</h2>
+            <p class="section-subtitle">Visible to everyone</p>
+          </div>
           <button class="btn btn-primary" id="btn-create-public">
             <span class="icon-plus"></span>
             Create Public Note
@@ -67,11 +77,14 @@
       </div>
     </section>
 
-    <!-- Private Notes (signed-in only) -->
+    <!-- Your Notes / Private (signed-in only; match HTMX "Your Notes") -->
     <section class="section show-when-signed-in-block">
       <div class="section-box">
         <div class="section-header">
-          <h2>Your Private Notes</h2>
+          <div>
+            <h2>Your Notes</h2>
+            <p class="section-subtitle">Only you can see these notes</p>
+          </div>
           <button class="btn btn-primary" id="btn-create-private">
             <span class="icon-plus"></span>
             Create Private Note
@@ -79,18 +92,6 @@
         </div>
         <div class="notes-grid" id="private-notes-grid">
           <div class="empty-state">Loading private notes...</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Admin Section -->
-    <section class="section show-when-admin-block">
-      <div class="section-box">
-        <div class="section-header">
-          <h2>Admin: All Notes</h2>
-        </div>
-        <div id="admin-table-container">
-          <div class="empty-state">Loading admin notes...</div>
         </div>
       </div>
     </section>
@@ -108,7 +109,14 @@
 
   <!-- Footer -->
   <footer class="footer">
-    Built with zero frameworks &mdash; just HTML, CSS, and JavaScript &mdash; powered by Elysia + Bun
+    <div class="footer-inner">
+      <span>&copy; 2024 Notes App &mdash; Vanilla JS</span>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
   </footer>
 
   <!-- Modal container -->

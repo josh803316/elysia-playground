@@ -52,7 +52,7 @@ body {
 }
 
 .navbar-inner {
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 0.75rem 1rem;
   display: flex;
@@ -121,9 +121,9 @@ body {
   color: var(--text-secondary);
 }
 
-/* ── Main container ───────────────────────────────────────── */
+/* ── Main container (match HTMX max-w-[1320px]) ───────────── */
 .container {
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
@@ -335,6 +335,42 @@ body {
   font-size: 0.8rem;
   border-top: 1px solid var(--border);
   margin-top: 2rem;
+}
+
+/* ── Inputs (shared across components) ───────────────────── */
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+  resize: vertical;
+  background: white;
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* ── Section box (white card for sections) ─────────────────── */
+.section-box {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  border: 1px solid var(--border);
 }
 
 /* ── Responsive tweaks ────────────────────────────────────── */

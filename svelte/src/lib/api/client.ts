@@ -216,7 +216,7 @@ export const apiClient = {
     getById: async (id: number) => {
       return client.api["public-notes"][id].get();
     },
-    create: async (note: { content: string }) => {
+    create: async (note: { title?: string; content: string }) => {
       try {
         const response = await client.api["public-notes"].post(note);
         return response;

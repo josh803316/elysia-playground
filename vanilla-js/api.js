@@ -19,11 +19,12 @@ export async function fetchPublicNotes() {
   return res.json();
 }
 
-export async function createPublicNote(content) {
+export async function createPublicNote(data) {
+  const body = typeof data === "string" ? { content: data } : { title: data.title || undefined, content: data.content };
   const res = await fetch("/api/public-notes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error("Failed to create public note");
   return res.json();

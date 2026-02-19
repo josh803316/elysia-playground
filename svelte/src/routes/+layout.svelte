@@ -257,12 +257,12 @@
 
 {#if typeof window !== 'undefined'}
 <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-	<div class="min-h-screen bg-gray-50 flex flex-col">
+	<div class="min-h-screen bg-gray-100 flex flex-col">
 		<!-- Header - Tailored to match the React app -->
 		<header class="bg-white shadow-sm border-b">
 			<div class="container mx-auto px-4 flex justify-between items-center h-[60px]" style="max-width: 1320px;">
 				<!-- Logo/Brand -->
-				<a href={toBasePath('/')} class="text-lg font-semibold text-primary-700 hover:text-primary-800">Elysia Notes - Svelte</a>
+				<a href={toBasePath('/')} class="text-xl font-bold text-gray-900 hover:text-teal-600 transition-colors">Elysia Notes - Svelte</a>
 				
 				<!-- Main Navigation Links - No hamburger, always visible -->
 				<div class="flex items-center space-x-6">
@@ -276,33 +276,29 @@
 							</div>
 						</a>
 					</SignedIn>
-					<SignedOut>
-						<span class="text-sm text-gray-600">Anonymous</span>
-					</SignedOut>
 					
 					<!-- User Authentication -->
 					<SignedIn>
 						<span class="text-sm text-gray-700">Hello, {isAdminLoggedIn ? 'Admin' : (userName || 'User')}</span>
 						<UserButton />
-						<Button 
-							size="xs" 
-							class={isAdminLoggedIn 
-								? "bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded shadow-sm" 
-								: "bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2 rounded shadow-sm"}
+						<Button
+							size="xs"
+							class={isAdminLoggedIn
+								? "bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-1.5 rounded font-medium"
+								: "bg-teal-600 hover:bg-teal-700 text-white font-semibold px-3 py-1.5 rounded font-medium"}
 							onclick={isAdminLoggedIn ? handleAdminLogout : () => (adminModalOpen = true)}
 						>
 							{isAdminLoggedIn ? "Admin Logout" : "Admin Login"}
 						</Button>
 					</SignedIn>
-					
+
 					<SignedOut>
-						<span class="text-sm text-gray-700">Hello, Anonymous</span>
 						<SignInButton mode="modal">
-							<Button size="xs" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded shadow-sm">Sign In</Button>
+							<Button size="xs" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded font-medium">Sign In</Button>
 						</SignInButton>
-						<Button 
-							size="xs" 
-							class="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2 rounded shadow-sm"
+						<Button
+							size="xs"
+							class="bg-teal-600 hover:bg-teal-700 text-white font-medium px-3 py-1.5 rounded"
 							onclick={() => (adminModalOpen = true)}
 						>
 							Admin Login
@@ -319,19 +315,19 @@
 			</div>
 		</main>
 
-		<!-- Footer -->
-		<Footer class="mt-auto border-t border-gray-200">
-			<div class="container mx-auto px-4">
-				<div class="flex justify-between items-center py-4">
-					<span class="text-sm text-gray-500">© 2024 Notes App</span>
-					<div class="flex gap-4 text-sm text-gray-500">
-						<a href={toBasePath('/')} class="hover:text-gray-700">Privacy Policy</a>
-						<a href={toBasePath('/')} class="hover:text-gray-700">Terms of Service</a>
-						<a href={toBasePath('/')} class="hover:text-gray-700">Contact Us</a>
+		<!-- Footer - match HTMX dark footer -->
+		<footer class="bg-gray-800 text-gray-400 py-6 mt-12">
+			<div class="mx-auto px-4" style="max-width: 1320px;">
+				<div class="flex justify-between items-center">
+					<span class="text-sm">© 2024 Notes App</span>
+					<div class="flex gap-4 text-sm">
+						<a href={toBasePath('/')} class="hover:text-white transition-colors">Privacy Policy</a>
+						<a href={toBasePath('/')} class="hover:text-white transition-colors">Terms of Service</a>
+						<a href={toBasePath('/')} class="hover:text-white transition-colors">Contact Us</a>
 					</div>
 				</div>
 			</div>
-		</Footer>
+		</footer>
 
 		<!-- Admin Login Modal -->
 		<Modal bind:open={adminModalOpen} title="Admin Login" autoclose={false}>
@@ -341,7 +337,7 @@
 					<Input id="apiKey" type="text" placeholder="Enter your admin API key" bind:value={adminKeyInput} />
 					<p class="mt-2 text-sm text-gray-500">Enter the admin API key to access admin features</p>
 				</div>
-				<Button type="submit" class="w-full" color="primary">Login</Button>
+				<Button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white border-none">Login</Button>
 			</form>
 		</Modal>
 
@@ -363,11 +359,11 @@
 	</div>
 </ClerkProvider>
 {:else}
-<div class="min-h-screen bg-gray-50 flex flex-col">
+<div class="min-h-screen bg-gray-100 flex flex-col">
 	<!-- Simple SSR-compatible layout -->
 	<header class="bg-white shadow-sm border-b">
 		<div class="container mx-auto px-4 flex justify-between items-center h-16">
-			<a href={toBasePath('/')} class="text-lg font-semibold text-primary-700 hover:text-primary-800">Elysia Notes - Svelte</a>
+			<a href={toBasePath('/')} class="text-xl font-bold text-gray-900 hover:text-teal-600 transition-colors">Elysia Notes - Svelte</a>
 		</div>
 	</header>
 

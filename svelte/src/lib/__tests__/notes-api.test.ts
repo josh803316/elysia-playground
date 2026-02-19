@@ -127,7 +127,20 @@ describe("Svelte Notes API Client", () => {
 
     it("should create a public note without authentication", async () => {
       await apiClient.publicNotes.create({ content: "Anonymous note" });
-      expect(mockPublicNotesPost).toHaveBeenCalledWith({ content: "Anonymous note" });
+      expect(mockPublicNotesPost).toHaveBeenCalledWith({
+        content: "Anonymous note",
+      });
+    });
+
+    it("should create a public note with optional title when provided", async () => {
+      await apiClient.publicNotes.create({
+        title: "My Title",
+        content: "Note content",
+      });
+      expect(mockPublicNotesPost).toHaveBeenCalledWith({
+        title: "My Title",
+        content: "Note content",
+      });
     });
 
     it("should re-throw formatted errors from public note creation", async () => {

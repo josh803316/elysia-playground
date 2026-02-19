@@ -51,6 +51,6 @@
   },
   "devDependencies": {
     "bun-types": "latest",
-    "turbo": "^2.8.9"
+    "turbo": "^2.8.10"
   }
 }
