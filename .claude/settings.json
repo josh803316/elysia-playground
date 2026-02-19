@@ -1,0 +1,33 @@
+{
+  "style": {
+    "typescript": {
+      "strict": true,
+      "use_type_aliases_for_context": true,
+      "prefer_async_await": true,
+      "prefer_early_return": true
+    }
+  },
+  "tests": {
+    "runner": "bun:test",
+    "require_for_new_controllers": true,
+    "require_for_new_models": true,
+    "use_in_memory_db": true,
+    "in_memory_db_flag": "USE_PGLITE=true"
+  },
+  "server": {
+    "runtime": "bun",
+    "framework": "elysia",
+    "orm": "drizzle",
+    "auth": "clerk"
+  },
+  "security": {
+    "no_hardcoded_secrets": true,
+    "use_env_vars_for_keys": true,
+    "admin_auth_header": "X-API-Key"
+  },
+  "monorepo": {
+    "task_runner": "turbo",
+    "workspaces": ["server", "react", "svelte", "angular", "htmx", "vanilla-js"],
+    "package_manager": "bun"
+  }
+}
