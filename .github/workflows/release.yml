@@ -18,22 +18,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      # setup-node handles .npmrc auth automatically via NODE_AUTH_TOKEN
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # semantic-release requires Node >=22.14.0 (Bun reports ~v20 for process.version)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://npm.pkg.github.com
+          node-version: 22
 
-      # Install only the release tooling (not the full project)
+      # Install release tooling — not in package.json to avoid Vercel needing GitHub Packages auth
       - name: Install release dependencies
-        run: npm install --no-save semantic-release @josh803316/semantic-release-helper
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release
-        run: npx semantic-release
+        run: bun add @josh803316/semantic-release-helper semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUN_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release
+        run: bunx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SEMANTIC_RELEASE_PACKAGE: elysia-playground
