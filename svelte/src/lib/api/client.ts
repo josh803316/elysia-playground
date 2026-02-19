@@ -1,6 +1,5 @@
 import { treaty } from "@elysiajs/eden";
-// Import the App type from the server
-import type { App } from "../../../../server/src/index";
+import type { App } from "$lib/api/server-types";
 
 // Resolve API base URL safely.
 // In production (Vercel), default to same-origin (`/`) unless a valid

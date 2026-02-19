@@ -1,5 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import { sql } from "drizzle-orm";
+import * as schema from "../../src/db/schema";
 import { notes, users } from "../../src/db/schema";
 import { drizzle } from "drizzle-orm/pglite";
 import { randomUUID } from "crypto";
@@ -57,10 +58,7 @@ export class TestDBUtils {
       // Create a new in-memory database
       this.pgLiteInstance = new PGlite();
 
-      // Create Drizzle database instance
-      this.db = drizzle(this.pgLiteInstance);
-
-      // Create tables one by one with proper sequencing
+      // Create tables first (must match server src/db/index.ts createTables exactly)
       await this.pgLiteInstance.query(`
         CREATE TABLE IF NOT EXISTS users (
           id SERIAL PRIMARY KEY,
@@ -68,25 +66,26 @@ export class TestDBUtils {
           email TEXT NOT NULL UNIQUE,
           first_name TEXT,
           last_name TEXT,
-          created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
       `);
-
-      // Wait for the first query to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       await this.pgLiteInstance.query(`
         CREATE TABLE IF NOT EXISTS notes (
           id SERIAL PRIMARY KEY,
-          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          user_id INTEGER,
           title TEXT NOT NULL,
           content TEXT NOT NULL,
           is_public TEXT DEFAULT 'false',
-          created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-          updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
       `);
+
+      // Create Drizzle instance with schema so ORM uses correct table names
+      this.db = drizzle(this.pgLiteInstance, { schema });
 
       console.log("Test database created successfully");
       return { db: this.db, pgLiteInstance: this.pgLiteInstance };
