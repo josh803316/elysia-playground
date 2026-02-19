@@ -51,9 +51,7 @@
     "elysia": "^1.4.25"
   },
   "devDependencies": {
-    "@josh803316/semantic-release-helper": "^1.0.3",
     "bun-types": "latest",
-    "semantic-release": "^25.0.3",
     "turbo": "^2.8.10"
   }
 }
