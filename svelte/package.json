@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "VITE_APP_NAME='Svelte Client' vite dev",
+    "prebuild": "svelte-kit sync",
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
