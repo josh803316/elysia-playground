@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import type { Note } from '../types/note';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Button from 'primevue/button';
+import Tag from 'primevue/tag';
+import Message from 'primevue/message';
+import { ref } from 'vue';
 
 const props = defineProps<{
   notes: Note[];
@@ -10,7 +15,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ refetch: [] }>();
-
 const deleteError = ref<string | null>(null);
 
 function formatDate(d: string | null): string {
@@ -22,9 +26,7 @@ function formatDate(d: string | null): string {
       ', ' +
       date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     );
-  } catch {
-    return 'Invalid Date';
-  }
+  } catch { return 'Invalid Date'; }
 }
 
 function getUserName(note: Note): string {
@@ -56,60 +58,91 @@ async function handleDelete(id: string) {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">All Notes (Admin View)</h2>
-      <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
+  <div class="admin-section">
+    <div class="section-header">
+      <h2 class="section-title">All Notes (Admin View)</h2>
+      <p class="section-subtitle">View and manage all notes in the system</p>
     </div>
 
-    <p v-if="deleteError" class="mb-4 text-sm text-red-500 bg-red-50 rounded p-2">{{ deleteError }}</p>
-    <p v-if="error" class="mb-4 text-sm text-red-500">{{ error }}</p>
-    <p v-if="loading" class="text-gray-500 text-sm">Loading…</p>
+    <Message v-if="deleteError" severity="error" :closable="false" style="margin-bottom: 1rem">
+      {{ deleteError }}
+    </Message>
+    <Message v-if="error" severity="error" :closable="false" style="margin-bottom: 1rem">
+      {{ error }}
+    </Message>
 
-    <div v-else class="overflow-x-auto">
-      <table v-if="notes.length > 0" class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-200">
-            <th class="text-left py-2 px-3 font-semibold text-gray-600">Title</th>
-            <th class="text-left py-2 px-3 font-semibold text-gray-600">Content Preview</th>
-            <th class="text-left py-2 px-3 font-semibold text-gray-600">Status</th>
-            <th class="text-left py-2 px-3 font-semibold text-gray-600">Author</th>
-            <th class="text-left py-2 px-3 font-semibold text-gray-600">Created</th>
-            <th class="text-left py-2 px-3 font-semibold text-gray-600">Updated</th>
-            <th class="text-left py-2 px-3 font-semibold text-gray-600">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="note in notes"
-            :key="note.id"
-            class="border-b border-gray-100 hover:bg-gray-50"
-          >
-            <td class="py-2 px-3 font-medium text-gray-800">{{ note.title || 'Untitled' }}</td>
-            <td class="py-2 px-3 text-gray-500">{{ preview(note.content) }}</td>
-            <td class="py-2 px-3">
-              <span
-                class="text-xs px-2 py-0.5 rounded-full font-medium"
-                :class="note.isPublic === 'true' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'"
-              >
-                {{ note.isPublic === 'true' ? 'Public' : 'Private' }}
-              </span>
-            </td>
-            <td class="py-2 px-3 text-gray-600">{{ getUserName(note) }}</td>
-            <td class="py-2 px-3 text-gray-500 whitespace-nowrap">{{ formatDate(note.createdAt) }}</td>
-            <td class="py-2 px-3 text-gray-500 whitespace-nowrap">{{ formatDate(note.updatedAt) }}</td>
-            <td class="py-2 px-3">
-              <button
-                class="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50"
-                @click="handleDelete(note.id)"
-              >
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="italic text-gray-400 text-center py-8">No notes found in the system.</p>
-    </div>
+    <DataTable
+      :value="notes"
+      :loading="loading"
+      striped-rows
+      size="small"
+      :paginator="notes.length > 10"
+      :rows="10"
+      empty-message="No notes found in the system."
+      style="font-size: 0.875rem"
+    >
+      <Column field="title" header="Title">
+        <template #body="{ data }">
+          <span style="font-weight: 500">{{ data.title || 'Untitled' }}</span>
+        </template>
+      </Column>
+      <Column header="Content Preview">
+        <template #body="{ data }">{{ preview(data.content) }}</template>
+      </Column>
+      <Column header="Status" style="width: 100px">
+        <template #body="{ data }">
+          <Tag
+            :value="data.isPublic === 'true' ? 'Public' : 'Private'"
+            :severity="data.isPublic === 'true' ? 'success' : 'secondary'"
+            rounded
+          />
+        </template>
+      </Column>
+      <Column header="Author">
+        <template #body="{ data }">{{ getUserName(data) }}</template>
+      </Column>
+      <Column header="Created" style="width: 160px">
+        <template #body="{ data }">{{ formatDate(data.createdAt) }}</template>
+      </Column>
+      <Column header="Updated" style="width: 160px">
+        <template #body="{ data }">{{ formatDate(data.updatedAt) }}</template>
+      </Column>
+      <Column header="Actions" style="width: 80px">
+        <template #body="{ data }">
+          <Button
+            icon="pi pi-trash"
+            size="small"
+            text
+            severity="danger"
+            @click="handleDelete(data.id)"
+          />
+        </template>
+      </Column>
+    </DataTable>
   </div>
 </template>
+
+<style scoped>
+.admin-section {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  padding: 1.5rem;
+}
+
+.section-header { margin-bottom: 1.25rem; }
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.25rem 0;
+}
+
+.section-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+</style>

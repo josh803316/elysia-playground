@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Message from 'primevue/message';
 
 defineProps<{ isAdminLoggedIn: boolean }>();
 const emit = defineEmits<{
@@ -11,6 +15,7 @@ const emit = defineEmits<{
 const apiKey = ref('');
 const error = ref<string | null>(null);
 const submitting = ref(false);
+const visible = ref(true);
 
 async function handleSubmit() {
   error.value = null;
@@ -20,67 +25,82 @@ async function handleSubmit() {
   }
   submitting.value = true;
   try {
-    const res = await fetch('/api/api-key-example', {
-      headers: { 'X-API-Key': apiKey.value },
-    });
-    if (!res.ok) throw new Error('Invalid API key');
-    emit('login', apiKey.value);
-  } catch {
-    // Accept key anyway for demo parity with React app
     emit('login', apiKey.value);
   } finally {
     submitting.value = false;
   }
 }
+
+function onHide() {
+  visible.value = false;
+  emit('close');
+}
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    @click.self="emit('close')"
+  <Dialog
+    v-model:visible="visible"
+    header="Admin Login"
+    :modal="true"
+    :closable="true"
+    :style="{ width: '420px' }"
+    @hide="onHide"
   >
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-800">Admin Login</h2>
-        <button class="text-gray-400 hover:text-gray-600 text-xl leading-none" @click="emit('close')">
-          &times;
-        </button>
+    <template v-if="isAdminLoggedIn">
+      <p style="margin-bottom: 1rem; color: #374151;">You are logged in as an administrator.</p>
+      <Button label="Logout" severity="danger" @click="emit('logout')" />
+    </template>
+
+    <form v-else @submit.prevent="handleSubmit">
+      <div class="field">
+        <label for="admin-key" class="field-label">Admin API Key</label>
+        <InputText
+          id="admin-key"
+          v-model="apiKey"
+          type="password"
+          placeholder="Enter your admin API key"
+          class="w-full"
+          required
+        />
+        <Message v-if="error" severity="error" :closable="false" style="margin-top: 0.5rem">
+          {{ error }}
+        </Message>
       </div>
 
-      <template v-if="isAdminLoggedIn">
-        <p class="text-gray-600 mb-4">You are logged in as an administrator.</p>
-        <button
-          class="px-4 py-2 rounded bg-red-500 text-white font-medium hover:bg-red-600"
-          @click="emit('logout')"
-        >
-          Logout
-        </button>
-      </template>
-
-      <form v-else @submit.prevent="handleSubmit">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Admin API Key</label>
-          <input
-            v-model="apiKey"
-            type="password"
-            placeholder="Enter your admin API key"
-            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vue-green"
-            :class="{ 'border-red-400': error }"
-            required
-          />
-          <p v-if="error" class="mt-1 text-xs text-red-500">{{ error }}</p>
-        </div>
-        <div class="flex justify-end">
-          <button
-            type="submit"
-            :disabled="submitting"
-            class="px-4 py-2 rounded text-white text-sm font-medium disabled:opacity-50"
-            style="background: var(--vue-green)"
-          >
-            {{ submitting ? 'Logging in…' : 'Login' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+      <div class="dialog-footer">
+        <Button
+          type="button"
+          label="Cancel"
+          severity="secondary"
+          text
+          @click="emit('close')"
+        />
+        <Button
+          type="submit"
+          label="Login"
+          :loading="submitting"
+        />
+      </div>
+    </form>
+  </Dialog>
 </template>
+
+<style scoped>
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+.field-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+.w-full { width: 100%; }
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+</style>

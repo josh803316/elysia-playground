@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUser, useAuth } from '@clerk/vue';
+import Button from 'primevue/button';
 import AppLayout from '../components/AppLayout.vue';
 import NotesGrid from '../components/NotesGrid.vue';
 import NoteFormModal from '../components/NoteFormModal.vue';
@@ -31,9 +32,7 @@ onMounted(async () => {
 });
 
 watch(isSignedIn, async (val) => {
-  if (!val && !isAdminLoggedIn.value) {
-    await router.push('/');
-  }
+  if (!val && !isAdminLoggedIn.value) await router.push('/');
 });
 
 async function refresh() {
@@ -52,8 +51,7 @@ async function handleSubmitted() {
 
 <template>
   <AppLayout>
-    <div class="flex flex-col gap-6">
-      <!-- Admin All Notes Table -->
+    <div class="page-sections">
       <AdminNotesTable
         v-if="isAdminLoggedIn"
         :notes="allNotes"
@@ -63,22 +61,20 @@ async function handleSubmitted() {
         @refetch="fetchAllNotes()"
       />
 
-      <!-- User's Notes -->
-      <section v-if="isSignedIn" class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <div class="flex justify-between items-center mb-4">
+      <section v-if="isSignedIn" class="notes-section">
+        <div class="section-header">
           <div>
-            <h2 class="text-2xl font-bold text-gray-800">My Notes</h2>
-            <p class="text-gray-600 text-sm">Your private and public notes</p>
+            <h2 class="section-title">My Notes</h2>
+            <p class="section-subtitle">Your private and public notes</p>
           </div>
-          <button
-            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
+          <Button
+            label="+ Create Private Note"
+            severity="secondary"
             @click="showModal = true"
-          >
-            <span class="text-xl">+</span> Create Private Note
-          </button>
+          />
         </div>
-        <p v-if="loading" class="text-gray-500 text-sm">Loading your notes…</p>
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
+        <p v-if="loading" class="status-text">Loading your notes…</p>
+        <p v-if="error" class="error-text">{{ error }}</p>
         <NotesGrid
           :notes="notes"
           empty-message="No notes yet. Create your first note using the button above!"
@@ -97,3 +93,27 @@ async function handleSubmitted() {
     />
   </AppLayout>
 </template>
+
+<style scoped>
+.page-sections { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.notes-section {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  padding: 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-title { font-size: 1.5rem; font-weight: 700; color: #1f2937; margin: 0 0 0.2rem 0; }
+.section-subtitle { font-size: 0.875rem; color: #6b7280; margin: 0; }
+.status-text { color: #6b7280; font-size: 0.9rem; }
+.error-text { color: #ef4444; font-size: 0.9rem; }
+</style>

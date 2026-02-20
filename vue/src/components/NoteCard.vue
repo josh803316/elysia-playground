@@ -2,6 +2,9 @@
 import { ref } from 'vue';
 import { useAuth } from '@clerk/vue';
 import type { Note } from '../types/note';
+import Card from 'primevue/card';
+import Button from 'primevue/button';
+import Tag from 'primevue/tag';
 import EditNoteModal from './EditNoteModal.vue';
 
 const props = defineProps<{
@@ -11,11 +14,7 @@ const props = defineProps<{
   adminApiKey?: string | null;
 }>();
 
-const emit = defineEmits<{
-  deleted: [];
-  updated: [];
-}>();
-
+const emit = defineEmits<{ deleted: []; updated: [] }>();
 const { getToken } = useAuth();
 const deleting = ref(false);
 const error = ref<string | null>(null);
@@ -26,9 +25,7 @@ function formatDate(d: string | null): string {
   try {
     const date = new Date(d);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return 'Invalid Date';
-  }
+  } catch { return 'Invalid Date'; }
 }
 
 function getUserName(note: Note): string {
@@ -69,49 +66,107 @@ async function handleDelete() {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-    <div class="p-5">
-      <div class="flex justify-between items-start mb-3">
-        <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">
-          {{ note.title || 'Untitled' }}
-        </h3>
-        <span
-          class="text-xs px-2 py-1 rounded-full shrink-0 ml-2"
-          :class="note.isPublic === 'true' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
-        >
-          {{ note.isPublic === 'true' ? 'Public' : 'Private' }}
-        </span>
+  <Card class="note-card">
+    <template #title>
+      <div class="card-title-row">
+        <span class="note-title line-clamp-1">{{ note.title || 'Untitled' }}</span>
+        <Tag
+          :value="note.isPublic === 'true' ? 'Public' : 'Private'"
+          :severity="note.isPublic === 'true' ? 'success' : 'secondary'"
+          rounded
+        />
       </div>
-      <p class="text-gray-600 text-sm mb-4 line-clamp-3">{{ note.content }}</p>
-      <div class="flex justify-between items-center text-xs text-gray-500">
-        <span v-if="showUser">By {{ getUserName(note) }}</span>
+    </template>
+
+    <template #content>
+      <p class="note-content line-clamp-3">{{ note.content }}</p>
+      <div class="card-meta">
+        <span v-if="showUser" class="meta-text">By {{ getUserName(note) }}</span>
         <span v-else />
-        <span>{{ formatDate(note.createdAt) }}</span>
+        <span class="meta-text">{{ formatDate(note.createdAt) }}</span>
       </div>
-      <p v-if="error" class="mt-2 text-xs text-red-500">{{ error }}</p>
-    </div>
+      <p v-if="error" class="error-text">{{ error }}</p>
+    </template>
 
-    <div class="border-t bg-gray-50 px-5 py-3 flex justify-end gap-2">
-      <button
-        class="text-teal-600 hover:text-teal-800 text-sm font-medium transition-colors"
-        @click="showEdit = true"
-      >
-        Edit
-      </button>
-      <button
-        class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors disabled:opacity-50"
-        :disabled="deleting"
-        @click="handleDelete"
-      >
-        {{ deleting ? 'Deleting…' : 'Delete' }}
-      </button>
-    </div>
+    <template #footer>
+      <div class="card-actions">
+        <Button
+          label="Edit"
+          icon="pi pi-pencil"
+          size="small"
+          text
+          severity="secondary"
+          @click="showEdit = true"
+        />
+        <Button
+          label="Delete"
+          icon="pi pi-trash"
+          size="small"
+          text
+          severity="danger"
+          :loading="deleting"
+          @click="handleDelete"
+        />
+      </div>
+    </template>
+  </Card>
 
-    <EditNoteModal
-      v-if="showEdit"
-      :note="note"
-      @updated="emit('updated'); showEdit = false"
-      @close="showEdit = false"
-    />
-  </div>
+  <EditNoteModal
+    v-if="showEdit"
+    :note="note"
+    @updated="emit('updated'); showEdit = false"
+    @close="showEdit = false"
+  />
 </template>
+
+<style scoped>
+.note-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.note-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  flex: 1;
+}
+
+.note-content {
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.meta-text {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.error-text {
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin-top: 0.5rem;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+</style>

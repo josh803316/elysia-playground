@@ -14,10 +14,7 @@ const emit = defineEmits<{ deleted: []; updated: [] }>();
 </script>
 
 <template>
-  <div
-    v-if="notes.length > 0"
-    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-  >
+  <div v-if="notes.length > 0" class="notes-grid">
     <NoteCard
       v-for="note in notes"
       :key="note.id"
@@ -29,5 +26,29 @@ const emit = defineEmits<{ deleted: []; updated: [] }>();
       @updated="emit('updated')"
     />
   </div>
-  <p v-else class="italic text-gray-400 text-center py-8">{{ emptyMessage }}</p>
+  <p v-else class="empty-state">{{ emptyMessage }}</p>
 </template>
+
+<style scoped>
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .notes-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .notes-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.empty-state {
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  padding: 2rem 0;
+  margin: 0;
+}
+</style>

@@ -2,6 +2,12 @@
 import { ref } from 'vue';
 import { useAuth } from '@clerk/vue';
 import type { Note } from '../types/note';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Checkbox from 'primevue/checkbox';
+import Message from 'primevue/message';
 
 const props = defineProps<{ note: Note }>();
 const emit = defineEmits<{ updated: []; close: [] }>();
@@ -12,12 +18,10 @@ const content = ref(props.note.content ?? '');
 const isPublic = ref(props.note.isPublic === 'true');
 const submitting = ref(false);
 const error = ref<string | null>(null);
+const visible = ref(true);
 
 async function handleSubmit() {
-  if (!content.value.trim()) {
-    error.value = 'Content cannot be empty';
-    return;
-  }
+  if (!content.value.trim()) { error.value = 'Content cannot be empty'; return; }
   submitting.value = true;
   error.value = null;
   try {
@@ -41,65 +45,40 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    @click.self="emit('close')"
+  <Dialog
+    v-model:visible="visible"
+    header="Edit Note"
+    :modal="true"
+    :style="{ width: '480px' }"
+    @hide="emit('close')"
   >
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-800">Edit Note</h2>
-        <button class="text-gray-400 hover:text-gray-600 text-xl leading-none" @click="emit('close')">
-          &times;
-        </button>
+    <form @submit.prevent="handleSubmit" class="note-form">
+      <div class="field">
+        <label class="field-label">Title</label>
+        <InputText v-model="title" placeholder="Note title" class="w-full" />
       </div>
-
-      <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-          <input
-            v-model="title"
-            type="text"
-            placeholder="Note title"
-            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2"
-            style="--tw-ring-color: var(--vue-green)"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
-          <textarea
-            v-model="content"
-            rows="4"
-            placeholder="Note content"
-            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none"
-            style="--tw-ring-color: var(--vue-green)"
-            required
-          />
-        </div>
-        <div class="flex items-center gap-2">
-          <input id="edit-public" v-model="isPublic" type="checkbox" class="rounded" />
-          <label for="edit-public" class="text-sm text-gray-700">Make public</label>
-        </div>
-
-        <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
-
-        <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            class="px-4 py-2 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
-            @click="emit('close')"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            :disabled="submitting"
-            class="px-4 py-2 text-sm rounded text-white font-medium disabled:opacity-50"
-            style="background: var(--vue-green)"
-          >
-            {{ submitting ? 'Saving…' : 'Save Changes' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+      <div class="field">
+        <label class="field-label">Content</label>
+        <Textarea v-model="content" rows="4" placeholder="Note content" class="w-full" required />
+      </div>
+      <div class="field field--checkbox">
+        <Checkbox v-model="isPublic" inputId="edit-public" :binary="true" />
+        <label for="edit-public" class="field-label">Make public</label>
+      </div>
+      <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+      <div class="dialog-footer">
+        <Button type="button" label="Cancel" severity="secondary" text @click="emit('close')" />
+        <Button type="submit" label="Save Changes" :loading="submitting" />
+      </div>
+    </form>
+  </Dialog>
 </template>
+
+<style scoped>
+.note-form { display: flex; flex-direction: column; gap: 1rem; }
+.field { display: flex; flex-direction: column; gap: 0.35rem; }
+.field--checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
+.field-label { font-size: 0.875rem; font-weight: 500; color: #374151; }
+.w-full { width: 100%; }
+.dialog-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+</style>

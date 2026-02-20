@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useUser, useAuth, useClerk } from '@clerk/vue';
+import Button from 'primevue/button';
 import AppLayout from '../components/AppLayout.vue';
 import NotesGrid from '../components/NotesGrid.vue';
 import NoteFormModal from '../components/NoteFormModal.vue';
@@ -71,7 +72,7 @@ async function handleNoteSubmitted() {
 
 <template>
   <AppLayout>
-    <div class="flex flex-col gap-6">
+    <div class="page-sections">
       <!-- Admin All Notes Table -->
       <AdminNotesTable
         v-if="isAdminLoggedIn"
@@ -83,21 +84,20 @@ async function handleNoteSubmitted() {
       />
 
       <!-- Public Notes Section -->
-      <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <div class="flex justify-between items-center mb-4">
+      <section class="notes-section">
+        <div class="section-header">
           <div>
-            <h2 class="text-2xl font-bold text-gray-800">Public Notes</h2>
-            <p class="text-gray-600 text-sm">Visible to everyone</p>
+            <h2 class="section-title">Public Notes</h2>
+            <p class="section-subtitle">Visible to everyone</p>
           </div>
-          <button
-            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
+          <Button
+            label="+ Create Public Note"
+            severity="success"
             @click="openPublicModal"
-          >
-            <span class="text-xl">+</span> Create Public Note
-          </button>
+          />
         </div>
-        <p v-if="pubLoading" class="text-gray-500 text-sm">Loading public notes…</p>
-        <p v-if="pubError" class="text-red-500 text-sm">{{ pubError }}</p>
+        <p v-if="pubLoading" class="status-text">Loading public notes…</p>
+        <p v-if="pubError" class="error-text">{{ pubError }}</p>
         <NotesGrid
           :notes="publicNotes"
           empty-message="No public notes yet. Be the first to create one!"
@@ -109,40 +109,30 @@ async function handleNoteSubmitted() {
         />
       </section>
 
-      <!-- Sign in prompt for unauthenticated users -->
-      <section
-        v-if="!isSignedIn"
-        class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 text-center"
-      >
-        <h2 class="text-2xl font-bold text-gray-800 mb-1">Want to create private notes?</h2>
-        <p class="text-gray-600 text-sm mb-4">Sign in to create and manage your own private notes.</p>
-        <button
-          class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg shadow transition-colors font-medium"
-          @click="clerk?.openSignIn()"
-        >
-          Sign In to Get Started
-        </button>
+      <!-- Sign in prompt -->
+      <section v-if="!isSignedIn" class="notes-section notes-section--center">
+        <h2 class="section-title">Want to create private notes?</h2>
+        <p class="section-subtitle" style="margin-bottom: 1rem">
+          Sign in to create and manage your own private notes.
+        </p>
+        <Button label="Sign In to Get Started" @click="clerk?.openSignIn()" />
       </section>
 
-      <!-- Your Notes Section (signed-in only) -->
-      <section
-        v-if="isSignedIn"
-        class="bg-white rounded-lg shadow-sm p-6 border border-gray-200"
-      >
-        <div class="flex justify-between items-center mb-4">
+      <!-- Your Notes Section -->
+      <section v-if="isSignedIn" class="notes-section">
+        <div class="section-header">
           <div>
-            <h2 class="text-2xl font-bold text-gray-800">Your Notes</h2>
-            <p class="text-gray-600 text-sm">Only you can see these notes</p>
+            <h2 class="section-title">Your Notes</h2>
+            <p class="section-subtitle">Only you can see these notes</p>
           </div>
-          <button
-            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
+          <Button
+            label="+ Create Private Note"
+            severity="secondary"
             @click="openPrivateModal"
-          >
-            <span class="text-xl">+</span> Create Private Note
-          </button>
+          />
         </div>
-        <p v-if="privLoading" class="text-gray-500 text-sm">Loading your notes…</p>
-        <p v-if="privError" class="text-red-500 text-sm">{{ privError }}</p>
+        <p v-if="privLoading" class="status-text">Loading your notes…</p>
+        <p v-if="privError" class="error-text">{{ privError }}</p>
         <NotesGrid
           :notes="privateNotes"
           empty-message="No notes yet. Create your first note using the button above!"
@@ -153,7 +143,6 @@ async function handleNoteSubmitted() {
       </section>
     </div>
 
-    <!-- Note creation modal -->
     <NoteFormModal
       v-if="showNoteModal"
       :initial-is-public="noteModalIsPublic"
@@ -163,3 +152,44 @@ async function handleNoteSubmitted() {
     />
   </AppLayout>
 </template>
+
+<style scoped>
+.page-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.notes-section {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  padding: 1.5rem;
+}
+
+.notes-section--center { text-align: center; }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.2rem 0;
+}
+
+.section-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.status-text { color: #6b7280; font-size: 0.9rem; }
+.error-text { color: #ef4444; font-size: 0.9rem; }
+</style>
