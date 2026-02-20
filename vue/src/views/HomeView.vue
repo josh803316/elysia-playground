@@ -83,18 +83,17 @@ async function handleNoteSubmitted() {
       />
 
       <!-- Public Notes Section -->
-      <section class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <div class="flex items-start justify-between mb-4">
+      <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex justify-between items-center mb-4">
           <div>
-            <h2 class="text-xl font-bold text-gray-800">Public Notes</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Visible to everyone</p>
+            <h2 class="text-2xl font-bold text-gray-800">Public Notes</h2>
+            <p class="text-gray-600 text-sm">Visible to everyone</p>
           </div>
           <button
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-sm font-medium bg-green-600 hover:bg-green-700"
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
             @click="openPublicModal"
           >
-            <span class="text-base leading-none">+</span>
-            Create Public Note
+            <span class="text-xl">+</span> Create Public Note
           </button>
         </div>
         <p v-if="pubLoading" class="text-gray-500 text-sm">Loading public notes…</p>
@@ -113,13 +112,12 @@ async function handleNoteSubmitted() {
       <!-- Sign in prompt for unauthenticated users -->
       <section
         v-if="!isSignedIn"
-        class="bg-white rounded-lg border border-gray-200 shadow-sm p-6 text-center"
+        class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 text-center"
       >
-        <h2 class="text-xl font-bold text-gray-800 mb-1">Want to create private notes?</h2>
-        <p class="text-sm text-gray-500 mb-4">Sign in to create and manage your own private notes.</p>
+        <h2 class="text-2xl font-bold text-gray-800 mb-1">Want to create private notes?</h2>
+        <p class="text-gray-600 text-sm mb-4">Sign in to create and manage your own private notes.</p>
         <button
-          class="px-4 py-2 rounded text-white text-sm font-medium"
-          style="background: var(--vue-green)"
+          class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg shadow transition-colors font-medium"
           @click="clerk?.openSignIn()"
         >
           Sign In to Get Started
@@ -129,19 +127,18 @@ async function handleNoteSubmitted() {
       <!-- Your Notes Section (signed-in only) -->
       <section
         v-if="isSignedIn"
-        class="bg-white rounded-lg border border-gray-200 shadow-sm p-6"
+        class="bg-white rounded-lg shadow-sm p-6 border border-gray-200"
       >
-        <div class="flex items-start justify-between mb-4">
+        <div class="flex justify-between items-center mb-4">
           <div>
-            <h2 class="text-xl font-bold text-gray-800">Your Notes</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Only you can see these notes</p>
+            <h2 class="text-2xl font-bold text-gray-800">Your Notes</h2>
+            <p class="text-gray-600 text-sm">Only you can see these notes</p>
           </div>
           <button
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-sm font-medium bg-purple-600 hover:bg-purple-700"
+            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
             @click="openPrivateModal"
           >
-            <span class="text-base leading-none">+</span>
-            Create Private Note
+            <span class="text-xl">+</span> Create Private Note
           </button>
         </div>
         <p v-if="privLoading" class="text-gray-500 text-sm">Loading your notes…</p>

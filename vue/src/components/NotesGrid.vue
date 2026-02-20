@@ -16,8 +16,7 @@ const emit = defineEmits<{ deleted: []; updated: [] }>();
 <template>
   <div
     v-if="notes.length > 0"
-    class="grid gap-6"
-    style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))"
+    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
   >
     <NoteCard
       v-for="note in notes"

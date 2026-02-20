@@ -64,18 +64,17 @@ async function handleSubmitted() {
       />
 
       <!-- User's Notes -->
-      <section v-if="isSignedIn" class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-        <div class="flex items-start justify-between mb-4">
+      <section v-if="isSignedIn" class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex justify-between items-center mb-4">
           <div>
-            <h2 class="text-xl font-bold text-gray-800">My Notes</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Your private and public notes</p>
+            <h2 class="text-2xl font-bold text-gray-800">My Notes</h2>
+            <p class="text-gray-600 text-sm">Your private and public notes</p>
           </div>
           <button
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-sm font-medium bg-purple-600 hover:bg-purple-700"
+            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
             @click="showModal = true"
           >
-            <span class="text-base leading-none">+</span>
-            Create Private Note
+            <span class="text-xl">+</span> Create Private Note
           </button>
         </div>
         <p v-if="loading" class="text-gray-500 text-sm">Loading your notes…</p>

@@ -25,11 +25,7 @@ function formatDate(d: string | null): string {
   if (!d) return 'N/A';
   try {
     const date = new Date(d);
-    return (
-      date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) +
-      ', ' +
-      date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    );
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   } catch {
     return 'Invalid Date';
   }
@@ -73,40 +69,41 @@ async function handleDelete() {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col gap-2">
-    <div class="flex items-start justify-between gap-2">
-      <h3 class="font-semibold text-gray-800 text-sm leading-snug break-words flex-1">
-        {{ note.title || 'Untitled' }}
-      </h3>
-      <span
-        class="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium"
-        :class="note.isPublic === 'true' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'"
-      >
-        {{ note.isPublic === 'true' ? 'Public' : 'Private' }}
-      </span>
+  <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+    <div class="p-5">
+      <div class="flex justify-between items-start mb-3">
+        <h3 class="text-lg font-semibold text-gray-800 line-clamp-1">
+          {{ note.title || 'Untitled' }}
+        </h3>
+        <span
+          class="text-xs px-2 py-1 rounded-full shrink-0 ml-2"
+          :class="note.isPublic === 'true' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+        >
+          {{ note.isPublic === 'true' ? 'Public' : 'Private' }}
+        </span>
+      </div>
+      <p class="text-gray-600 text-sm mb-4 line-clamp-3">{{ note.content }}</p>
+      <div class="flex justify-between items-center text-xs text-gray-500">
+        <span v-if="showUser">By {{ getUserName(note) }}</span>
+        <span v-else />
+        <span>{{ formatDate(note.createdAt) }}</span>
+      </div>
+      <p v-if="error" class="mt-2 text-xs text-red-500">{{ error }}</p>
     </div>
 
-    <p class="text-gray-600 text-sm line-clamp-3 flex-1">{{ note.content }}</p>
-
-    <div v-if="showUser" class="text-xs text-gray-400">By {{ getUserName(note) }}</div>
-
-    <div class="text-xs text-gray-400">{{ formatDate(note.createdAt) }}</div>
-
-    <p v-if="error" class="text-xs text-red-500">{{ error }}</p>
-
-    <div class="flex gap-2 mt-1">
+    <div class="border-t bg-gray-50 px-5 py-3 flex justify-end gap-2">
       <button
-        class="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
+        class="text-teal-600 hover:text-teal-800 text-sm font-medium transition-colors"
         @click="showEdit = true"
       >
         Edit
       </button>
       <button
-        class="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50"
+        class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors disabled:opacity-50"
         :disabled="deleting"
         @click="handleDelete"
       >
-        {{ deleting ? '…' : 'Delete' }}
+        {{ deleting ? 'Deleting…' : 'Delete' }}
       </button>
     </div>
 

@@ -58,8 +58,8 @@ async function handleDelete(id: string) {
 <template>
   <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
     <div class="mb-6">
-      <h2 class="text-xl font-bold text-gray-800">All Notes (Admin View)</h2>
-      <p class="text-sm text-gray-500 mt-0.5">View and manage all notes in the system</p>
+      <h2 class="text-2xl font-bold text-gray-800">All Notes (Admin View)</h2>
+      <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
     </div>
 
     <p v-if="deleteError" class="mb-4 text-sm text-red-500 bg-red-50 rounded p-2">{{ deleteError }}</p>
