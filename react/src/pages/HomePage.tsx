@@ -300,13 +300,14 @@ const HomePage = () => {
         <Paper shadow="sm" style={{ padding: "1.5rem", borderColor: "#e5e7eb" }} withBorder radius="md">
           <Group justify="space-between" mb="md">
             <div>
-              <Title order={2}>Public Notes</Title>
-              <Text size="sm" c="dimmed">Visible to everyone</Text>
+              <Title order={2} style={{ color: "#1f2937" }}>Public Notes</Title>
+              <Text size="sm" style={{ color: "#4b5563" }}>Visible to everyone</Text>
             </div>
             <Button
               leftSection={<IconPlus size={18} />}
-              color="green"
               variant="filled"
+              style={{ background: "#059669" }}
+              styles={{ root: { "&:hover": { background: "#047857" } } }}
               onClick={() => {
                 if (isSignedIn) {
                   openNoteModal(true);
@@ -337,14 +338,14 @@ const HomePage = () => {
       <SignedOut>
         <Grid.Col span={12}>
           <Paper shadow="sm" style={{ padding: "1.5rem", borderColor: "#e5e7eb", textAlign: "center" }} withBorder radius="md">
-            <Title order={2} mb="xs">
+            <Title order={2} mb="xs" style={{ color: "#1f2937" }}>
               Want to create private notes?
             </Title>
-            <Text size="sm" c="dimmed" mb="md">
+            <Text size="sm" mb="md" style={{ color: "#4b5563" }}>
               Sign in to create and manage your own private notes.
             </Text>
             <SignInButton mode="modal">
-              <Button variant="filled" color="teal">
+              <Button variant="filled" style={{ background: "#0d9488", padding: "0.5rem 1.5rem", borderRadius: "0.5rem" }}>
                 Sign In to Get Started
               </Button>
             </SignInButton>
@@ -356,15 +357,16 @@ const HomePage = () => {
       {isSignedIn && (
         <Grid.Col span={12} data-testid="section-your-notes">
           <Paper shadow="sm" style={{ padding: "1.5rem", borderColor: "#e5e7eb" }} withBorder radius="md">
-            <Group justify="space-between" mb="xs">
+            <Group justify="space-between" mb="md">
               <div>
-                <Title order={2}>Your Notes</Title>
-                <Text size="sm" c="dimmed">Only you can see these notes</Text>
+                <Title order={2} style={{ color: "#1f2937" }}>Your Notes</Title>
+                <Text size="sm" style={{ color: "#4b5563" }}>Only you can see these notes</Text>
               </div>
               <Button
                 leftSection={<IconPlus size={18} />}
                 variant="filled"
                 style={{ background: "#7c3aed" }}
+                styles={{ root: { "&:hover": { background: "#6d28d9" } } }}
                 onClick={() => openNoteModal(false)}
               >
                 + Create Private Note

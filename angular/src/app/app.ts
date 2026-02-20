@@ -23,37 +23,44 @@ import { AuthService } from './services/auth.service';
           <span class="navbar-brand-text">Elysia Notes - Angular</span>
         </a>
 
-        <!-- Nav links -->
-        <div class="nav-links">
-          <a href="/angular">Home</a>
-          @if (auth.isSignedIn()) {
-            <a href="/angular" class="nav-notes-link">
-              {{ isAdminLoggedIn() ? 'All Notes' : 'My Notes' }}
-              <span class="nav-count-badges">
-                <span class="nav-badge-green">Public: {{ publicCount() }}</span>
-                <span class="nav-badge-purple">Private: {{ privateCount() }}</span>
-              </span>
-            </a>
-          }
-        </div>
+        <!-- Right side nav: links + auth in single flex container -->
+        <div class="nav-right">
+          <div class="nav-links">
+            <a href="/angular" class="nav-home-link">Home</a>
+            <!-- Public badge: signed-out only (standalone) -->
+            @if (!auth.isSignedIn()) {
+              <span class="nav-badge-green">Public: {{ publicCount() }}</span>
+            }
+            <!-- My Notes + both badges: only when signed in -->
+            @if (auth.isSignedIn()) {
+              <a href="/angular/notes" class="nav-notes-link">
+                {{ isAdminLoggedIn() ? 'All Notes' : 'My Notes' }}
+                <span class="nav-count-badges">
+                  <span class="nav-badge-green">Public: {{ publicCount() }}</span>
+                  <span class="nav-badge-purple">Private: {{ privateCount() }}</span>
+                </span>
+              </a>
+            }
+          </div>
 
-        <!-- Auth area -->
-        <div class="nav-auth">
-          @if (auth.isLoading()) {
-            <span class="nav-loading">Loading...</span>
-          } @else if (auth.isSignedIn()) {
-            <span class="nav-user">Hello, {{ auth.user()?.firstName ?? 'User' }}</span>
-            <button class="btn-text-link" (click)="auth.signOut()">Sign Out</button>
-          } @else {
-            <button class="btn btn-teal" (click)="auth.signIn()">Sign In</button>
-          }
+          <!-- Auth area -->
+          <div class="nav-auth">
+            @if (auth.isLoading()) {
+              <span class="nav-loading">Loading...</span>
+            } @else if (auth.isSignedIn()) {
+              <span class="nav-user">Hello, {{ auth.user()?.firstName ?? 'User' }}</span>
+              <button class="btn-text-link" (click)="auth.signOut()">Sign Out</button>
+            } @else {
+              <button class="btn-sign-in" (click)="auth.signIn()">Sign In</button>
+            }
 
-          <!-- Admin buttons -->
-          @if (isAdminLoggedIn()) {
-            <button class="btn btn-red-sm" (click)="adminLogout()">Admin Logout</button>
-          } @else {
-            <button class="btn btn-teal-sm" (click)="showAdminModal = true">Admin Login</button>
-          }
+            <!-- Admin buttons -->
+            @if (isAdminLoggedIn()) {
+              <button class="btn-admin-red" (click)="adminLogout()">Admin Logout</button>
+            } @else {
+              <button class="btn-admin-teal" (click)="showAdminModal = true">Admin Login</button>
+            }
+          </div>
         </div>
       </div>
     </nav>
@@ -88,7 +95,7 @@ import { AuthService } from './services/auth.service';
           <div class="section-box sign-in-prompt">
             <h2 class="sign-in-title">Want to create private notes?</h2>
             <p>Sign in to create and manage your own private notes.</p>
-            <button class="btn btn-teal mt-4" (click)="auth.signIn()">Sign In to Get Started</button>
+            <button class="btn-sign-in mt-4" (click)="auth.signIn()">Sign In to Get Started</button>
           </div>
         </section>
       }
@@ -150,18 +157,34 @@ import { AuthService } from './services/auth.service';
     }
     .navbar-brand-link:hover .navbar-brand-text { color: #0d9488; }
 
+    /* Nav right wrapper: single flex container for all right-side nav items */
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Home link (color-only hover, match HTMX) */
+    .nav-home-link {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-home-link:hover { color: #111827; }
+
     .nav-notes-link {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       font-size: 0.875rem;
-      color: var(--text-secondary);
+      font-weight: 500;
+      color: #374151;
       text-decoration: none;
-      padding: 0.375rem 0.75rem;
-      border-radius: var(--radius);
-      transition: background 0.15s, color 0.15s;
+      transition: color 0.15s;
     }
-    .nav-notes-link:hover { background: var(--bg); color: var(--text); }
+    .nav-notes-link:hover { color: #111827; }
 
     .nav-count-badges {
       display: flex;
@@ -169,17 +192,17 @@ import { AuthService } from './services/auth.service';
       align-items: center;
     }
     .nav-badge-green {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       padding: 0.125rem 0.5rem;
-      border-radius: 999px;
+      border-radius: 0.25rem;
       background: #dcfce7;
       color: #166534;
       font-weight: 600;
     }
     .nav-badge-purple {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       padding: 0.125rem 0.5rem;
-      border-radius: 999px;
+      border-radius: 0.25rem;
       background: #f3e8ff;
       color: #7e22ce;
       font-weight: 600;
@@ -192,51 +215,53 @@ import { AuthService } from './services/auth.service';
       border: none;
       cursor: pointer;
       font-size: 0.875rem;
-      color: var(--text-secondary);
+      color: #4b5563;
       font-weight: 500;
       padding: 0;
       transition: color 0.15s;
     }
-    .btn-text-link:hover { color: var(--text); }
+    .btn-text-link:hover { color: #111827; }
 
-    .btn-teal {
+    /* Sign In button (larger, rounded-lg, match HTMX) */
+    .btn-sign-in {
       background: #0d9488;
       color: white;
       padding: 0.5rem 1rem;
-      border-radius: var(--radius);
+      border-radius: 0.5rem;
       border: none;
       cursor: pointer;
       font-size: 0.875rem;
       font-weight: 500;
       transition: background 0.15s;
     }
-    .btn-teal:hover { background: #0f766e; }
+    .btn-sign-in:hover { background: #0f766e; }
 
-    .btn-teal-sm {
+    /* Admin buttons (smaller, match HTMX px-3 py-1.5 rounded) */
+    .btn-admin-teal {
       background: #0d9488;
       color: white;
       padding: 0.375rem 0.75rem;
-      border-radius: var(--radius);
+      border-radius: 0.25rem;
       border: none;
       cursor: pointer;
       font-size: 0.875rem;
       font-weight: 500;
       transition: background 0.15s;
     }
-    .btn-teal-sm:hover { background: #0f766e; }
+    .btn-admin-teal:hover { background: #0f766e; }
 
-    .btn-red-sm {
+    .btn-admin-red {
       background: #dc2626;
       color: white;
       padding: 0.375rem 0.75rem;
-      border-radius: var(--radius);
+      border-radius: 0.25rem;
       border: none;
       cursor: pointer;
       font-size: 0.875rem;
       font-weight: 500;
       transition: background 0.15s;
     }
-    .btn-red-sm:hover { background: #b91c1c; }
+    .btn-admin-red:hover { background: #b91c1c; }
 
     .btn-amber {
       background: #d97706;
@@ -405,16 +430,18 @@ export class App implements OnInit {
       } catch (_) {}
       return;
     }
-    const token = this.auth.token();
-    if (!token) { this.publicCount.set(0); this.privateCount.set(0); return; }
+    // Always fetch public count (visible even when signed out)
     try {
-      const [pubRes, privRes] = await Promise.all([
-        fetch('/api/public-notes'),
-        fetch('/api/private-notes', { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
+      const pubRes = await fetch('/api/public-notes');
       const pub = pubRes.ok ? await pubRes.json() : [];
-      const priv = privRes.ok ? await privRes.json() : [];
       this.publicCount.set(Array.isArray(pub) ? pub.length : 0);
+    } catch (_) {}
+    // Only fetch private count when signed in
+    const token = this.auth.token();
+    if (!token) { this.privateCount.set(0); return; }
+    try {
+      const privRes = await fetch('/api/private-notes', { headers: { Authorization: `Bearer ${token}` } });
+      const priv = privRes.ok ? await privRes.json() : [];
       this.privateCount.set(Array.isArray(priv) ? priv.filter((n: any) => n.isPublic !== 'true').length : 0);
     } catch (_) {}
   }

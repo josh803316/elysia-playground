@@ -86,6 +86,9 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
         </a>
         <div class="flex gap-4 items-center">
           <a href="/htmx" class="text-sm text-gray-700 hover:text-gray-900 font-medium">Home</a>
+          <!-- Public badge: always visible when signed out -->
+          <span id="nav-public-standalone" class="show-when-signed-out text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium">Public: 0</span>
+          <!-- My Notes + Public + Private badges: only when signed in -->
           <span class="show-when-signed-in nav-notes-row flex items-center gap-2 flex-nowrap">
             <a id="nav-notes-label" href="/htmx/notes" class="text-sm text-gray-700 hover:text-gray-900 font-medium whitespace-nowrap">My Notes</a>
             <span id="nav-note-counts" class="flex gap-1.5 items-center flex-shrink-0"></span>
@@ -123,7 +126,7 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
   </main>
   
   <footer class="bg-gray-800 text-gray-400 py-6 mt-12">
-    <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
+    <div class="max-w-[1320px] mx-auto px-4 flex justify-between items-center">
       <span class="text-sm">© 2024 Notes App</span>
       <div class="flex gap-4 text-sm">
         <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
@@ -136,34 +139,42 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
   <script>
     // Admin: API key and nav
     window.getAdminApiKey = function() { return localStorage.getItem('adminApiKey'); };
-    // Fetch and display Public/Private note counts in nav (match React/Svelte)
+    // Fetch and display Public/Private note counts in nav
+    // - signed out: only the standalone Public badge is visible
+    // - signed in: My Notes row shows Public + Private badges
     window.refreshNavNoteCounts = async function(optionalToken) {
       var container = document.getElementById('nav-note-counts');
-      if (!container) return;
+      var standaloneBadge = document.getElementById('nav-public-standalone');
       var adminKey = window.getAdminApiKey && window.getAdminApiKey();
       if (adminKey) {
         try {
           var r = await fetch('/api/notes/all', { headers: { 'X-API-Key': adminKey } });
-          if (!r.ok) { container.innerHTML = ''; return; }
+          if (!r.ok) { if (container) container.innerHTML = ''; return; }
           var data = await r.json();
           var publicCount = Array.isArray(data) ? data.filter(function(n) { return n.isPublic === 'true'; }).length : 0;
           var privateCount = Array.isArray(data) ? data.length - publicCount : 0;
-          container.innerHTML = '<span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium">Public: ' + publicCount + '</span><span class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium">Private: ' + privateCount + '</span>';
-        } catch (e) { container.innerHTML = ''; }
+          if (standaloneBadge) standaloneBadge.textContent = 'Public: ' + publicCount;
+          if (container) container.innerHTML = '<span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium">Public: ' + publicCount + '</span><span class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium">Private: ' + privateCount + '</span>';
+        } catch (e) { if (container) container.innerHTML = ''; }
         return;
       }
+      // Always fetch public count for the standalone badge (visible when signed out)
+      var publicCount = 0;
+      try {
+        var pubRes = await fetch('/api/public-notes');
+        var pubData = pubRes.ok ? await pubRes.json() : [];
+        publicCount = Array.isArray(pubData) ? pubData.length : 0;
+        if (standaloneBadge) standaloneBadge.textContent = 'Public: ' + publicCount;
+      } catch (e) {}
       if (optionalToken) {
         try {
-          var pubRes = await fetch('/api/public-notes');
           var privRes = await fetch('/api/private-notes', { headers: { 'Authorization': 'Bearer ' + optionalToken } });
-          var pubData = pubRes.ok ? await pubRes.json() : [];
           var privData = privRes.ok ? await privRes.json() : [];
-          var publicCount = Array.isArray(pubData) ? pubData.length : 0;
           var privateCount = Array.isArray(privData) ? privData.filter(function(n) { return n.isPublic !== 'true'; }).length : 0;
-          container.innerHTML = '<span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium">Public: ' + publicCount + '</span><span class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium">Private: ' + privateCount + '</span>';
-        } catch (e) { container.innerHTML = ''; }
+          if (container) container.innerHTML = '<span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium">Public: ' + publicCount + '</span><span class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium">Private: ' + privateCount + '</span>';
+        } catch (e) { if (container) container.innerHTML = ''; }
       } else {
-        container.innerHTML = '';
+        if (container) container.innerHTML = '';
       }
     };
     window.updateAdminNav = function() {
@@ -191,6 +202,8 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
         }, 50);
       }
       window.updateAdminNav();
+      // Always fetch public count immediately (shows even before Clerk loads)
+      window.refreshNavNoteCounts();
     });
     document.body.addEventListener('htmx:configRequest', function(evt) {
       var el = evt.detail && evt.detail.elt;

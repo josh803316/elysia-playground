@@ -23,7 +23,6 @@
   } from 'flowbite-svelte';
   import { Card } from 'flowbite-svelte';
   import NoteModal from '$lib/components/NoteModal.svelte';
-  import Footer from '$lib/components/Footer.svelte';
 
   // Define note type for better type safety
   interface Note {
@@ -877,5 +876,3 @@
   initialPublic={createPublicNote}
 />
 
-<!-- Footer -->
-<Footer /> 

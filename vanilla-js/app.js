@@ -54,6 +54,8 @@ function renderPublicNotes() {
     }
   }
   publicCountBadge.textContent = publicNotes.length;
+  const publicCountSignedIn = $("#public-count-signed-in");
+  if (publicCountSignedIn) publicCountSignedIn.textContent = publicNotes.length;
 }
 
 function renderPrivateNotes() {
