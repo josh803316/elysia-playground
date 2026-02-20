@@ -173,7 +173,7 @@ const NotesGrid = ({
                 flexDirection: "column",
                 transition: "box-shadow 0.15s",
                 ...(!noteIsPublic && !isAdmin
-                  ? { borderLeft: "4px solid #7c3aed" }
+                  ? { borderLeft: "4px solid #a855f7" }
                   : {}),
               }}
               onMouseOver={(e) => {
@@ -219,8 +219,8 @@ const NotesGrid = ({
                       padding: "0.125rem 0.5rem",
                       borderRadius: 999,
                       flexShrink: 0,
-                      background: noteIsPublic ? "#dcfce7" : "#ede9fe",
-                      color: noteIsPublic ? "#15803d" : "#7c3aed",
+                      background: noteIsPublic ? "#dcfce7" : "#f3e8ff",
+                      color: noteIsPublic ? "#15803d" : "#7e22ce",
                     }}
                   >
                     {noteIsPublic ? "Public" : "Private"}

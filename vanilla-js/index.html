@@ -13,32 +13,39 @@
   <!-- Navigation -->
   <nav class="navbar">
     <div class="navbar-inner">
-      <div class="navbar-brand">
-        <h1>Elysia Notes - Vanilla JS</h1>
-        <span class="subtitle">Zero Frameworks</span>
-      </div>
+      <a href="/vanilla-js" class="navbar-brand-link">
+        <h1 class="navbar-brand-text">Elysia Notes - Vanilla JS</h1>
+      </a>
 
-      <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="#">Public <span class="nav-badge" id="public-count">0</span></a>
-        <a href="#" class="show-when-signed-in">My Notes <span class="nav-badge" id="private-count">0</span></a>
-      </div>
-
-      <div class="nav-auth">
-        <!-- Signed-out state -->
-        <div class="show-when-signed-out">
-          <button class="btn btn-primary" id="btn-sign-in">Sign In</button>
+      <div class="nav-right">
+        <div class="nav-links">
+          <a href="/vanilla-js" class="nav-home-link">Home</a>
+          <!-- Public badge: only when signed out -->
+          <span class="nav-count-badge nav-count-badge--green show-when-signed-out" id="nav-public-standalone">Public: <span id="public-count">0</span></span>
+          <!-- My Notes + both badges: only when signed in -->
+          <span class="nav-notes-group">
+            <a href="/vanilla-js" class="nav-link-plain">My Notes</a>
+            <span class="nav-count-badge nav-count-badge--green">Public: <span id="public-count-signed-in">0</span></span>
+            <span class="nav-count-badge nav-count-badge--purple">Private: <span id="private-count">0</span></span>
+          </span>
         </div>
 
-        <!-- Signed-in state -->
-        <div class="show-when-signed-in">
-          <span class="nav-user">Hello, <strong id="user-name"></strong></span>
-          <button class="btn btn-secondary" id="btn-sign-out">Sign Out</button>
-        </div>
+        <div class="nav-auth">
+          <!-- Signed-out state -->
+          <div class="show-when-signed-out">
+            <button class="btn btn-sign-in" id="btn-sign-in">Sign In</button>
+          </div>
 
-        <!-- Admin buttons -->
-        <button class="btn btn-primary hide-when-admin" id="btn-admin-login">Admin Login</button>
-        <button class="btn btn-danger show-when-admin" id="btn-admin-logout">Admin Logout</button>
+          <!-- Signed-in state -->
+          <div class="show-when-signed-in">
+            <span class="nav-user">Hello, <strong id="user-name"></strong></span>
+            <button class="btn-text-link" id="btn-sign-out">Sign Out</button>
+          </div>
+
+          <!-- Admin buttons -->
+          <button class="btn-teal-sm hide-when-admin" id="btn-admin-login">Admin Login</button>
+          <button class="btn-danger-sm show-when-admin" id="btn-admin-logout">Admin Logout</button>
+        </div>
       </div>
     </div>
   </nav>
@@ -99,8 +106,9 @@
     <!-- Sign-in prompt (signed-out only) -->
     <section class="section show-when-signed-out-block">
       <div class="section-box sign-in-prompt">
-        <p>Sign in to create private notes and manage your content.</p>
-        <button class="btn btn-primary" onclick="document.getElementById('btn-sign-in').click()">
+        <h2 class="sign-in-title">Want to create private notes?</h2>
+        <p>Sign in to create and manage your own private notes.</p>
+        <button class="btn btn-sign-in" style="margin-top: 1rem;" onclick="document.getElementById('btn-sign-in').click()">
           Sign In to Get Started
         </button>
       </div>
@@ -110,11 +118,11 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span>&copy; 2024 Notes App &mdash; Vanilla JS</span>
+      <span>&copy; 2024 Notes App</span>
       <div class="footer-links">
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
-        <a href="#">Contact</a>
+        <a href="#">Contact Us</a>
       </div>
     </div>
   </footer>

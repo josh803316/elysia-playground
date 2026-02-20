@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from 'svelte-clerk/client';
+	import { ClerkProvider, SignedIn, SignedOut, SignInButton } from 'svelte-clerk/client';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -19,7 +19,6 @@
 		FooterCopyright,
 		FooterLinkGroup,
 		FooterLink,
-		Badge,
 		Table,
 		TableBody,
 		TableBodyCell,
@@ -265,44 +264,52 @@
 				<a href={toBasePath('/')} class="text-xl font-bold text-gray-900 hover:text-teal-600 transition-colors">Elysia Notes - Svelte</a>
 				
 				<!-- Main Navigation Links - No hamburger, always visible -->
-				<div class="flex items-center space-x-6">
-					<button type="button" class="text-gray-700 hover:text-gray-900" onclick={() => goto(toBasePath('/'))}>Home</button>
+				<div class="flex items-center gap-4">
+					<a href={toBasePath('/')} class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Home</a>
+					<!-- Public badge: signed-out only (standalone) -->
+					<SignedOut>
+						<span class="text-xs font-medium py-0.5 px-2 rounded bg-green-100 text-green-800">Public: {publicNotesCount}</span>
+					</SignedOut>
+					<!-- My Notes + both badges: only when signed in -->
 					<SignedIn>
-						<a href={toBasePath('/notes')} class="text-gray-700 hover:text-gray-900 flex items-center">
+						<a href={toBasePath('/notes')} class="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1.5 transition-colors">
 							{isAdminLoggedIn ? 'All Notes' : 'My Notes'}
-							<div class="flex space-x-1 ml-2">
-								<Badge color="green" rounded class="text-xs py-0.5 px-1.5 bg-green-200 text-green-800">Public: {publicNotesCount}</Badge>
-								<Badge color="purple" rounded class="text-xs py-0.5 px-1.5 bg-purple-200 text-purple-800">Private: {privateNotesCount}</Badge>
-							</div>
+							<span class="text-xs font-medium py-0.5 px-2 rounded bg-green-100 text-green-800">Public: {publicNotesCount}</span>
+							<span class="text-xs font-medium py-0.5 px-2 rounded bg-purple-100 text-purple-800">Private: {privateNotesCount}</span>
 						</a>
 					</SignedIn>
-					
+
 					<!-- User Authentication -->
 					<SignedIn>
 						<span class="text-sm text-gray-700">Hello, {isAdminLoggedIn ? 'Admin' : (userName || 'User')}</span>
-						<UserButton />
-						<Button
-							size="xs"
-							class={isAdminLoggedIn
-								? "bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-1.5 rounded font-medium"
-								: "bg-teal-600 hover:bg-teal-700 text-white font-semibold px-3 py-1.5 rounded font-medium"}
+						<button
+							type="button"
+							class="text-sm font-medium text-gray-600 hover:text-gray-900 bg-transparent border-none cursor-pointer p-0 transition-colors"
+							onclick={() => (window as any).Clerk?.signOut()}
+						>Sign Out</button>
+						<button
+							type="button"
+							class={`text-sm font-medium text-white px-3 py-1.5 rounded border-none cursor-pointer transition-colors ${isAdminLoggedIn ? 'bg-red-600 hover:bg-red-700' : 'bg-teal-600 hover:bg-teal-700'}`}
+							style={isAdminLoggedIn ? 'background:#dc2626' : 'background:#0d9488'}
 							onclick={isAdminLoggedIn ? handleAdminLogout : () => (adminModalOpen = true)}
 						>
 							{isAdminLoggedIn ? "Admin Logout" : "Admin Login"}
-						</Button>
+						</button>
 					</SignedIn>
 
 					<SignedOut>
 						<SignInButton mode="modal">
-							<Button size="xs" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded font-medium">Sign In</Button>
+							<button type="button" class="text-sm font-medium text-white px-4 py-2 rounded-lg border-none cursor-pointer transition-colors" style="background:#0d9488" onmouseover={(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#0f766e')} onmouseout={(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#0d9488')}
+							>Sign In</button>
 						</SignInButton>
-						<Button
-							size="xs"
-							class="bg-teal-600 hover:bg-teal-700 text-white font-medium px-3 py-1.5 rounded"
+						<button
+							type="button"
+							class="text-sm font-medium text-white px-3 py-1.5 rounded border-none cursor-pointer transition-colors"
+							style="background:#0d9488"
+							onmouseover={(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#0f766e')}
+							onmouseout={(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#0d9488')}
 							onclick={() => (adminModalOpen = true)}
-						>
-							Admin Login
-						</Button>
+						>Admin Login</button>
 					</SignedOut>
 				</div>
 			</div>
