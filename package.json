@@ -45,7 +45,8 @@
     "test:server": "bun test --bun server"
   },
   "overrides": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "@clerk/backend": "2.29.2"
   },
   "dependencies": {
     "elysia": "^1.4.25"
@@ -53,5 +54,8 @@
   "devDependencies": {
     "bun-types": "latest",
     "turbo": "^2.8.10"
+  },
+  "patchedDependencies": {
+    "@clerk/backend@2.29.2": "patches/@clerk%2Fbackend@2.29.2.patch"
   }
 }
