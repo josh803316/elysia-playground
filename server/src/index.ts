@@ -83,6 +83,7 @@ const reactAssetsPath = resolve(new URL("../../react/dist", import.meta.url).pat
 const svelteAssetsPath = resolve(new URL("../../svelte/build", import.meta.url).pathname);
 const vanillaJsAssetsPath = resolve(new URL("../../vanilla-js", import.meta.url).pathname);
 const angularAssetsPath = resolve(new URL("../../angular/dist/angular/browser", import.meta.url).pathname);
+const vueAssetsPath = resolve(new URL("../../vue/dist", import.meta.url).pathname);
 
 const contentTypeByExt: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -437,6 +438,9 @@ app
           "    .logo-angular svg {",
           "      filter: drop-shadow(0 0 6px rgba(221,51,51,0.9));",
           "    }",
+          "    .logo-vue svg {",
+          "      filter: drop-shadow(0 0 6px rgba(66,184,131,0.8));",
+          "    }",
           "    .badge {",
           "      display: inline-flex;",
           "      align-items: center;",
@@ -746,12 +750,40 @@ app
           "            <span class='icon'>↗</span>",
           "          </a>",
           "        </article>",
+          "        <article class='card'>",
+          "          <div class='card-header'>",
+          "            <div class='card-main'>",
+          "              <div class='logo logo-vue' aria-hidden='true'>",
+          "                <svg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'>",
+          "                  <polygon points='128,220 8,28 248,28' fill='none' stroke='#42b883' stroke-width='28'/>",
+          "                  <polygon points='128,156 56,28 200,28' fill='#42b883'/>",
+          "                </svg>",
+          "              </div>",
+          "              <div>",
+          "                <div class='title'>Vue 3 <span>· composition API</span></div>",
+          "                <p class='desc'>Vue 3 SPA with Composition API, Vue Router, and Clerk auth.</p>",
+          "              </div>",
+          "            </div>",
+          "            <div class='badge'>",
+          "              <span class='badge-dot'></span>",
+          "              SPA",
+          "            </div>",
+          "          </div>",
+          "          <div class='meta'>",
+          "            <span class='pill'><strong>Stack</strong> Vue 3 · Vue Router · Tailwind</span>",
+          "            <span class='pill'><strong>UX</strong> Composition API, &lt;script setup&gt;</span>",
+          "          </div>",
+          "          <a href='/vue' class='link-btn'>",
+          "            <span>Open Vue demo</span>",
+          "            <span class='icon'>↗</span>",
+          "          </a>",
+          "        </article>",
           "      </section>",
           "      <aside class='notes'>",
           "        <h2>How this is wired</h2>",
           "        <ul>",
           "          <li>All five UIs talk to the same Elysia API under <code>/api</code>.</li>",
-          "          <li>The React, Svelte, and Angular apps are pre‑built assets served by Bun/Elysia.</li>",
+          "          <li>The React, Svelte, Angular, and Vue apps are pre‑built assets served by Bun/Elysia.</li>",
           "          <li>The HTMX views are rendered directly from the Bun server.</li>",
           "          <li>The Vanilla JS app uses plain ES modules – zero build step.</li>",
           "          <li>Great for workshops, demos, and architectural explorations.</li>",
@@ -787,7 +819,9 @@ app
   // Serve Vanilla JS app at /vanilla-js
   .use(serveSPA(vanillaJsAssetsPath, "/vanilla-js"))
   // Serve Angular app at /angular
-  .use(serveSPA(angularAssetsPath, "/angular"));
+  .use(serveSPA(angularAssetsPath, "/angular"))
+  // Serve Vue app at /vue
+  .use(serveSPA(vueAssetsPath, "/vue"));
 
 // Only start a local HTTP server when not running on Vercel.
 if (process.env.VERCEL !== "1") {

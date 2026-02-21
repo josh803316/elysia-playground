@@ -10,7 +10,8 @@
     "server",
     "htmx",
     "vanilla-js",
-    "angular"
+    "angular",
+    "vue"
   ],
   "scripts": {
     "dev": "bun run dev:all",
@@ -23,8 +24,11 @@
     "build": "turbo run build",
     "build:react": "turbo run build --filter=./react",
     "build:svelte": "turbo run build --filter=./svelte",
-    "build:frontends": "bun run build:react && bun run build:svelte && bun run build:angular",
-    "dev:monolith": "bun run build:react && bun run build:svelte && bun run build:angular && bun run dev:server",
+    "build:vue": "cd vue && bun run build",
+    "dev:vue": "turbo run dev --filter=./vue --filter=./server",
+    "install:vue": "cd vue && bun install",
+    "build:frontends": "bun run build:react && bun run build:svelte && bun run build:angular && bun run build:vue",
+    "dev:monolith": "bun run build:react && bun run build:svelte && bun run build:angular && bun run build:vue && bun run dev:server",
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
     "test:htmx": "cd server && NODE_ENV=test USE_PGLITE=true bun test src/controllers/htmx.controller.test.ts",
