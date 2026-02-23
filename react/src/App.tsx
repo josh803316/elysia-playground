@@ -1,3 +1,7 @@
+/**
+ * Root: route tree and global loading. We gate on useUser().isLoaded so we don't
+ * render protected routes before Clerk has restored session (avoids flash of wrong UI).
+ */
 import { useUser } from "@clerk/clerk-react";
 import { Routes, Route } from "react-router-dom";
 import { SignIn, SignUp } from "@clerk/clerk-react";
@@ -10,7 +14,6 @@ import { Layout } from "./components/Layout";
 function App() {
   const { isLoaded } = useUser();
 
-  // Show loading state while Clerk loads
   if (!isLoaded) {
     return <div className="loading">Loading...</div>;
   }

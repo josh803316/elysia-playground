@@ -1,5 +1,9 @@
 /**
- * Main orchestrator – initialises auth, loads data, binds events, renders UI.
+ * Main orchestrator: initialises auth, loads data, binds events, renders UI.
+ *
+ * Pattern: single entry point with module-level state and explicit render functions.
+ * We avoid a framework so the app stays portable and easy to compare with HTMX/React/etc.
+ * Auth and API are in separate modules for testability and clarity.
  */
 
 import { $ } from "./utils.js";

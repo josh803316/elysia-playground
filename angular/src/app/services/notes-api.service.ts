@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 
+/** API note shape; isPublic can be string from JSON (e.g. "true") or boolean. */
 export interface Note {
   id: number;
   title?: string;
@@ -11,11 +12,16 @@ export interface Note {
   user?: { firstName?: string; lastName?: string; email?: string };
 }
 
+/**
+ * Central API service for notes. Uses fetch() (not HttpClient) so the same patterns
+ * work across all frontends and we avoid adding HttpClientModule. All methods throw
+ * on non-ok responses so callers can handle errors in one place.
+ */
 @Injectable({ providedIn: 'root' })
 export class NotesApiService {
   private readonly baseUrl = '/api';
 
-  // ── Public Notes ──────────────────────────────────────────────
+  // ── Public Notes (no auth) ────────────────────────────────────
 
   async fetchPublicNotes(): Promise<Note[]> {
     const res = await fetch(`${this.baseUrl}/public-notes`);
@@ -51,7 +57,7 @@ export class NotesApiService {
     if (!res.ok) throw new Error('Failed to delete public note');
   }
 
-  // ── Private Notes (Bearer token) ─────────────────────────────
+  // ── Private Notes (Bearer token from Clerk) ───────────────────
 
   async fetchPrivateNotes(token: string): Promise<Note[]> {
     const res = await fetch(`${this.baseUrl}/private-notes`, {
@@ -82,7 +88,7 @@ export class NotesApiService {
     if (!res.ok) throw new Error('Failed to delete private note');
   }
 
-  // ── Admin (X-API-Key header) ─────────────────────────────────
+  // ── Admin (X-API-Key header; separate from user auth) ─────────
 
   async fetchAllNotesAdmin(apiKey: string): Promise<Note[]> {
     const res = await fetch(`${this.baseUrl}/notes/all`, {

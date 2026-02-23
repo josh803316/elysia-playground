@@ -1,6 +1,7 @@
 import { Component, inject, signal, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
 import { NotesApiService, Note } from '../../services/notes-api.service';
 
+/** Admin view: all notes table with delete. Requires apiKey (X-API-Key). Emits onLogout on 401 so parent can clear key. */
 @Component({
   selector: 'app-admin',
   standalone: true,

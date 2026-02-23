@@ -106,9 +106,13 @@ vi.mock("@elysiajs/eden", () => ({
   },
 }));
 
-// Import after mock setup
+// Import after mock setup so vi.mock applies
 import { apiClient } from "../api/client";
 
+/**
+ * Svelte app API client tests. Eden is mocked so we assert our wrapper: auth headers,
+ * isPublic normalization, and error rethrowing. Keeps API contract documented and stable.
+ */
 describe("Svelte Notes API Client", () => {
   beforeEach(() => {
     vi.clearAllMocks();

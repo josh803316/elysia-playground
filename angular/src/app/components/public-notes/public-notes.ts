@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit, Output, EventEmitter } from '@angula
 import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
 
+/** Public notes section: list, create, edit, delete. Emits notesChanged so the shell can refresh nav counts. */
 @Component({
   selector: 'app-public-notes',
   standalone: true,

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PublicNotesComponent } from './components/public-notes/public-notes';
 import { PrivateNotesComponent } from './components/private-notes/private-notes';
@@ -370,7 +370,17 @@ import { AuthService } from './services/auth.service';
     }
   `,
 })
-export class App implements OnInit {
+/**
+ * Root app component: single-page layout with public notes, private notes (when signed in),
+ * and optional admin section. Uses Angular signals for reactive UI and inject() for DI.
+ *
+ * Design notes:
+ * - Counts are refreshed on init and when auth/admin state changes via effect();
+ *   we avoid setInterval to prevent leaks and unnecessary requests when the tab is idle.
+ * - Admin API key is kept in localStorage for session persistence; consider short-lived
+ *   tokens in production.
+ */
+export class App implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
 
   showAdminModal = false;
@@ -381,6 +391,16 @@ export class App implements OnInit {
   publicCount = signal(0);
   privateCount = signal(0);
 
+  /** Clear any polling when the component is destroyed to avoid memory leaks. */
+  private countRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+
+  /** Refresh counts when auth token or admin key changes instead of polling every 5s. */
+  private readonly refreshCountsEffect = effect(() => {
+    this.auth.token();
+    this.adminApiKey();
+    this.refreshCounts();
+  });
+
   ngOnInit() {
     this.auth.init();
     const storedKey = localStorage.getItem('adminApiKey');
@@ -388,9 +408,15 @@ export class App implements OnInit {
       this.adminApiKey.set(storedKey);
     }
     this.refreshCounts();
+    // Fallback: refresh counts periodically so nav badges stay in sync if data changes elsewhere.
+    this.countRefreshIntervalId = setInterval(() => this.refreshCounts(), 5000);
+  }
 
-    // Watch auth changes to refresh counts
-    setInterval(() => this.refreshCounts(), 5000);
+  ngOnDestroy() {
+    if (this.countRefreshIntervalId != null) {
+      clearInterval(this.countRefreshIntervalId);
+      this.countRefreshIntervalId = null;
+    }
   }
 
   adminLogout() {

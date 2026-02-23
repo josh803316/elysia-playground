@@ -2,6 +2,7 @@ import { Component, inject, signal, Input, OnChanges, SimpleChanges, Output, Eve
 import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
 
+/** Private notes (user-only). Loads when token input is set; uses OnChanges to react to token from parent. */
 @Component({
   selector: 'app-private-notes',
   standalone: true,

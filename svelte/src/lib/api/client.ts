@@ -1,3 +1,8 @@
+/**
+ * Eden Treaty client for the Elysia server. Typed from server-types (derived from server App)
+ * so we get route and payload types without importing the server package. API_URL is
+ * same-origin in browser so the dev proxy works; SSR/build uses env or Vercel URL.
+ */
 import { treaty } from "@elysiajs/eden";
 import type { App } from "$lib/api/server-types";
 

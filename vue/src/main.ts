@@ -1,3 +1,7 @@
+/**
+ * Vue app entry: Clerk, PrimeVue (Aura + green primary), and Vue Router.
+ * Theme is configured here so it's global; router handles all navigation.
+ */
 import { createApp } from 'vue';
 import PrimeVue from 'primevue/config';
 import Aura from '@primevue/themes/aura';
@@ -9,7 +13,9 @@ import './style.css';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!PUBLISHABLE_KEY) {
-  throw new Error('Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in .env');
+  throw new Error(
+    'Missing Clerk publishable key. Copy vue/.env.example to vue/.env and set VITE_CLERK_PUBLISHABLE_KEY (get it from https://dashboard.clerk.com).'
+  );
 }
 
 // Vue-green accent on top of Aura

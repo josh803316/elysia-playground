@@ -1,18 +1,34 @@
 import { Injectable, signal, computed } from '@angular/core';
 
+/** Injected by index.html / env.js so we can load Clerk from CDN without bundling it. */
 declare global {
   interface Window {
     __ANGULAR_ENV__?: {
       clerkPublishableKey: string;
       clerkFrontendApi: string;
     };
-    Clerk?: any;
+    Clerk?: ClerkGlobal;
   }
 }
 
+/** Minimal type for window.Clerk to avoid adding @clerk/types; CDN provides the real implementation. */
+interface ClerkGlobal {
+  load: (opts: { publishableKey: string }) => Promise<void>;
+  openSignIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+  user: { firstName?: string } | null;
+  session: { getToken: () => Promise<string | null> };
+  addListener: (cb: (payload: { user: { firstName?: string } | null }) => void | Promise<void>) => void;
+}
+
+/**
+ * Auth state and actions via Clerk (loaded from CDN). We use signals so components
+ * stay reactive without subscribing to observables. Script is loaded idempotently
+ * to avoid duplicate tags when Angular re-initializes in dev.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private clerk: any = null;
+  private clerk: ClerkGlobal | null = null;
 
   readonly user = signal<any>(null);
   readonly token = signal<string | null>(null);
@@ -56,10 +72,11 @@ export class AuthService {
     }
     this.isLoading.set(false);
 
-    this.clerk.addListener(async ({ user }: { user: any }) => {
-      if (user) {
+    const clerkRef = this.clerk;
+    this.clerk.addListener(async ({ user }: { user: { firstName?: string } | null }) => {
+      if (user && clerkRef?.session) {
         this.user.set(user);
-        this.token.set(await this.clerk.session.getToken());
+        this.token.set(await clerkRef.session.getToken());
       } else {
         this.user.set(null);
         this.token.set(null);

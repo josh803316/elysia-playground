@@ -95,9 +95,14 @@ vi.mock("@elysiajs/eden", () => ({
   },
 }));
 
-// Import after mock setup
+// Import after mock setup so vi.mock applies
 import { apiClient } from "../api/client";
 
+/**
+ * React app API client tests. We mock @elysiajs/eden so we test our wrapper (headers,
+ * isPublic normalization, error shaping) without the real server. Each describe
+ * documents one area of the API contract.
+ */
 describe("React Notes API Client", () => {
   beforeEach(() => {
     vi.clearAllMocks();

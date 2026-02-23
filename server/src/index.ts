@@ -1,3 +1,8 @@
+/**
+ * Elysia server: API routes, static assets, HTMX pages, and Clerk auth. Controllers
+ * are mounted under /api; guards (authGuard, apiKeyGuard) protect routes. DB is
+ * initialized once at cold start; seeding runs only in PGlite mode.
+ */
 import { Elysia, NotFoundError } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { opentelemetry } from "@elysiajs/opentelemetry";

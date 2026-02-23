@@ -1,6 +1,11 @@
 import { ref } from 'vue';
 import type { Note } from '../types/note';
 
+/**
+ * Private notes composable. Uses /api/private-notes (Clerk auth) so the server
+ * can identify the user and return only their notes. Create is PUT with { data }
+ * to match the server's privateMemo schema.
+ */
 export function usePrivateNotes() {
   const notes = ref<Note[]>([]);
   const loading = ref(false);
@@ -10,7 +15,7 @@ export function usePrivateNotes() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch('/api/notes', {
+      const res = await fetch('/api/private-notes', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to load your notes');
@@ -28,13 +33,13 @@ export function usePrivateNotes() {
   }
 
   async function createNote(
-    payload: { title: string; content: string; isPublic: boolean },
+    payload: { title?: string; content: string; isPublic?: boolean },
     token: string,
   ): Promise<void> {
-    const res = await fetch('/api/notes', {
-      method: 'POST',
+    const res = await fetch('/api/private-notes', {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ data: payload.content }),
     });
     if (!res.ok) {
       const data: { error?: string } = await res.json().catch(() => ({}));
@@ -47,7 +52,7 @@ export function usePrivateNotes() {
     payload: { title?: string; content?: string; isPublic?: boolean },
     token: string,
   ): Promise<void> {
-    const res = await fetch(`/api/notes/${id}`, {
+    const res = await fetch(`/api/private-notes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
@@ -56,7 +61,7 @@ export function usePrivateNotes() {
   }
 
   async function deleteNote(id: string, token: string): Promise<void> {
-    const res = await fetch(`/api/notes/${id}`, {
+    const res = await fetch(`/api/private-notes/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });

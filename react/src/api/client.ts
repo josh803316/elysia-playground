@@ -1,5 +1,9 @@
+/**
+ * Eden Treaty client for the Elysia server. Typed from the server's App so routes and
+ * payloads stay in sync. We normalize VITE_API_URL (ignore placeholders, support
+ * root-relative and absolute) so dev proxy and production both work without CORS.
+ */
 import { treaty } from "@elysiajs/eden";
-// Import the App type from the server
 import type { App } from "../../../server/src/index";
 
 // Resolve API base URL safely.
@@ -49,7 +53,7 @@ if (typeof console !== "undefined") {
   }
 }
 
-/** In dev (Vite on 5173), use relative path so the proxy forwards to the server and we avoid CORS. */
+/** Base URL without trailing slash; used when building paths manually (e.g. deleteAllMyNotes). */
 export function getApiBase(): string {
   return API_URL.replace(/\/$/, "");
 }

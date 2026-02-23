@@ -1,3 +1,7 @@
+/**
+ * Guard for routes that require a valid Clerk JWT. Uses ctx.auth() from elysia-clerk;
+ * returns 401 if userId is missing. Attach via beforeHandle on private routes.
+ */
 import { Elysia, t } from "elysia";
 
 // Type definitions for context

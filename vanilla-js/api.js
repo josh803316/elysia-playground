@@ -1,6 +1,6 @@
 /**
- * API wrappers for all /api/* endpoints.
- * Each function returns the parsed JSON response.
+ * API wrappers for all /api/* endpoints. Uses fetch with same-origin so dev server
+ * proxy works. Each function throws on non-ok response and returns parsed JSON otherwise.
  */
 
 function authHeaders(token) {

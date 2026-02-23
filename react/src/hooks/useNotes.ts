@@ -1,4 +1,9 @@
-import { useState, useEffect } from "react";
+/**
+ * Data hook for the current user's notes (CRUD). Fetches once when initialized (after
+ * Clerk is ready); exposes refresh so parents can refetch after mutations. We use
+ * initialized flag to avoid double-fetch in Strict Mode while still loading on first mount.
+ */
+import { useState, useEffect, useCallback } from "react";
 import apiClient from "../api/client";
 import { useAuth } from "@clerk/clerk-react";
 
@@ -28,7 +33,7 @@ export function useNotes() {
   const [error, setError] = useState<Error | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       setIsLoading(true);
       const token = await getToken();
@@ -47,7 +52,7 @@ export function useNotes() {
       setIsLoading(false);
       setInitialized(true);
     }
-  };
+  }, [getToken]);
 
   const createNote = async (data: CreateNoteData) => {
     try {
@@ -110,7 +115,7 @@ export function useNotes() {
     if (!initialized) {
       fetchNotes();
     }
-  }, [initialized]);
+  }, [initialized, fetchNotes]);
 
   return {
     notes,
