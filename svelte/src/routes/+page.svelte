@@ -59,6 +59,8 @@
   let isSignedIn = $state(false);
   let userToken = $state<string | null | undefined>(null);
   let editingNote = $state<Note | null>(null);
+  let regexInput = $state('');
+  let deleteByRegexLoading = $state(false);
 
   // Test section to verify Flowbite-Svelte components are working
   let showTestAlert = $state(false);
@@ -301,6 +303,31 @@
     allNotes = [];
     // Remove the API key from localStorage
     localStorage.removeItem('adminApiKey');
+  }
+
+  async function deleteByRegex() {
+    if (!adminApiKey || !regexInput.trim()) return;
+    try {
+      deleteByRegexLoading = true;
+      const res = await fetch('/api/notes/admin/delete-by-regex', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': adminApiKey,
+        },
+        body: JSON.stringify({ contentRegex: regexInput.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || `Failed: ${res.status}`);
+      }
+      regexInput = '';
+      await fetchAllNotes();
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to delete by regex';
+    } finally {
+      deleteByRegexLoading = false;
+    }
   }
 
   // Open note creation modal
@@ -644,6 +671,19 @@
         <div class="mb-4">
           <h2 class="text-2xl font-bold text-gray-800">All Notes (Admin View)</h2>
           <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
+        </div>
+        <div class="flex items-end gap-2 mb-4">
+          <div class="flex-1 min-w-[200px]">
+            <Label for="regex-input" class="block text-sm font-medium text-gray-700 mb-1">Delete notes matching regex (content/title)</Label>
+            <Input id="regex-input" type="text" placeholder="e.g. e2e- or ^test" bind:value={regexInput} class="w-full" />
+          </div>
+          <Button
+            color="red"
+            disabled={!regexInput.trim() || !adminApiKey || deleteByRegexLoading}
+            onclick={deleteByRegex}
+          >
+            {deleteByRegexLoading ? 'Deleting…' : 'Delete matching notes'}
+          </Button>
         </div>
         {#if loading && allNotes.length === 0}
           <div class="flex justify-center my-4">

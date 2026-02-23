@@ -17,6 +17,7 @@ import {
   deleteNoteByContent,
   loginAsAdmin,
   adminDeleteE2ENotes,
+  adminDeleteE2ENotesByApi,
   e2eNotePattern,
 } from './helpers/notes-flow.js';
 
@@ -72,6 +73,13 @@ test.describe('admin cleanup', () => {
     if (!adminApiKey) {
       test.skip();
       return;
+    }
+    const baseUrl = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+    try {
+      await adminDeleteE2ENotesByApi(adminApiKey, baseUrl);
+      return;
+    } catch {
+      // Fallback: use UI if API not available (e.g. different origin)
     }
     await page.goto('/react', { waitUntil: 'domcontentloaded', timeout: 15_000 });
     await page.waitForLoadState('load');

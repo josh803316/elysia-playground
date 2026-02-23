@@ -80,6 +80,13 @@ function noteCardLocator(page: Page, contentSnippet: string) {
   ).filter({ hasText: contentSnippet }).first();
 }
 
+/** Find card that contains the base content and the word "edited" (for truncated UIs). */
+function noteCardWithEditedLocator(page: Page, baseContent: string) {
+  return page.locator(
+    'tr, [class*="note-card"], [class*="noteCard"], .notes-grid > div, div[style*="grid"] > div, [data-testid*="note"]'
+  ).filter({ hasText: baseContent }).filter({ hasText: 'edited' }).first();
+}
+
 /**
  * Find a note card by content text and click Edit, then save (optional new content).
  */
@@ -106,9 +113,14 @@ export async function editNoteByContent(
 
 /**
  * Find a note card by content and delete (with confirm dialog).
+ * When contentSnippet ends with " edited", finds card by base content + "edited" to handle truncated UI.
  */
 export async function deleteNoteByContent(page: Page, contentSnippet: string): Promise<void> {
-  const card = noteCardLocator(page, contentSnippet);
+  const isEdited = contentSnippet.endsWith(' edited');
+  const baseContent = isEdited ? contentSnippet.slice(0, -' edited'.length) : contentSnippet;
+  const card = isEdited
+    ? noteCardWithEditedLocator(page, baseContent)
+    : noteCardLocator(page, contentSnippet);
   page.once('dialog', (d) => d.accept());
   await card.getByRole('button', { name: /delete/i }).first().click();
   await page.waitForTimeout(500);
@@ -128,6 +140,31 @@ export async function loginAsAdmin(page: Page, adminApiKey: string): Promise<voi
 }
 
 const MAX_ADMIN_DELETE_ITERATIONS = 100;
+
+/**
+ * Delete all e2e test notes via admin API (regex match on content/title).
+ * Use this when E2E_ADMIN_API_KEY is set to avoid relying on the admin table UI.
+ */
+export async function adminDeleteE2ENotesByApi(
+  adminApiKey: string,
+  baseUrl: string = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
+): Promise<{ deletedCount: number }> {
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/notes/admin/delete-by-regex`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': adminApiKey,
+    },
+    body: JSON.stringify({ contentRegex: E2E_PREFIX }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Admin delete-by-regex failed: ${res.status} ${text}`);
+  }
+  const data = (await res.json()) as { deletedCount?: number };
+  return { deletedCount: data.deletedCount ?? 0 };
+}
 
 /**
  * In admin table, delete every row that contains the e2e pattern (our test notes).

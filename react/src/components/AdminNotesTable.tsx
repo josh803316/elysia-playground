@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text, Paper, Alert } from "@mantine/core";
+import { Text, Paper, Alert, TextInput, Button, Group } from "@mantine/core";
 import { getApiBase } from "../api/client";
 
 export interface AdminNote {
@@ -64,6 +64,39 @@ export function AdminNotesTable({
   "data-testid": dataTestId,
 }: AdminNotesTableProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [regexInput, setRegexInput] = useState("");
+  const [deleteByRegexLoading, setDeleteByRegexLoading] = useState(false);
+
+  const handleDeleteByRegex = async () => {
+    if (!adminApiKey || !regexInput.trim()) return;
+    try {
+      setDeleteError(null);
+      setDeleteByRegexLoading(true);
+      const base = getApiBase();
+      const url = base
+        ? `${base}/api/notes/admin/delete-by-regex`
+        : "/api/notes/admin/delete-by-regex";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": adminApiKey,
+        },
+        body: JSON.stringify({ contentRegex: regexInput.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || `Failed: ${res.status}`);
+      }
+      const data = (await res.json()) as { deletedCount?: number };
+      setRegexInput("");
+      onRefetch();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete by regex");
+    } finally {
+      setDeleteByRegexLoading(false);
+    }
+  };
 
   const handleAdminDelete = async (noteId: string) => {
     if (!adminApiKey) return;
@@ -98,6 +131,26 @@ export function AdminNotesTable({
         <Text size="xl" fw={700} c="dark">All Notes (Admin View)</Text>
         <Text size="sm" c="dimmed">View and manage all notes in the system</Text>
       </div>
+
+      {/* Delete notes matching regex */}
+      <Group align="flex-end" gap="xs" mb="md">
+        <TextInput
+          placeholder="e.g. e2e- or ^test"
+          label="Delete notes matching regex (content/title)"
+          value={regexInput}
+          onChange={(e) => setRegexInput(e.currentTarget.value)}
+          style={{ flex: 1, minWidth: 200 }}
+        />
+        <Button
+          variant="light"
+          color="red"
+          onClick={handleDeleteByRegex}
+          loading={deleteByRegexLoading}
+          disabled={!regexInput.trim() || !adminApiKey}
+        >
+          Delete matching notes
+        </Button>
+      </Group>
 
       {(error || deleteError) && (
         <Alert color="red" mb="md">

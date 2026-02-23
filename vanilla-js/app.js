@@ -258,6 +258,28 @@ function bindNavButtons() {
     adminNotes = [];
     adminTableContainer.innerHTML = "";
   });
+
+  const regexInput = $("#admin-regex-input");
+  const btnDeleteByRegex = $("#btn-delete-by-regex");
+  if (btnDeleteByRegex && regexInput) {
+    btnDeleteByRegex.addEventListener("click", async () => {
+      const regex = regexInput.value.trim();
+      if (!regex || !adminApiKey) return;
+      btnDeleteByRegex.disabled = true;
+      try {
+        await api.deleteNotesByRegexAdmin(adminApiKey, regex);
+        regexInput.value = "";
+        await loadAdminNotes();
+        await loadPublicNotes();
+        if (isSignedIn) await loadPrivateNotes();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Failed to delete by regex.");
+      } finally {
+        btnDeleteByRegex.disabled = false;
+      }
+    });
+  }
 }
 
 // ── Auth state changes ───────────────────────────────────────

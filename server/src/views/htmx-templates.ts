@@ -227,6 +227,34 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
         if (window.updateAdminNav) window.updateAdminNav();
       }
     });
+    document.body.addEventListener('click', function(evt) {
+      if (evt.target && evt.target.id === 'btn-delete-by-regex') {
+        var input = document.getElementById('admin-regex-input');
+        var regex = input && input.value ? input.value.trim() : '';
+        var adminKey = window.getAdminApiKey && window.getAdminApiKey();
+        if (!regex || !adminKey) return;
+        evt.target.disabled = true;
+        fetch('/api/notes/admin/delete-by-regex', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': adminKey },
+          body: JSON.stringify({ contentRegex: regex }),
+        })
+          .then(function(r) {
+            if (!r.ok) return r.json().then(function(j) { throw new Error(j.error || 'Failed'); });
+            return r.json();
+          })
+          .then(function() {
+            input.value = '';
+            htmx.trigger(document.body, 'refreshAdminNotes');
+          })
+          .catch(function(err) {
+            alert(err.message || 'Failed to delete by regex');
+          })
+          .finally(function() {
+            evt.target.disabled = false;
+          });
+      }
+    });
   </script>
   ${clerkPublishableKey ? `<script>
     // Initialize Clerk
@@ -364,6 +392,11 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
               <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
             </div>
           </div>
+          <div class="flex items-end gap-2 mb-4">
+            <input type="text" id="admin-regex-input" placeholder="e.g. e2e- or ^test" class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-sm" />
+            <button type="button" id="btn-delete-by-regex" class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed">Delete matching notes</button>
+          </div>
+          <p class="text-gray-500 text-sm mb-4">Delete notes whose content or title matches the regex</p>
           <div
             id="admin-notes-container"
             hx-get="/htmx/admin/notes"

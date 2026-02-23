@@ -17,6 +17,25 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       <div class="error-banner">{{ error() }}</div>
     }
 
+    <div class="delete-by-regex-row">
+      <input
+        type="text"
+        placeholder="e.g. e2e- or ^test"
+        [value]="regexInput()"
+        (input)="regexInput.set($any($event.target).value)"
+        class="regex-input"
+      />
+      <button
+        type="button"
+        class="btn-delete-matching"
+        [disabled]="!regexInput().trim() || !apiKey || deleteByRegexLoading()"
+        (click)="deleteByRegex()"
+      >
+        {{ deleteByRegexLoading() ? 'Deleting…' : 'Delete matching notes' }}
+      </button>
+    </div>
+    <p class="regex-hint">Delete notes whose content or title matches the regex</p>
+
     @if (loading()) {
       <div class="loading-text">Loading admin notes...</div>
     } @else if (!loaded()) {
@@ -154,6 +173,34 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       color: #6b7280;
     }
     .empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+    .delete-by-regex-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+    .regex-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+    }
+    .btn-delete-matching {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #b91c1c;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 0.375rem;
+      cursor: pointer;
+    }
+    .btn-delete-matching:hover:not(:disabled) { background: #fee2e2; }
+    .btn-delete-matching:disabled { opacity: 0.6; cursor: not-allowed; }
+    .regex-hint { font-size: 0.75rem; color: #6b7280; margin: 0 0 1rem 0; }
   `,
 })
 export class AdminComponent implements OnChanges {
@@ -166,6 +213,8 @@ export class AdminComponent implements OnChanges {
   loading = signal(false);
   loaded = signal(false);
   error = signal('');
+  regexInput = signal('');
+  deleteByRegexLoading = signal(false);
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['apiKey'] && this.apiKey) {
@@ -202,6 +251,23 @@ export class AdminComponent implements OnChanges {
       this.notes.update(n => n.filter(note => note.id !== id));
     } catch (e: any) {
       this.error.set(e.message);
+    }
+  }
+
+  async deleteByRegex() {
+    const key = this.apiKey;
+    const regex = this.regexInput().trim();
+    if (!key || !regex) return;
+    this.error.set('');
+    this.deleteByRegexLoading.set(true);
+    try {
+      await this.api.deleteNotesByRegexAdmin(key, regex);
+      this.regexInput.set('');
+      await this.loadNotes();
+    } catch (e: any) {
+      this.error.set(e?.message ?? 'Failed to delete by regex');
+    } finally {
+      this.deleteByRegexLoading.set(false);
     }
   }
 

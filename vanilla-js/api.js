@@ -93,3 +93,19 @@ export async function deleteNoteAdmin(apiKey, id) {
   if (!res.ok) throw new Error("Failed to delete note (admin)");
   return res.json();
 }
+
+export async function deleteNotesByRegexAdmin(apiKey, contentRegex) {
+  const res = await fetch("/api/notes/admin/delete-by-regex", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders(apiKey),
+    },
+    body: JSON.stringify({ contentRegex: contentRegex.trim() }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed: ${res.status}`);
+  }
+  return res.json();
+}

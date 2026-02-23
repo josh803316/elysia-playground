@@ -341,6 +341,65 @@ export class NotesController extends BaseApiController<Note> {
             return new Response("Server error deleting all notes", { status: 500 });
           }
         })
+        // Admin endpoint - delete notes matching content/title regex
+        .post("/notes/admin/delete-by-regex", async (ctx: any) => {
+          try {
+            const typedCtx = ctx as unknown as Context & {
+              body?: { contentRegex?: string };
+            };
+
+            let apiKey;
+            if (typeof typedCtx.request.headers.get === "function") {
+              apiKey = typedCtx.request.headers.get("x-api-key");
+            } else {
+              const headers = typedCtx.request.headers as Record<string, string>;
+              apiKey =
+                headers["x-api-key"] ||
+                headers["X-API-Key"] ||
+                headers["X-Api-Key"];
+            }
+
+            if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+              return new Response(
+                "Unauthorized: Invalid or missing API key",
+                { status: 401 }
+              );
+            }
+
+            const contentRegex =
+              typeof typedCtx.body?.contentRegex === "string"
+                ? typedCtx.body.contentRegex.trim()
+                : "";
+
+            if (!contentRegex) {
+              return new Response(
+                JSON.stringify({ error: "contentRegex is required" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+              );
+            }
+
+            const result = await this.notesModel.deleteByContentRegex(
+              typedCtx.db,
+              contentRegex
+            );
+
+            return {
+              success: true,
+              deletedCount: result.deletedCount,
+              deletedIds: result.deletedIds,
+            };
+          } catch (err) {
+            console.error("Error deleting notes by regex (admin):", err);
+            return new Response(
+              "Server error deleting notes by regex",
+              { status: 500 }
+            );
+          }
+        }, {
+          body: t.Object({
+            contentRegex: t.String(),
+          }),
+        })
         // Admin endpoints - no guards needed as they use API key auth
         .get("/notes/all", async (ctx: any) => {
           try {

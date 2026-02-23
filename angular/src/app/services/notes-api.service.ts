@@ -105,4 +105,20 @@ export class NotesApiService {
     });
     if (!res.ok) throw new Error('Failed to delete note (admin)');
   }
+
+  async deleteNotesByRegexAdmin(apiKey: string, contentRegex: string): Promise<{ deletedCount: number }> {
+    const res = await fetch(`${this.baseUrl}/notes/admin/delete-by-regex`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+      },
+      body: JSON.stringify({ contentRegex: contentRegex.trim() }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error || `Failed: ${res.status}`);
+    }
+    return res.json();
+  }
 }
