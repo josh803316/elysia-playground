@@ -74,17 +74,18 @@ async function handleNoteSubmitted() {
   <AppLayout>
     <div class="page-sections">
       <!-- Admin All Notes Table -->
-      <AdminNotesTable
-        v-if="isAdminLoggedIn"
+      <div v-if="isAdminLoggedIn" data-testid="section-admin-table">
+        <AdminNotesTable
         :notes="allNotes"
         :loading="adminLoading"
         :error="adminError"
         :admin-api-key="adminApiKey"
         @refetch="fetchAllNotes()"
-      />
+        />
+      </div>
 
       <!-- Public Notes Section -->
-      <section class="notes-section">
+      <section class="notes-section" data-testid="section-public-notes">
         <div class="section-header">
           <div>
             <h2 class="section-title">Public Notes</h2>
@@ -119,7 +120,7 @@ async function handleNoteSubmitted() {
       </section>
 
       <!-- Your Notes Section -->
-      <section v-if="isSignedIn" class="notes-section">
+      <section v-if="isSignedIn" class="notes-section" data-testid="section-your-notes">
         <div class="section-header">
           <div>
             <h2 class="section-title">Your Notes</h2>
