@@ -5,7 +5,7 @@ describe("getAllowedOrigins", () => {
   it("includes local dev origins by default", () => {
     const origins = getAllowedOrigins({});
 
-    expect(origins).toContain("http://localhost:3000");
+    expect(origins).toContain("http://localhost:3500");
     expect(origins).toContain("http://localhost:5173");
     expect(origins).toContain("http://localhost:6173");
   });

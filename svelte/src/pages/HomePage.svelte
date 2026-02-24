@@ -6,7 +6,6 @@
   import { withAuth, API_URL } from '../api/client';
   import NoteForm from '../components/NoteForm.svelte';
   import NotesGrid from '../components/NotesGrid.svelte';
-  import AnonymousNoteForm from '../components/AnonymousNoteForm.svelte';
   import { IconPlus } from '@tabler/icons-svelte';
   import { goto } from '$app/navigation';
   
@@ -31,6 +30,8 @@
   let loadingPrivateNotes = $state(false);
   let privateNotesError = $state<string | null>(null);
   let authCheckComplete = $state(false);
+  let regexInput = $state('');
+  let deleteByRegexLoading = $state(false);
   
   // Derived values
   const isSignedIn = $derived($authStore.isSignedIn);
@@ -130,6 +131,31 @@
       }
     } finally {
       loading = false;
+    }
+  };
+
+  const deleteByRegex = async () => {
+    if (!adminApiKey || !regexInput.trim()) return;
+    try {
+      deleteByRegexLoading = true;
+      const res = await fetch("/api/notes/admin/delete-by-regex", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": adminApiKey,
+        },
+        body: JSON.stringify({ contentRegex: regexInput.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || `Failed: ${res.status}`);
+      }
+      regexInput = "";
+      await fetchAllNotes();
+    } catch (err) {
+      error = err instanceof Error ? err.message : "Failed to delete by regex";
+    } finally {
+      deleteByRegexLoading = false;
     }
   };
   
@@ -393,6 +419,24 @@
         <span class="admin-badge">Admin Mode</span>
         <button class="logout-button" onclick={handleAdminLogout}>Logout Admin</button>
       </div>
+      
+      <div class="delete-by-regex-row">
+        <input
+          type="text"
+          placeholder="e.g. e2e- or ^test"
+          bind:value={regexInput}
+          class="regex-input"
+        />
+        <button
+          type="button"
+          class="btn-delete-matching"
+          disabled={!regexInput.trim() || !adminApiKey || deleteByRegexLoading}
+          onclick={deleteByRegex}
+        >
+          {deleteByRegexLoading ? 'Deleting…' : 'Delete matching notes'}
+        </button>
+      </div>
+      <p class="regex-hint">Delete notes whose content or title matches the regex</p>
       
       {#if loading && !allNotes.length}
         <div class="loading">Loading all notes...</div>
@@ -932,5 +976,42 @@
   
   .refresh-button:hover {
     background-color: #339af0;
+  }
+
+  .delete-by-regex-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+  .regex-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+  }
+  .btn-delete-matching {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 0.375rem;
+    cursor: pointer;
+  }
+  .btn-delete-matching:hover:not(:disabled) {
+    background: #fee2e2;
+  }
+  .btn-delete-matching:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .regex-hint {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin: 0 0 1rem 0;
   }
 </style> 

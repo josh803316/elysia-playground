@@ -59,6 +59,11 @@
           <h2>All Notes (Admin View)</h2>
           <p class="section-subtitle">View and manage all notes in the system</p>
         </div>
+        <div class="delete-by-regex-row">
+          <input type="text" id="admin-regex-input" placeholder="e.g. e2e- or ^test" class="regex-input" />
+          <button type="button" id="btn-delete-by-regex" class="btn-delete-matching">Delete matching notes</button>
+        </div>
+        <p class="regex-hint">Delete notes whose content or title matches the regex</p>
         <div id="admin-table-container">
           <div class="empty-state">Loading admin notes...</div>
         </div>

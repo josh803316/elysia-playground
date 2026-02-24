@@ -73,7 +73,7 @@ const NotesGrid = ({
           method: "DELETE",
           headers: { "X-API-Key": token as string },
         });
-      } else if (note.isPublic === "true" && !note.userId) {
+      } else if ((note.isPublic === "true" || note.isPublic === true) && !note.userId) {
         response = await fetch(`/api/public-notes/${note.id}`, {
           method: "DELETE",
         });

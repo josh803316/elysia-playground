@@ -341,6 +341,65 @@ export class NotesController extends BaseApiController<Note> {
             return new Response("Server error deleting all notes", { status: 500 });
           }
         })
+        // Admin endpoint - delete notes matching content/title regex
+        .post("/notes/admin/delete-by-regex", async (ctx: any) => {
+          try {
+            const typedCtx = ctx as unknown as Context & {
+              body?: { contentRegex?: string };
+            };
+
+            let apiKey;
+            if (typeof typedCtx.request.headers.get === "function") {
+              apiKey = typedCtx.request.headers.get("x-api-key");
+            } else {
+              const headers = typedCtx.request.headers as Record<string, string>;
+              apiKey =
+                headers["x-api-key"] ||
+                headers["X-API-Key"] ||
+                headers["X-Api-Key"];
+            }
+
+            if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+              return new Response(
+                "Unauthorized: Invalid or missing API key",
+                { status: 401 }
+              );
+            }
+
+            const contentRegex =
+              typeof typedCtx.body?.contentRegex === "string"
+                ? typedCtx.body.contentRegex.trim()
+                : "";
+
+            if (!contentRegex) {
+              return new Response(
+                JSON.stringify({ error: "contentRegex is required" }),
+                { status: 400, headers: { "Content-Type": "application/json" } }
+              );
+            }
+
+            const result = await this.notesModel.deleteByContentRegex(
+              typedCtx.db,
+              contentRegex
+            );
+
+            return {
+              success: true,
+              deletedCount: result.deletedCount,
+              deletedIds: result.deletedIds,
+            };
+          } catch (err) {
+            console.error("Error deleting notes by regex (admin):", err);
+            return new Response(
+              "Server error deleting notes by regex",
+              { status: 500 }
+            );
+          }
+        }, {
+          body: t.Object({
+            contentRegex: t.String(),
+          }),
+        })
         // Admin endpoints - no guards needed as they use API key auth
         .get("/notes/all", async (ctx: any) => {
           try {
@@ -524,6 +583,69 @@ export class NotesController extends BaseApiController<Note> {
             console.error("Error in admin delete:", err);
             return new Response("Server error deleting note", { status: 500 });
           }
+        })
+        .put("/notes/:id/admin", async (ctx: any) => {
+          try {
+            const typedCtx = ctx as unknown as Context & {
+              body?: { title?: string; content?: string; isPublic?: boolean };
+            };
+
+            let apiKey;
+            if (typeof typedCtx.request.headers.get === "function") {
+              apiKey = typedCtx.request.headers.get("x-api-key");
+            } else {
+              const headers = typedCtx.request.headers as Record<string, string>;
+              apiKey =
+                headers["x-api-key"] ||
+                headers["X-API-Key"] ||
+                headers["X-Api-Key"];
+            }
+
+            if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+              return new Response(
+                "Unauthorized: Invalid or missing API key",
+                { status: 401 }
+              );
+            }
+
+            const { id } = typedCtx.params;
+            const noteId = parseInt(String(id), 10);
+            if (isNaN(noteId)) {
+              return new Response("Invalid note ID", { status: 400 });
+            }
+
+            const note = await this.notesModel.findById(typedCtx.db, noteId);
+            if (!note) {
+              return new Response("Note not found", { status: 404 });
+            }
+
+            const { title, content, isPublic } = typedCtx.body ?? {};
+            const updateData: Partial<Note> = { updatedAt: new Date() };
+            if (title !== undefined) updateData.title = title;
+            if (content !== undefined) updateData.content = content;
+            if (isPublic !== undefined) {
+              updateData.isPublic = String(isPublic).toLowerCase();
+            }
+
+            const updated = await this.notesModel.update(
+              typedCtx.db,
+              noteId,
+              updateData
+            );
+            if (!updated) {
+              return new Response("Failed to update note", { status: 500 });
+            }
+            return updated;
+          } catch (err) {
+            console.error("Error in admin update:", err);
+            return new Response("Server error updating note", { status: 500 });
+          }
+        }, {
+          body: t.Object({
+            title: t.Optional(t.String()),
+            content: t.Optional(t.String()),
+            isPublic: t.Optional(t.Boolean()),
+          }),
         })
     );
   }

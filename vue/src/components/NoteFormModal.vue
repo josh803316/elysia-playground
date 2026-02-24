@@ -31,7 +31,8 @@ const dialogHeader = props.isAnonymous
     : 'Create Private Note';
 
 async function handleSubmit() {
-  if (!content.value.trim()) { error.value = 'Content cannot be empty'; return; }
+  if (!title.value.trim()) { error.value = 'Title is required'; return; }
+  if (!content.value.trim()) { error.value = 'Content is required'; return; }
   submitting.value = true;
   error.value = null;
   try {
@@ -39,7 +40,7 @@ async function handleSubmit() {
       const res = await fetch('/api/public-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.value, isPublic: true }),
+        body: JSON.stringify({ title: title.value.trim(), content: content.value, isPublic: true }),
       });
       if (!res.ok) {
         const data: { error?: string } = await res.json().catch(() => ({}));
@@ -77,9 +78,9 @@ async function handleSubmit() {
     @hide="emit('close')"
   >
     <form @submit.prevent="handleSubmit" class="note-form">
-      <div v-if="!isAnonymous" class="field">
+      <div class="field">
         <label class="field-label">Title</label>
-        <InputText v-model="title" placeholder="Note title" class="w-full" />
+        <InputText v-model="title" placeholder="Note title" class="w-full" required />
       </div>
       <div class="field">
         <label class="field-label">Content</label>

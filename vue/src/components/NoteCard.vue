@@ -114,6 +114,8 @@ async function handleDelete() {
   <EditNoteModal
     v-if="showEdit"
     :note="note"
+    :is-admin="isAdmin"
+    :admin-api-key="adminApiKey"
     @updated="emit('updated'); showEdit = false"
     @close="showEdit = false"
   />

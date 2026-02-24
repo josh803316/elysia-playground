@@ -8,6 +8,7 @@ import { ownershipGuard } from "../guards/ownership-guard.js";
 
 // Schema for private notes
 const privateMemoSchema = t.Object({
+  title: t.String(),
   data: t.String(),
 });
 
@@ -117,8 +118,15 @@ export class PrivateNotesController extends BaseApiController<Note> {
                     );
 
                     // Create new note using the database ID
+                    const rawTitle = (typedCtx.body.title || "").trim();
+                    if (!rawTitle) {
+                      return new Response(
+                        JSON.stringify({ error: "Title is required" }),
+                        { status: 400, headers: { "Content-Type": "application/json" } }
+                      );
+                    }
                     const noteData = {
-                      title: "Private Note",
+                      title: rawTitle,
                       content: typedCtx.body.data,
                       userId: user.id,
                       isPublic: "false",

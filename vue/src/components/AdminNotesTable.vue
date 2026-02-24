@@ -16,6 +16,34 @@ const props = defineProps<{
 
 const emit = defineEmits<{ refetch: [] }>();
 const deleteError = ref<string | null>(null);
+const regexInput = ref('');
+const deleteByRegexLoading = ref(false);
+
+async function handleDeleteByRegex() {
+  if (!props.adminApiKey || !regexInput.value.trim()) return;
+  deleteError.value = null;
+  deleteByRegexLoading.value = true;
+  try {
+    const res = await fetch('/api/notes/admin/delete-by-regex', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': props.adminApiKey,
+      },
+      body: JSON.stringify({ contentRegex: regexInput.value.trim() }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error || `Failed: ${res.status}`);
+    }
+    regexInput.value = '';
+    emit('refetch');
+  } catch (err) {
+    deleteError.value = err instanceof Error ? err.message : 'Failed to delete by regex';
+  } finally {
+    deleteByRegexLoading.value = false;
+  }
+}
 
 function formatDate(d: string | null): string {
   if (!d) return 'N/A';
@@ -70,6 +98,24 @@ async function handleDelete(id: string) {
     <Message v-if="error" severity="error" :closable="false" style="margin-bottom: 1rem">
       {{ error }}
     </Message>
+
+    <div class="delete-by-regex-row">
+      <input
+        v-model="regexInput"
+        type="text"
+        placeholder="e.g. e2e- or ^test"
+        class="regex-input"
+      />
+      <button
+        type="button"
+        class="btn-delete-matching"
+        :disabled="!regexInput.trim() || !adminApiKey || deleteByRegexLoading"
+        @click="handleDeleteByRegex"
+      >
+        {{ deleteByRegexLoading ? 'Deleting…' : 'Delete matching notes' }}
+      </button>
+    </div>
+    <p class="regex-hint">Delete notes whose content or title matches the regex</p>
 
     <DataTable
       :value="notes"
@@ -144,5 +190,42 @@ async function handleDelete(id: string) {
   font-size: 0.875rem;
   color: #6b7280;
   margin: 0;
+}
+
+.delete-by-regex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.regex-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+.btn-delete-matching {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.btn-delete-matching:hover:not(:disabled) {
+  background: #fee2e2;
+}
+.btn-delete-matching:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.regex-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
 }
 </style>

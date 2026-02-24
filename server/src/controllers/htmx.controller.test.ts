@@ -79,7 +79,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "HTMX public test note" }),
+          body: JSON.stringify({ title: "HTMX Public Note", content: "HTMX public test note" }),
         }),
       );
 
@@ -96,7 +96,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "Refresh test note" }),
+          body: JSON.stringify({ title: "Refresh Test Note", content: "Refresh test note" }),
         }),
       );
 
@@ -117,7 +117,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "Will be deleted" }),
+          body: JSON.stringify({ title: "Will be deleted", content: "Will be deleted" }),
         }),
       );
 
@@ -172,7 +172,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/private-notes", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: "My private HTMX note" }),
+          body: JSON.stringify({ title: "My HTMX Note", data: "My private HTMX note" }),
         }),
       );
 
@@ -187,7 +187,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/private-notes", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: "Should fail" }),
+          body: JSON.stringify({ title: "Should fail", data: "Should fail" }),
         }),
       );
 
@@ -202,7 +202,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/private-notes", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: "Private note to delete" }),
+          body: JSON.stringify({ title: "Private note to delete", data: "Private note to delete" }),
         }),
       );
 
@@ -260,7 +260,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "Admin visible note" }),
+          body: JSON.stringify({ title: "Admin visible note", content: "Admin visible note" }),
         }),
       );
 
@@ -285,7 +285,7 @@ describe("HTMX Controller", () => {
         new Request("http://localhost/htmx/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "Admin will delete this" }),
+          body: JSON.stringify({ title: "Admin will delete this", content: "Admin will delete this" }),
         }),
       );
 

@@ -144,4 +144,30 @@ export class NotesModel extends BaseApiModel<Note> {
     const result = await db.delete(notes).returning();
     return { deletedCount: result.length };
   }
+
+  /**
+   * Delete notes whose content or title matches a regex (admin only).
+   * Uses JS RegExp for portability across DB backends.
+   */
+  async deleteByContentRegex(
+    db: Database,
+    contentRegex: string
+  ): Promise<{ deletedCount: number; deletedIds: number[] }> {
+    const all = await this.findAll(db);
+    let regex: RegExp;
+    try {
+      regex = new RegExp(contentRegex);
+    } catch {
+      return { deletedCount: 0, deletedIds: [] };
+    }
+    const toDelete = all.filter(
+      (n) => regex.test(n.content) || regex.test(n.title ?? "")
+    );
+    const deletedIds: number[] = [];
+    for (const note of toDelete) {
+      const result = await this.delete(db, note.id);
+      if (result.success) deletedIds.push(note.id);
+    }
+    return { deletedCount: deletedIds.length, deletedIds };
+  }
 }

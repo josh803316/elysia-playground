@@ -184,6 +184,19 @@
       </div>
       <form @submit.prevent="createPublicNote">
         <div class="mb-4">
+          <label for="public-title" class="block text-sm font-medium text-gray-700 mb-2">
+            Note Title
+          </label>
+          <input
+            type="text"
+            id="public-title"
+            x-model="publicNoteTitle"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="Enter note title"
+          />
+        </div>
+        <div class="mb-4">
           <label for="public-content" class="block text-sm font-medium text-gray-700 mb-2">
             Note Content
           </label>
@@ -237,6 +250,19 @@
       </div>
       <form @submit.prevent="createPrivateNote">
         <div class="mb-4">
+          <label for="private-title" class="block text-sm font-medium text-gray-700 mb-2">
+            Note Title
+          </label>
+          <input
+            type="text"
+            id="private-title"
+            x-model="privateNoteTitle"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="Enter note title"
+          />
+        </div>
+        <div class="mb-4">
           <label for="private-content" class="block text-sm font-medium text-gray-700 mb-2">
             Note Content
           </label>
@@ -276,7 +302,9 @@
         userName: '',
         showPublicNoteModal: false,
         showPrivateNoteModal: false,
+        publicNoteTitle: '',
         publicNoteContent: '',
+        privateNoteTitle: '',
         privateNoteContent: '',
         clerkToken: null,
         
@@ -332,7 +360,7 @@
         },
         
         async createPublicNote() {
-          if (!this.publicNoteContent.trim()) return;
+          if (!this.publicNoteTitle.trim() || !this.publicNoteContent.trim()) return;
           
           const token = sessionStorage.getItem('clerkToken');
           
@@ -343,11 +371,12 @@
                 'Content-Type': 'application/json',
                 ...(token && { 'Authorization': `Bearer ${token}` })
               },
-              body: JSON.stringify({ content: this.publicNoteContent })
+              body: JSON.stringify({ title: this.publicNoteTitle, content: this.publicNoteContent })
             });
             
             if (response.ok) {
               this.showPublicNoteModal = false;
+              this.publicNoteTitle = '';
               this.publicNoteContent = '';
               htmx.trigger(document.body, 'refreshPublicNotes');
             }
@@ -357,7 +386,7 @@
         },
         
         async createPrivateNote() {
-          if (!this.privateNoteContent.trim()) return;
+          if (!this.privateNoteTitle.trim() || !this.privateNoteContent.trim()) return;
           
           const token = sessionStorage.getItem('clerkToken');
           
@@ -373,11 +402,12 @@
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
               },
-              body: JSON.stringify({ content: this.privateNoteContent })
+              body: JSON.stringify({ title: this.privateNoteTitle, data: this.privateNoteContent })
             });
             
             if (response.ok) {
               this.showPrivateNoteModal = false;
+              this.privateNoteTitle = '';
               this.privateNoteContent = '';
               htmx.trigger(document.body, 'refreshPrivateNotes');
             }

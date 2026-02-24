@@ -1,7 +1,7 @@
 type EnvLike = Record<string, string | undefined>;
 
 const DEV_ORIGINS = [
-  "http://localhost:3000",
+  "http://localhost:3500",
   "http://localhost:5173",
   "http://localhost:6173",
 ];
