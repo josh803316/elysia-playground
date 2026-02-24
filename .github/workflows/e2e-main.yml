@@ -1,0 +1,77 @@
+name: E2E Tests (Main)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to test (defaults to production URL secret)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright-e2e-main:
+    name: Run Full E2E on Main
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      E2E_BASE_URL: ${{ inputs.base_url != '' && inputs.base_url || secrets.E2E_PROD_BASE_URL }}
+      CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      CLERK_FRONTEND_API: ${{ secrets.CLERK_FRONTEND_API }}
+      CLERK_FAPI: ${{ secrets.CLERK_FAPI }}
+      CLERK_TEST_EMAIL: ${{ secrets.CLERK_TEST_EMAIL }}
+      CLERK_TEST_PASSWORD: ${{ secrets.CLERK_TEST_PASSWORD }}
+      E2E_ADMIN_API_KEY: ${{ secrets.E2E_ADMIN_API_KEY }}
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.9"
+
+      - name: Validate required base URL
+        run: |
+          if [ -z "${E2E_BASE_URL}" ]; then
+            echo "E2E_BASE_URL is empty. Set secret E2E_PROD_BASE_URL or provide workflow_dispatch input base_url."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: bun install && cd e2e-tests && bun install
+
+      - name: Install Playwright Chromium
+        working-directory: e2e-tests
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run full E2E suite
+        working-directory: e2e-tests
+        run: bun run e2e -- --reporter=line --retries=1
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-main
+          path: e2e-tests/playwright-report
+          if-no-files-found: ignore
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-main
+          path: e2e-tests/test-results
+          if-no-files-found: ignore
