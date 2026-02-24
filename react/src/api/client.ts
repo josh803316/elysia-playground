@@ -37,7 +37,7 @@ export const API_URL =
       ? rawApiUrl.replace(/\/+$/, "")
       : typeof process !== "undefined" && process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
+        : "http://localhost:3500";
 
 if (typeof console !== "undefined") {
   if (isPlaceholderApiHost) {

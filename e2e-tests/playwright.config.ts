@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Bun auto-loads .env; no dotenv needed when running with bun/bunx
-const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3500';
 
 export default defineConfig({
   testDir: './tests',
@@ -24,18 +24,10 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'setup',
-      testMatch: /auth\.setup\.ts/,
-      timeout: 45_000,
-      retries: 0,
-    },
-    {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
       },
-      dependencies: ['setup'],
     },
   ],
   outputDir: 'test-results',

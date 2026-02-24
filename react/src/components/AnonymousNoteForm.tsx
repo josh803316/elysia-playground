@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Textarea,
+  TextInput,
   Button,
   Paper,
   Title,
@@ -22,20 +23,24 @@ const AnonymousNoteForm = ({ onNoteCreated }: AnonymousNoteFormProps) => {
 
   const form = useForm({
     initialValues: {
+      title: "",
       content: "",
       isPublic: true,
     },
     validate: {
+      title: (value) =>
+        value.trim().length > 0 ? null : "Title is required",
       content: (value) =>
         value.trim().length > 0 ? null : "Note content cannot be empty",
     },
   });
 
   const handleSubmit = async (values: {
+    title: string;
     content: string;
     isPublic: boolean;
   }) => {
-    if (!values.content.trim()) {
+    if (!values.title.trim() || !values.content.trim()) {
       return;
     }
 
@@ -50,6 +55,7 @@ const AnonymousNoteForm = ({ onNoteCreated }: AnonymousNoteFormProps) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          title: values.title,
           content: values.content,
           isPublic: values.isPublic,
         }),
@@ -90,6 +96,13 @@ const AnonymousNoteForm = ({ onNoteCreated }: AnonymousNoteFormProps) => {
 
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <Stack>
+          <TextInput
+            label="Title"
+            placeholder="Note title"
+            required
+            {...form.getInputProps("title")}
+            disabled={isSubmitting}
+          />
           <Textarea
             placeholder="Write a public note..."
             minRows={3}

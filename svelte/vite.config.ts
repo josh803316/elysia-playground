@@ -13,7 +13,7 @@ export default defineConfig({
     port: 6173,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        target: "http://localhost:3500",
         changeOrigin: true,
         configure: (proxy, _options) => {
           proxy.on("error", (err, _req, _res) => {

@@ -71,6 +71,7 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
                 name="title"
                 class="input"
                 placeholder="Enter note title..."
+                required
               />
             </div>
             <div class="form-group">
@@ -361,7 +362,9 @@ export class PublicNotesComponent implements OnInit {
 
   async saveNote(event: Event) {
     event.preventDefault();
+    const title = this.formTitle.trim();
     const content = this.formContent.trim();
+    if (!title) { this.modalError.set('Title is required'); return; }
     if (!content) { this.modalError.set('Content is required'); return; }
     this.saving.set(true);
     this.modalError.set('');
@@ -369,13 +372,13 @@ export class PublicNotesComponent implements OnInit {
       const editing = this.editingNote();
       if (editing) {
         await this.api.updatePublicNote(editing.id, {
-          title: this.formTitle.trim() || 'Public Note',
+          title,
           content,
           isPublic: true,
         });
       } else {
         await this.api.createPublicNote({
-          title: this.formTitle.trim() || undefined,
+          title,
           content,
         });
       }

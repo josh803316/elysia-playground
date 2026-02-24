@@ -6,9 +6,9 @@ import { NotesModel, Note } from "../models/notes.model.js";
 import { UsersModel } from "../models/users.model.js";
 import type { Database } from "../db/index.js";
 
-// Schema for public notes (title optional for backward compatibility)
+// Schema for public notes (title and content required)
 const publicNoteSchema = t.Object({
-  title: t.Optional(t.String()),
+  title: t.String(),
   content: t.String(),
 });
 
@@ -108,7 +108,7 @@ export class PublicNotesController extends BaseApiController<Note> {
 
               // Create new note
               const newNote = {
-                title: typedCtx.body.title?.trim() || "Public Note",
+                title: typedCtx.body.title.trim() || "Public Note",
                 content: typedCtx.body.content,
                 userId: null, // anonymous note
                 isPublic: "true", // Ensure this is a string

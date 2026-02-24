@@ -584,6 +584,69 @@ export class NotesController extends BaseApiController<Note> {
             return new Response("Server error deleting note", { status: 500 });
           }
         })
+        .put("/notes/:id/admin", async (ctx: any) => {
+          try {
+            const typedCtx = ctx as unknown as Context & {
+              body?: { title?: string; content?: string; isPublic?: boolean };
+            };
+
+            let apiKey;
+            if (typeof typedCtx.request.headers.get === "function") {
+              apiKey = typedCtx.request.headers.get("x-api-key");
+            } else {
+              const headers = typedCtx.request.headers as Record<string, string>;
+              apiKey =
+                headers["x-api-key"] ||
+                headers["X-API-Key"] ||
+                headers["X-Api-Key"];
+            }
+
+            if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+              return new Response(
+                "Unauthorized: Invalid or missing API key",
+                { status: 401 }
+              );
+            }
+
+            const { id } = typedCtx.params;
+            const noteId = parseInt(String(id), 10);
+            if (isNaN(noteId)) {
+              return new Response("Invalid note ID", { status: 400 });
+            }
+
+            const note = await this.notesModel.findById(typedCtx.db, noteId);
+            if (!note) {
+              return new Response("Note not found", { status: 404 });
+            }
+
+            const { title, content, isPublic } = typedCtx.body ?? {};
+            const updateData: Partial<Note> = { updatedAt: new Date() };
+            if (title !== undefined) updateData.title = title;
+            if (content !== undefined) updateData.content = content;
+            if (isPublic !== undefined) {
+              updateData.isPublic = String(isPublic).toLowerCase();
+            }
+
+            const updated = await this.notesModel.update(
+              typedCtx.db,
+              noteId,
+              updateData
+            );
+            if (!updated) {
+              return new Response("Failed to update note", { status: 500 });
+            }
+            return updated;
+          } catch (err) {
+            console.error("Error in admin update:", err);
+            return new Response("Server error updating note", { status: 500 });
+          }
+        }, {
+          body: t.Object({
+            title: t.Optional(t.String()),
+            content: t.Optional(t.String()),
+            isPublic: t.Optional(t.Boolean()),
+          }),
+        })
     );
   }
 

@@ -58,6 +58,7 @@ describe("Public Notes Controller", () => {
     const client = treaty(app) as any;
 
     const noteData = {
+      title: "Public Note",
       content: "This is a new public note",
     };
 
@@ -123,6 +124,7 @@ describe("Public Notes Controller", () => {
 
     // First create a public note
     const noteData = {
+      title: "Note to delete",
       content: "This public note will be deleted",
     };
 

@@ -11,12 +11,20 @@ import { NoteProvider } from "./context/NoteContext";
 // Import only necessary Mantine styles
 import "@mantine/core/styles.css";
 
-// Get the Clerk publishable key from environment variables
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+// Prefer runtime env from server (e.g. /react/env.js) so e2e and monolith use server's Clerk key
+declare global {
+  interface Window {
+    __REACT_ENV__?: { clerkPublishableKey?: string; clerkFrontendApi?: string };
+  }
+}
+const PUBLISHABLE_KEY =
+  (typeof window !== "undefined" && window.__REACT_ENV__?.clerkPublishableKey?.trim())
+    ? window.__REACT_ENV__.clerkPublishableKey!.trim()
+    : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
   throw new Error(
-    "Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in .env"
+    "Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in .env or serve /react/env.js"
   );
 }
 

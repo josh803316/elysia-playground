@@ -29,7 +29,7 @@ interface DeleteResponse {
 interface PrivateNoteAPI {
   "private-notes": {
     put: (
-      body: { data: string },
+      body: { title: string; data: string },
       options?: { headers?: Record<string, string> }
     ) => Promise<
       | { data: Note; error?: never }
@@ -84,6 +84,7 @@ describe("Private Notes Controller", () => {
 
     // Try to create a note - should get 401 since auth() returns userId: null
     const { data, error } = await api.api["private-notes"].put({
+      title: "Test Title",
       data: "This is a test private note",
     });
 
@@ -108,6 +109,7 @@ describe("Private Notes Controller", () => {
 
     const { data, error } = await api.api["private-notes"].put(
       {
+        title: "Test Title",
         data: "This is a test private note",
       },
       {
@@ -121,7 +123,7 @@ describe("Private Notes Controller", () => {
 
     expect(error).toBeNull();
     expect(data).toBeDefined();
-    expect(data).toHaveProperty("title", "Private Note");
+    expect(data).toHaveProperty("title", "Test Title");
     expect(data).toHaveProperty("content", "This is a test private note");
     expect(data).toHaveProperty("isPublic", "false");
   });
@@ -139,6 +141,7 @@ describe("Private Notes Controller", () => {
     // First create a note
     await api.api["private-notes"].put(
       {
+        title: "Test Title",
         data: "This is a test private note",
       },
       {
@@ -161,7 +164,7 @@ describe("Private Notes Controller", () => {
     expect(data).toBeDefined();
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
-    expect(data[0]).toHaveProperty("title", "Private Note");
+    expect(data[0]).toHaveProperty("title", "Test Title");
   });
 
   it("should delete a private note", async () => {
@@ -177,6 +180,7 @@ describe("Private Notes Controller", () => {
     // First create a note
     const createResponse = await api.api["private-notes"].put(
       {
+        title: "Test Title",
         data: "This is a test private note",
       },
       {
@@ -246,6 +250,7 @@ describe("Private Notes Controller", () => {
     // First user creates a note
     const createResponse = await api1.api["private-notes"].put(
       {
+        title: "Test Title",
         data: "This is a test private note",
       },
       {

@@ -578,7 +578,7 @@ export function newNoteModal(): string {
               type="text" 
               id="title" 
               name="title" 
-              value="Public Note"
+              required
               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-colors"
               placeholder="Enter note title..."
             />
@@ -783,6 +783,17 @@ export function newPrivateNoteModal(): string {
           hx-on::after-request="if(event.detail.successful) document.getElementById('modal-container').innerHTML = ''"
           class="p-6 space-y-4"
         >
+          <div>
+            <label for="private-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input 
+              type="text" 
+              id="private-title" 
+              name="title" 
+              required
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
+              placeholder="Enter note title..."
+            />
+          </div>
           <div>
             <label for="data" class="block text-sm font-medium text-gray-700 mb-1">Content</label>
             <textarea 

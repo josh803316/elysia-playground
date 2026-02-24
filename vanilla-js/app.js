@@ -154,10 +154,10 @@ async function handleCreatePublic(data) {
   }
 }
 
-async function handleCreatePrivate(content) {
+async function handleCreatePrivate(data) {
   try {
     const token = await refreshToken();
-    await api.createPrivateNote(token, content);
+    await api.createPrivateNote(token, data);
     closeModal();
     await loadPrivateNotes();
   } catch (err) {

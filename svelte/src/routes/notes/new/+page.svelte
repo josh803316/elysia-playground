@@ -49,19 +49,18 @@
   });
 
   async function handleSubmit() {
-    // For any note, content is required
+    // For any note, title and content are required
+    if (!title.trim()) {
+      error = new Error('Title is required');
+      return;
+    }
     if (!content.trim()) {
       error = new Error('Content is required');
       return;
     }
 
-    // For private notes, title is required and user must be signed in
+    // For private notes, user must be signed in
     if (!isPublic) {
-      if (!title.trim()) {
-        error = new Error('Title is required for private notes');
-        return;
-      }
-      
       if (!isSignedIn || !userToken) {
         error = new Error('You must be signed in to create a private note');
         return;
@@ -72,9 +71,9 @@
       loading = true;
       error = null;
       
-      // For public anonymous notes, title is optional - use a default if not provided
+      // For public anonymous notes, require title and content (already validated above)
       const noteData = {
-        title: title.trim() || 'Untitled Public Note',
+        title: title.trim(),
         content,
         isPublic,
       };

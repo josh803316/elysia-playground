@@ -250,6 +250,18 @@ app
       headers: { "content-type": "application/javascript; charset=utf-8" },
     });
   })
+  .get("/react-env.js", () => {
+    const payload = {
+      clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? "",
+      clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? "",
+    };
+
+    const body = `window.__REACT_ENV__ = ${JSON.stringify(payload)};`;
+
+    return new Response(body, {
+      headers: { "content-type": "application/javascript; charset=utf-8" },
+    });
+  })
   .get("/favicon.svg", () =>
     new Response(faviconSvg, {
       headers: { "content-type": "image/svg+xml" },
@@ -829,9 +841,11 @@ app
   .use(serveSPA(vueAssetsPath, "/vue"));
 
 // Only start a local HTTP server when not running on Vercel.
+// Default port is 3500, override with PORT env if needed.
 if (process.env.VERCEL !== "1") {
-  app.listen(3000);
-  console.log("🦊 Server is running at http://localhost:3000");
+  const port = Number(process.env.PORT ?? 3500);
+  app.listen(port);
+  console.log(`🦊 Server is running at http://localhost:${port}`);
 }
 
 export type App = typeof app;

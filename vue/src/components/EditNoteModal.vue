@@ -9,7 +9,11 @@ import Textarea from 'primevue/textarea';
 import Checkbox from 'primevue/checkbox';
 import Message from 'primevue/message';
 
-const props = defineProps<{ note: Note }>();
+const props = defineProps<{
+  note: Note;
+  isAdmin?: boolean;
+  adminApiKey?: string | null;
+}>();
 const emit = defineEmits<{ updated: []; close: [] }>();
 
 const { getToken } = useAuth();
@@ -25,12 +29,37 @@ async function handleSubmit() {
   submitting.value = true;
   error.value = null;
   try {
-    const token = await getToken.value();
-    const res = await fetch(`/api/notes/${props.note.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ title: title.value, content: content.value, isPublic: isPublic.value }),
-    });
+    const note = props.note;
+    const isAnonymousPublic = note.isPublic === 'true' && (note.userId == null || note.userId === '');
+
+    let res: Response;
+    if (props.isAdmin && props.adminApiKey) {
+      res = await fetch(`/api/notes/${note.id}/admin`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': props.adminApiKey,
+        },
+        body: JSON.stringify({ title: title.value, content: content.value, isPublic: isPublic.value }),
+      });
+    } else if (isAnonymousPublic) {
+      res = await fetch(`/api/public-notes/${note.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.value.trim() || 'Public Note',
+          content: content.value,
+          isPublic: isPublic.value,
+        }),
+      });
+    } else {
+      const token = await getToken.value();
+      res = await fetch(`/api/notes/${note.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title: title.value, content: content.value, isPublic: isPublic.value }),
+      });
+    }
     if (!res.ok) {
       const data: { error?: string } = await res.json().catch(() => ({}));
       throw new Error(data.error || 'Failed to update note');

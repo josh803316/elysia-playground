@@ -68,13 +68,14 @@ export class NotesApiService {
   }
 
   async createPrivateNote(token: string, data: string): Promise<Note> {
+    const title = data.trim().slice(0, 50) || 'Private Note';
     const res = await fetch(`${this.baseUrl}/private-notes`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ data }),
+      body: JSON.stringify({ title, data }),
     });
     if (!res.ok) throw new Error('Failed to create private note');
     return res.json();

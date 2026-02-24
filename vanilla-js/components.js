@@ -189,14 +189,21 @@ export function createPublicNoteModal({ onSubmit, onClose }) {
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+    const title = titleInput.value.trim();
     const content = textarea.value.trim();
-    if (content) onSubmit({ title: titleInput.value.trim() || undefined, content });
+    if (!title || !content) return;
+    onSubmit({ title, content });
   });
 
   return modal("Create Public Note", [form], { onClose });
 }
 
 export function createPrivateNoteModal({ onSubmit, onClose }) {
+  const titleInput = el("input", {
+    className: "input",
+    type: "text",
+    placeholder: "Enter note title...",
+  });
   const textarea = el("textarea", {
     className: "input",
     rows: "4",
@@ -204,6 +211,8 @@ export function createPrivateNoteModal({ onSubmit, onClose }) {
   });
 
   const form = el("form", { className: "modal-form" }, [
+    el("label", { className: "label", textContent: "Title" }),
+    titleInput,
     el("label", { className: "label", textContent: "Content" }),
     textarea,
     el("p", { className: "private-hint", textContent: "🔒 This note will only be visible to you" }),
@@ -215,8 +224,10 @@ export function createPrivateNoteModal({ onSubmit, onClose }) {
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    const val = textarea.value.trim();
-    if (val) onSubmit(val);
+    const title = titleInput.value.trim();
+    const content = textarea.value.trim();
+    if (!title || !content) return;
+    onSubmit({ title, content });
   });
 
   return modal("🔒 Create Private Note", [form], { onClose });

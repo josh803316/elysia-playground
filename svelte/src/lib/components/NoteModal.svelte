@@ -63,8 +63,8 @@
   $: modalButtonColor = finalPublicState ? "bg-green-600 hover:bg-green-700" : "bg-purple-600 hover:bg-purple-700";
   $: modalColor = finalPublicState ? "green" : "purple";
 
-  // Derived state for form validation - allow public notes without a title
-  $: isFormValid = (finalPublicState ? content.trim() !== '' : (title.trim() !== '' && content.trim() !== ''));
+  // Derived state for form validation - title and content required for all notes
+  $: isFormValid = title.trim() !== '' && content.trim() !== '';
 
   function resetForm() {
     title = '';
@@ -86,15 +86,13 @@
   }
 
   async function handleSubmit() {
-    // For any note, content is required
-    if (content.trim() === '') {
-      error = new Error('Content is required');
+    // Title and content required for all notes
+    if (title.trim() === '') {
+      error = new Error('Title is required');
       return;
     }
-
-    // For private notes, title is required
-    if (!finalPublicState && title.trim() === '') {
-      error = new Error('Title is required for private notes');
+    if (content.trim() === '') {
+      error = new Error('Content is required');
       return;
     }
 
@@ -134,7 +132,7 @@
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              title: title.trim() || 'Public Note',
+              title: title.trim(),
               content,
               isPublic: finalPublicState
             })
@@ -186,7 +184,7 @@
           try {
             await notesStore.createNote(
               {
-                title: title.trim() || 'Untitled Public Note',
+                title: title.trim(),
                 content,
                 isPublic: true
               },
@@ -228,7 +226,7 @@
             try {
               await notesStore.createNote(
                 {
-                  title: title.trim() || 'Untitled Public Note',
+                  title: title.trim(),
                   content,
                   isPublic: true
                 },

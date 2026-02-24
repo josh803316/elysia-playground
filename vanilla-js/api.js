@@ -20,7 +20,7 @@ export async function fetchPublicNotes() {
 }
 
 export async function createPublicNote(data) {
-  const body = typeof data === "string" ? { content: data } : { title: data.title || undefined, content: data.content };
+  const body = typeof data === "string" ? { title: "Public Note", content: data } : { title: data.title, content: data.content };
   const res = await fetch("/api/public-notes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -57,10 +57,11 @@ export async function fetchPrivateNotes(token) {
 }
 
 export async function createPrivateNote(token, data) {
+  const body = typeof data === "string" ? { title: "Private Note", data } : { title: data.title, data: data.content };
   const res = await fetch("/api/private-notes", {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
-    body: JSON.stringify({ data }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error("Failed to create private note");
   return res.json();

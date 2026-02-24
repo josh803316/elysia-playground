@@ -6,7 +6,6 @@
   import { withAuth, API_URL } from '../api/client';
   import NoteForm from '../components/NoteForm.svelte';
   import NotesGrid from '../components/NotesGrid.svelte';
-  import AnonymousNoteForm from '../components/AnonymousNoteForm.svelte';
   import { IconPlus } from '@tabler/icons-svelte';
   import { goto } from '$app/navigation';
   

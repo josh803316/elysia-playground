@@ -1,6 +1,6 @@
 import { useUser, useAuth, SignInButton, SignedOut } from "@clerk/clerk-react";
 import { useState, useEffect, useRef } from "react";
-import { Grid, Paper, Title, Text, Group, Button, Modal, Textarea, Stack, Alert } from "@mantine/core";
+import { Grid, Paper, Title, Text, Group, Button, Modal, TextInput, Textarea, Stack, Alert } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconPlus } from "@tabler/icons-react";
 import NotesGrid from "../components/NotesGrid";
@@ -44,8 +44,11 @@ const HomePage = () => {
   const [initialized, setInitialized] = useState(false);
   const [anonymousSubmitError, setAnonymousSubmitError] = useState<string | null>(null);
   const anonymousForm = useForm({
-    initialValues: { content: "", isPublic: true },
-    validate: { content: (v) => (v.trim().length > 0 ? null : "Note content cannot be empty") },
+    initialValues: { title: "", content: "", isPublic: true },
+    validate: {
+      title: (v) => (v.trim().length > 0 ? null : "Title is required"),
+      content: (v) => (v.trim().length > 0 ? null : "Note content cannot be empty"),
+    },
   });
   const publicNotesRequestIdRef = useRef(0);
 
@@ -57,7 +60,7 @@ const HomePage = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: 'no-store' });
       const contentType = response.headers.get("content-type");
       let raw: unknown;
       if (contentType?.includes("application/json")) {
@@ -83,8 +86,8 @@ const HomePage = () => {
         }
         return;
       }
-      // Update state: prefer non-empty data so a late empty response doesn't overwrite real notes
-      setPublicNotes((prev) => (notes.length > 0 ? notes : prev.length > 0 ? prev : notes));
+      // requestId already guards stale responses; keep server truth, including empty lists after deletes
+      setPublicNotes(notes);
     } catch (err) {
       console.error("Error fetching public notes:", err);
       if (requestId === publicNotesRequestIdRef.current) {
@@ -255,8 +258,8 @@ const HomePage = () => {
     setNoteModalOpen(true);
   };
 
-  const handleAnonymousNoteSubmit = async (values: { content: string; isPublic: boolean }) => {
-    if (!values.content.trim()) return;
+  const handleAnonymousNoteSubmit = async (values: { title: string; content: string; isPublic: boolean }) => {
+    if (!values.title.trim() || !values.content.trim()) return;
     setAnonymousSubmitError(null);
     try {
       const base = getApiBase();
@@ -264,7 +267,7 @@ const HomePage = () => {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: values.content, isPublic: values.isPublic }),
+        body: JSON.stringify({ title: values.title, content: values.content, isPublic: values.isPublic }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -413,6 +416,11 @@ const HomePage = () => {
         )}
         <form onSubmit={anonymousForm.onSubmit(handleAnonymousNoteSubmit)}>
           <Stack>
+            <TextInput
+              placeholder="Note title"
+              {...anonymousForm.getInputProps("title")}
+              required
+            />
             <Textarea
               placeholder="Write a public note..."
               minRows={3}

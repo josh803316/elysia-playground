@@ -346,6 +346,10 @@
 
   // Submit anonymous note
   async function handleSubmitAnonymousNote() {
+    if (!anonymousNoteTitle.trim()) {
+      anonymousNoteError = 'Title is required';
+      return;
+    }
     if (!anonymousNoteContent.trim()) {
       anonymousNoteError = 'Note content cannot be empty';
       return;

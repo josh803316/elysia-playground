@@ -175,6 +175,12 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
         const typedCtx = ctx as unknown as DbContext;
         const body = typedCtx.body as { title?: string; content: string };
 
+        if (!body.title || body.title.trim() === "") {
+          return new Response(errorMessage("Title is required"), {
+            status: 400,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
         if (!body.content || body.content.trim() === "") {
           return new Response(errorMessage("Content is required"), {
             status: 400,
@@ -184,7 +190,7 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
 
         // Create new note
         const newNote = {
-          title: body.title || "Public Note",
+          title: body.title.trim(),
           content: body.content,
           userId: null, // anonymous note
           isPublic: "true",
@@ -217,7 +223,7 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
     },
     {
       body: t.Object({
-        title: t.Optional(t.String()),
+        title: t.String(),
         content: t.String(),
       }),
     }
@@ -478,7 +484,7 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
     async (ctx) => {
       try {
         const typedCtx = ctx as unknown as ClerkContext;
-        const body = typedCtx.body as { data: string };
+        const body = typedCtx.body as { title: string; data: string };
 
         // Check if user is authenticated
         let authData;
@@ -506,6 +512,12 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
           });
         }
 
+        if (!body.title || body.title.trim() === "") {
+          return new Response(errorMessage("Title is required"), {
+            status: 400,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
         if (!body.data || body.data.trim() === "") {
           return new Response(errorMessage("Content is required"), {
             status: 400,
@@ -524,7 +536,7 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
 
         // Create new private note
         const noteData = {
-          title: "Private Note",
+          title: body.title.trim(),
           content: body.data,
           userId: user.id,
           isPublic: "false",
@@ -549,6 +561,7 @@ export const htmxController = new Elysia({ prefix: "/htmx" })
     },
     {
       body: t.Object({
+        title: t.String(),
         data: t.String(),
       }),
     }
