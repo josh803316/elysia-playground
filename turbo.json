@@ -39,6 +39,8 @@
     "lint": {}
   },
   "globalEnv": [
-    "NODE_ENV"
+    "NODE_ENV",
+    "DIRECT_URL",
+    "DATABASE_URL"
   ]
 }

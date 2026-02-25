@@ -18,6 +18,7 @@ import {
   useClerk,
 } from "@clerk/clerk-react";
 import AdminLoginForm from "./AdminLoginForm";
+import { GlobalSearch } from "./GlobalSearch";
 import { useNoteContext } from "../context/NoteContext";
 
 interface LayoutProps {
@@ -197,15 +198,18 @@ export const Layout = ({ children }: LayoutProps) => {
             {/* Brand */}
             <Link
               to="/"
-              style={{ textDecoration: "none", fontSize: "1.25rem", fontWeight: 700, color: "#111827" }}
+              style={{ textDecoration: "none", fontSize: "1.25rem", fontWeight: 700, color: "#111827", flexShrink: 0 }}
               onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = "#0f766e"; }}
               onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = "#111827"; }}
             >
               Elysia Notes - React
             </Link>
 
+            {/* Global search - right of title, left of nav */}
+            <GlobalSearch adminApiKey={adminApiKey} />
+
             {/* Nav links */}
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexShrink: 0 }}>
               <Link
                 to="/"
                 style={{ textDecoration: "none", fontSize: "0.875rem", color: "#374151", fontWeight: 500 }}

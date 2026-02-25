@@ -13,6 +13,10 @@ export const publicPaths = [
 ];
 
 export const isProtectedRoute = (path: string): boolean => {
+  // Global notes search is public (returns only public notes when unauthenticated).
+  if (path === "/api/notes/search" || path.startsWith("/api/notes/search?")) {
+    return false;
+  }
   // Private HTMX endpoints require auth even though /htmx pages are public.
   if (path.startsWith("/htmx/private-notes")) {
     return true;

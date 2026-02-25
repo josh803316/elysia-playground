@@ -1,6 +1,8 @@
 import { Component, inject, signal, OnInit, Output, EventEmitter } from '@angular/core';
+import { computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
+import { SearchNotesService, type SearchNote } from '../../services/search-notes.service';
 
 /** Public notes section: list, create, edit, delete. Emits notesChanged so the shell can refresh nav counts. */
 @Component({
@@ -18,21 +20,24 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       </button>
     </div>
 
+    @if (searchQuery()) {
+      <p class="status-text">Showing notes matching &quot;{{ searchQuery() }}&quot;</p>
+    }
     @if (error()) {
       <div class="error-banner">{{ error() }}</div>
     }
 
-    @if (loading()) {
+    @if (loading() && !searchQuery()) {
       <div class="loading-text">Loading public notes...</div>
-    } @else if (notes().length === 0) {
+    } @else if (displayedNotes().length === 0) {
       <div class="empty-state">
         <div class="empty-icon">📭</div>
-        <h3 class="empty-title">No notes yet</h3>
-        <p class="empty-message">Create your first public note to get started!</p>
+        <h3 class="empty-title">{{ searchQuery() ? 'No public notes match "' + searchQuery() + '"' : 'No notes yet' }}</h3>
+        <p class="empty-message">{{ searchQuery() ? '' : 'Create your first public note to get started!' }}</p>
       </div>
     } @else {
       <div class="notes-grid">
-        @for (note of notes(); track note.id) {
+        @for (note of displayedNotes(); track note.id) {
           <div class="note-card" id="note-{{ note.id }}">
             <div class="note-card-body">
               <div class="note-card-header">
@@ -224,6 +229,7 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       margin-bottom: 1rem;
       font-size: 0.875rem;
     }
+    .status-text { color: #6b7280; font-size: 0.9rem; margin-bottom: 0.5rem; }
     .loading-text { color: #6b7280; font-size: 0.9rem; text-align: center; padding: 2rem 0; }
     .empty-state {
       text-align: center;
@@ -305,6 +311,7 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
 })
 export class PublicNotesComponent implements OnInit {
   private api = inject(NotesApiService);
+  private searchService = inject(SearchNotesService);
 
   @Output() notesChanged = new EventEmitter<void>();
 
@@ -317,6 +324,13 @@ export class PublicNotesComponent implements OnInit {
   formContent = '';
   saving = signal(false);
   modalError = signal('');
+
+  searchQuery = this.searchService.searchQuery.asReadonly();
+  displayedNotes = computed(() => {
+    const q = this.searchService.searchQuery();
+    if (!q.trim()) return this.notes();
+    return this.searchService.searchResults().filter((n) => n.isPublic === 'true');
+  });
 
   ngOnInit() { this.loadNotes(); }
 
@@ -341,8 +355,8 @@ export class PublicNotesComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  openEditModal(note: Note) {
-    this.editingNote.set(note);
+  openEditModal(note: Note | SearchNote) {
+    this.editingNote.set(note as Note);
     this.formTitle = note.title ?? '';
     this.formContent = note.content ?? '';
     this.modalError.set('');
@@ -404,8 +418,8 @@ export class PublicNotesComponent implements OnInit {
     }
   }
 
-  getAuthor(note: Note): string {
-    if (note.user) {
+  getAuthor(note: Note | SearchNote): string {
+    if (note && 'user' in note && note.user) {
       const name = [note.user.firstName, note.user.lastName].filter(Boolean).join(' ');
       return name || note.user.email || 'User';
     }

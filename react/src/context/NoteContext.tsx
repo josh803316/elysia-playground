@@ -1,13 +1,27 @@
 /**
- * Lightweight context to signal "notes list should refetch". Children call triggerRefresh()
- * after create/update/delete so any useNotes() (or similar) can depend on refreshTrigger
- * and refetch. Avoids prop-drilling and keeps refresh logic in one place.
+ * Lightweight context to signal "notes list should refetch" and global search state.
+ * Children call triggerRefresh() after create/update/delete. GlobalSearch sets search
+ * query/results; notes views filter by search when active.
  */
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+
+export interface SearchNote {
+  id: number;
+  title: string;
+  content: string;
+  isPublic: string;
+  userId?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 interface NoteContextType {
   refreshTrigger: number;
   triggerRefresh: () => void;
+  searchQuery: string;
+  searchResults: SearchNote[];
+  setSearch: (query: string, results: SearchNote[]) => void;
+  clearSearch: () => void;
 }
 
 const NoteContext = createContext<NoteContextType | undefined>(undefined);
@@ -16,12 +30,34 @@ export const NoteProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchNote[]>([]);
+
   const triggerRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
+  const setSearch = useCallback((query: string, results: SearchNote[]) => {
+    setSearchQuery(query);
+    setSearchResults(results);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setSearchResults([]);
+  }, []);
+
   return (
-    <NoteContext.Provider value={{ refreshTrigger, triggerRefresh }}>
+    <NoteContext.Provider
+      value={{
+        refreshTrigger,
+        triggerRefresh,
+        searchQuery,
+        searchResults,
+        setSearch,
+        clearSearch,
+      }}
+    >
       {children}
     </NoteContext.Provider>
   );

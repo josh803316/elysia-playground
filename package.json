@@ -47,6 +47,11 @@
     "build:server": "bun run build -w server",
     "start:server": "bun run start -w server",
     "test:server": "bun test --bun server",
+    "db:generate": "cd server && bun run db:generate",
+    "db:migrate": "cd server && bun run db:migrate",
+    "db:migrate:local": "cd server && bun run db:migrate:local",
+    "db:studio": "cd server && bun run db:studio",
+    "db:seed": "cd server && bun run db:seed",
     "e2e": "cd e2e-tests && bun run e2e",
     "e2e:ui": "cd e2e-tests && bun run e2e:ui"
   },

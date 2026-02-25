@@ -1,8 +1,8 @@
 export interface Note {
-  id: string;
+  id: string | number;
   title: string;
   content: string;
-  userId: string | null;
+  userId?: string | number | null;
   isPublic: string;
   createdAt: string;
   updatedAt: string;

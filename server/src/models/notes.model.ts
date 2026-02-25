@@ -1,7 +1,7 @@
 import { BaseApiModel } from "./base-api.model.js";
 import { notes } from "../db/schema.js";
 import type { Database } from "../db/index.js";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 
 // Define the Note type based on the schema
 export interface Note {
@@ -143,6 +143,45 @@ export class NotesModel extends BaseApiModel<Note> {
   ): Promise<{ deletedCount: number }> {
     const result = await db.delete(notes).returning();
     return { deletedCount: result.length };
+  }
+
+  /**
+   * Full-text search across title + content using PostgreSQL tsvector/tsquery.
+   * Uses inline to_tsvector (no stored column required), so it works even if the
+   * search_vector migration has not been run. Uses 'simple' config so stop words (e.g. "good") match.
+   * Scope:
+   * - admin: search all notes.
+   * - userId set: public notes + that user's private notes.
+   * - userId null: public notes only.
+   */
+  async search(
+    db: Database,
+    query: string,
+    userId: number | null,
+    admin: boolean = false
+  ): Promise<Note[]> {
+    const q = String(query).trim();
+    if (!q) return [];
+
+    // Inline tsvector (like global-search.service.ts): no search_vector column required
+    const match = sql`to_tsvector('simple', coalesce(${notes.title}, '') || ' ' || coalesce(${notes.content}, '')) @@ plainto_tsquery('simple', ${q})`;
+
+    if (admin) {
+      const rows = await db.select().from(notes).where(match);
+      return rows;
+    }
+    if (userId === null) {
+      const rows = await db
+        .select()
+        .from(notes)
+        .where(and(match, eq(notes.isPublic, "true")));
+      return rows;
+    }
+    const rows = await db
+      .select()
+      .from(notes)
+      .where(and(match, or(eq(notes.isPublic, "true"), eq(notes.userId, userId))));
+    return rows;
   }
 
   /**

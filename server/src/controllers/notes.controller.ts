@@ -33,6 +33,7 @@ type Context = {
   };
   body: { title: string; content: string; isPublic?: string };
   params: { id: string | number };
+  query?: { q?: string };
   request: {
     headers: Headers | Record<string, string>;
   };
@@ -82,6 +83,56 @@ export class NotesController extends BaseApiController<Note> {
                   updatedAt: t.String(),
                 }),
               })
+              // Search must be registered before /:id so "search" is not captured as id (no auth guard)
+              .get(
+                "/search",
+                async (ctx: any) => {
+                  try {
+                    const typedCtx = ctx as unknown as Context;
+                    const q = (typedCtx.query?.q ?? "").trim();
+                    const apiKey =
+                      typeof typedCtx.request?.headers?.get === "function"
+                        ? typedCtx.request.headers.get("x-api-key")
+                        : (typedCtx.request?.headers as Record<string, string>)?.["x-api-key"];
+                    const isAdmin =
+                      !!process.env.ADMIN_API_KEY &&
+                      apiKey === process.env.ADMIN_API_KEY;
+
+                    let userId: number | null = null;
+                    if (!isAdmin) {
+                      try {
+                        const auth = typedCtx.auth();
+                        const user = await this.usersModel.findOrCreateByClerkId(
+                          typedCtx.db,
+                          String(auth.userId),
+                          typedCtx.clerk
+                        );
+                        userId = user.id;
+                      } catch {
+                        // Not signed in: search public notes only
+                      }
+                    }
+
+                    const results = await this.notesModel.search(
+                      typedCtx.db,
+                      q,
+                      userId,
+                      isAdmin
+                    );
+                    return this.notesModel.toDTOs(results);
+                  } catch (err) {
+                    console.error("Error searching notes:", err);
+                    return new Response("Server error searching notes", {
+                      status: 500,
+                    });
+                  }
+                },
+                {
+                  query: t.Object({
+                    q: t.Optional(t.String()),
+                  }),
+                }
+              )
               // Apply both auth and ownership guards to all routes
               .guard(
                 {

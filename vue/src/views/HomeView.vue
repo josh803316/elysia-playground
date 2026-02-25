@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useUser, useAuth, useClerk } from '@clerk/vue';
 import Button from 'primevue/button';
 import AppLayout from '../components/AppLayout.vue';
@@ -9,14 +9,30 @@ import AdminNotesTable from '../components/AdminNotesTable.vue';
 import { usePublicNotes } from '../composables/usePublicNotes';
 import { usePrivateNotes } from '../composables/usePrivateNotes';
 import { useAdmin } from '../composables/useAdmin';
+import { useSearchNotes } from '../composables/useSearchNotes';
 
 const { isSignedIn } = useUser();
 const { getToken } = useAuth();
 const clerk = useClerk();
 
+const { searchQuery, searchResults } = useSearchNotes();
 const { notes: publicNotes, loading: pubLoading, error: pubError, fetchPublicNotes } = usePublicNotes();
 const { notes: privateNotes, loading: privLoading, error: privError, fetchPrivateNotes } = usePrivateNotes();
 const { isAdminLoggedIn, adminApiKey, allNotes, loading: adminLoading, error: adminError, fetchAllNotes } = useAdmin();
+
+const publicNotesToShow = computed(() =>
+  searchQuery.value ? searchResults.value.filter((n) => n.isPublic === 'true') : publicNotes.value
+);
+const privateNotesToShow = computed(() =>
+  searchQuery.value ? searchResults.value.filter((n) => n.isPublic !== 'true') : privateNotes.value
+);
+
+const publicNotesEmptyMessage = computed(() =>
+  searchQuery.value ? `No public notes match "${searchQuery.value}"` : 'No public notes yet. Be the first to create one!'
+);
+const privateNotesEmptyMessage = computed(() =>
+  searchQuery.value ? `No private notes match "${searchQuery.value}"` : 'No notes yet. Create your first note using the button above!'
+);
 
 const showNoteModal = ref(false);
 const noteModalIsPublic = ref(false);
@@ -97,11 +113,12 @@ async function handleNoteSubmitted() {
             @click="openPublicModal"
           />
         </div>
-        <p v-if="pubLoading" class="status-text">Loading public notes…</p>
+        <p v-if="searchQuery" class="status-text">Showing notes matching &quot;{{ searchQuery }}&quot;</p>
+        <p v-else-if="pubLoading" class="status-text">Loading public notes…</p>
         <p v-if="pubError" class="error-text">{{ pubError }}</p>
         <NotesGrid
-          :notes="publicNotes"
-          empty-message="No public notes yet. Be the first to create one!"
+          :notes="publicNotesToShow"
+          :empty-message="publicNotesEmptyMessage"
           :show-user="true"
           :is-admin="isAdminLoggedIn"
           :admin-api-key="adminApiKey"
@@ -132,11 +149,12 @@ async function handleNoteSubmitted() {
             @click="openPrivateModal"
           />
         </div>
-        <p v-if="privLoading" class="status-text">Loading your notes…</p>
+        <p v-if="searchQuery" class="status-text">Showing notes matching &quot;{{ searchQuery }}&quot;</p>
+        <p v-else-if="privLoading" class="status-text">Loading your notes…</p>
         <p v-if="privError" class="error-text">{{ privError }}</p>
         <NotesGrid
-          :notes="privateNotes"
-          empty-message="No notes yet. Create your first note using the button above!"
+          :notes="privateNotesToShow"
+          :empty-message="privateNotesEmptyMessage"
           :show-user="false"
           @deleted="refresh()"
           @updated="refresh()"

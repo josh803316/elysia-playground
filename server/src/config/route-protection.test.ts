@@ -9,6 +9,11 @@ describe("isProtectedRoute", () => {
     expect(isProtectedRoute("/api/public-notes/123")).toBe(false);
   });
 
+  it("keeps global notes search public", () => {
+    expect(isProtectedRoute("/api/notes/search")).toBe(false);
+    expect(isProtectedRoute("/api/notes/search?q=foo")).toBe(false);
+  });
+
   it("protects private API routes", () => {
     expect(isProtectedRoute("/api/private-notes")).toBe(true);
     expect(isProtectedRoute("/api/notes")).toBe(true);
