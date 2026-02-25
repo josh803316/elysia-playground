@@ -56,26 +56,43 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Wait for deployment to be ready
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          API_KEY: ${{ secrets.E2E_ADMIN_API_KEY }}
         run: |
           BASE="${E2E_BASE_URL%/}"
-          echo "Polling $BASE/health until 200 (max 2 min)..."
-          for i in $(seq 1 24); do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/health" || true)
-            if [ "$CODE" = "200" ]; then
-              echo "Deployment ready (HTTP $CODE)."
-              exit 0
-            fi
-            echo "Attempt $i/24: HTTP $CODE, retrying in 5s..."
-            sleep 5
-          done
-          echo "Deployment did not respond with 200 in time."
-          exit 1
+          if [ -n "$API_KEY" ] && [ "${{ github.event_name }}" = "deployment_status" ]; then
+            echo "Polling $BASE/versions until commitSha matches $EXPECTED_SHA (max 2 min)..."
+            for i in $(seq 1 24); do
+              RESP=$(curl -s -H "X-API-Key: $API_KEY" "$BASE/versions" || true)
+              COMMIT_SHA=$(echo "$RESP" | jq -r '.commitSha // empty')
+              if [ "$COMMIT_SHA" = "$EXPECTED_SHA" ]; then
+                echo "Deployment ready (commit $EXPECTED_SHA is live)."
+                exit 0
+              fi
+              echo "Attempt $i/24: current commit ${COMMIT_SHA:-unknown}, waiting for $EXPECTED_SHA..."
+              sleep 5
+            done
+            echo "Deployment did not match expected SHA in time."
+            exit 1
+          else
+            echo "Polling $BASE/health until 200 (max 2 min)..."
+            for i in $(seq 1 24); do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/health" || true)
+              if [ "$CODE" = "200" ]; then
+                echo "Deployment ready (HTTP $CODE)."
+                exit 0
+              fi
+              echo "Attempt $i/24: HTTP $CODE, retrying in 5s..."
+              sleep 5
+            done
+            echo "Deployment did not respond with 200 in time."
+            exit 1
+          fi
 
       - name: Run E2E tests against preview
         working-directory: e2e-tests
         run: bun run e2e -- --reporter=line --retries=1
-        env:
-          PLAYWRIGHT_WORKERS: 2
 
       - name: Upload Playwright report
         if: always()
