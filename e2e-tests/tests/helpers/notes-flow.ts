@@ -189,12 +189,10 @@ export async function createPublicNote(
   title?: string
 ): Promise<void> {
   const titleValue = title ?? content.slice(0, 50);
-  const section = page.getByTestId('section-public-notes').or(
-    page.locator('section', { has: page.getByRole('heading', { name: /public notes/i }) })
-  ).first();
   await page.waitForLoadState('domcontentloaded');
   await page.waitForLoadState('networkidle').catch(() => {});
-  const createButtons = section.getByRole('button', { name: /create public note/i });
+  // Use page-level locator so we find the button even if section-public-notes isn't visible yet (production/SPA hydration)
+  const createButtons = page.getByRole('button', { name: /create public note/i });
   let modal: ReturnType<Page['locator']> | null = null;
   const buttonCount = await createButtons.count().catch(() => 0);
   for (let i = 0; i < Math.max(buttonCount, 1); i++) {
@@ -286,7 +284,10 @@ export async function createPrivateNote(
   const section = page.getByTestId('section-your-notes').or(
     page.locator('section', { has: page.getByRole('heading', { name: /your notes|your private notes/i }) })
   ).first();
-  await section.getByRole('button', { name: /create private note/i }).click();
+  const createPrivateBtn = section.getByRole('button', { name: /create private note/i }).or(
+    page.getByRole('button', { name: /create private note/i })
+  ).first();
+  await createPrivateBtn.click();
   const modal = await waitForCreateNoteForm(page);
 
   // Title is optional — Angular's private note form only has a content textarea

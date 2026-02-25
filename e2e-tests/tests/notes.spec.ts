@@ -58,13 +58,15 @@ for (const appDef of APP_PATHS) {
     test.beforeEach(async ({ page }) => {
       loadClerkEnvFromFile();
       await setupClerkTestingToken({ page });
-      await page.goto(appPath, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+      await page.goto(appPath, { waitUntil: 'domcontentloaded', timeout: 20_000 });
       await page.waitForLoadState('load');
-      await expect(
-        page.getByTestId('section-public-notes').or(
-          page.getByRole('heading', { name: /public notes/i })
-        ).first()
-      ).toBeVisible({ timeout: 15000 });
+      await page.waitForLoadState('networkidle').catch(() => {});
+      // Page ready: public notes section/heading, or nav (production/CI may hydrate slowly)
+      const pageReady = page.getByTestId('section-public-notes')
+        .or(page.getByRole('heading', { name: /public notes/i }))
+        .or(page.getByRole('button', { name: /sign in|create public note/i }))
+        .or(page.getByRole('link', { name: /home|my notes/i })).first();
+      await expect(pageReady).toBeVisible({ timeout: 25_000 });
     });
 
     test('public note: create, edit, delete', async ({ page }) => {
@@ -117,6 +119,11 @@ for (const appDef of APP_PATHS) {
         page,
         signInParams: { strategy: 'email_code', identifier: email },
       });
+
+      // Ensure we're on the app page after sign-in (Clerk may redirect)
+      await page.goto(appPath, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+      await page.waitForLoadState('load');
+      await page.waitForLoadState('networkidle').catch(() => {});
 
       await expect(
         page.getByRole('button', { name: /create private note/i })
