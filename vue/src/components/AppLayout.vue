@@ -7,9 +7,6 @@ import Divider from 'primevue/divider';
 import Badge from 'primevue/badge';
 import AdminLoginModal from './AdminLoginModal.vue';
 import GlobalSearch from './GlobalSearch.vue';
-import { provideSearchNotes } from '../composables/useSearchNotes';
-
-provideSearchNotes();
 
 const { user, isSignedIn } = useUser();
 const { getToken } = useAuth();

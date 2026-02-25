@@ -58,11 +58,6 @@ test.describe('Global search', () => {
           .or(page.getByTestId('global-search-input'))
           .or(page.getByRole('button', { name: /sign in/i }))
           .or(page.getByRole('link', { name: /home/i })).first();
-        // Vue app often does not load in production (blank page); skip instead of failing
-        if (appName === 'vue') {
-          const vueReady = await pageReady.waitFor({ state: 'visible', timeout: 12_000 }).then(() => true).catch(() => false);
-          if (!vueReady) test.skip(true, 'Vue app did not load at /vue (blank page in production); check deployment.');
-        }
         await expect(pageReady).toBeVisible({ timeout: 25_000 });
         // Ensure search input is visible for global-search tests
         await expect(
