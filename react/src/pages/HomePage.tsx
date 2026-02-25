@@ -27,7 +27,7 @@ interface Note {
 const HomePage = () => {
   const { isSignedIn } = useUser();
   const { getToken } = useAuth();
-  const { refreshTrigger, triggerRefresh } = useNoteContext();
+  const { refreshTrigger, triggerRefresh, searchQuery, searchResults } = useNoteContext();
   const prevRefreshTriggerRef = useRef(refreshTrigger);
   const [publicNotes, setPublicNotes] = useState<Note[]>([]);
   const [privateNotes, setPrivateNotes] = useState<Note[]>([]);
@@ -324,11 +324,12 @@ const HomePage = () => {
               + Create Public Note
             </Button>
           </Group>
-          {loading && <Text>Loading public notes...</Text>}
+          {searchQuery && <Text size="sm" c="dimmed" mb="xs">Showing notes matching &quot;{searchQuery}&quot;</Text>}
+          {loading && !searchQuery && <Text>Loading public notes...</Text>}
           {error && <Text c="red">{error}</Text>}
           <NotesGrid
-            notes={publicNotes}
-            emptyMessage="No public notes yet. Be the first to create one!"
+            notes={searchQuery ? searchResults.filter((n) => n.isPublic === "true") : publicNotes}
+            emptyMessage={searchQuery ? `No public notes match "${searchQuery}"` : "No public notes yet. Be the first to create one!"}
             showUser={true}
             onNoteDeleted={handleNoteCreated}
             onNoteUpdated={handleNoteCreated}
@@ -375,11 +376,12 @@ const HomePage = () => {
                 + Create Private Note
               </Button>
             </Group>
-            {loading && <Text>Loading your notes...</Text>}
+            {searchQuery && <Text size="sm" c="dimmed" mb="xs">Showing notes matching &quot;{searchQuery}&quot;</Text>}
+            {loading && !searchQuery && <Text>Loading your notes...</Text>}
             {error && <Text c="red">{error}</Text>}
             <NotesGrid
-              notes={privateNotes}
-              emptyMessage="No notes yet. Create your first note using the button above!"
+              notes={searchQuery ? searchResults.filter((n) => n.isPublic !== "true") : privateNotes}
+              emptyMessage={searchQuery ? `No private notes match "${searchQuery}"` : "No notes yet. Create your first note using the button above!"}
               showUser={false}
               onNoteDeleted={handleNoteCreated}
               onNoteUpdated={handleNoteCreated}

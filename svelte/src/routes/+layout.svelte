@@ -27,6 +27,7 @@
 		TableHeadCell
 	} from 'flowbite-svelte';
 	import NoteModal from '$lib/components/NoteModal.svelte';
+	import GlobalSearch from '$lib/components/GlobalSearch.svelte';
 
     let { children } = $props();
 
@@ -261,10 +262,13 @@
 		<header class="bg-white shadow-sm border-b">
 			<div class="container mx-auto px-4 flex justify-between items-center h-[60px]" style="max-width: 1320px;">
 				<!-- Logo/Brand -->
-				<a href={toBasePath('/')} class="text-xl font-bold text-gray-900 hover:text-teal-600 transition-colors">Elysia Notes - Svelte</a>
-				
+				<a href={toBasePath('/')} class="text-xl font-bold text-gray-900 hover:text-teal-600 transition-colors shrink-0">Elysia Notes - Svelte</a>
+
+				<!-- Global search - right of title, left of nav -->
+				<GlobalSearch adminApiKey={adminApiKey} />
+
 				<!-- Main Navigation Links - No hamburger, always visible -->
-				<div class="flex items-center gap-4">
+				<div class="flex items-center gap-4 shrink-0">
 					<a href={toBasePath('/')} class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Home</a>
 					<!-- Public badge: signed-out only (standalone) -->
 					<SignedOut>

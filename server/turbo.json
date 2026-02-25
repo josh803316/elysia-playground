@@ -10,9 +10,9 @@
         "CLERK_PEM_PUBLIC_KEY"
       ]
     },
-    "db:generate": {},
-    "db:studio": {},
-    "db:migrate": {},
+    "db:generate": { "env": ["DIRECT_URL", "DATABASE_URL"] },
+    "db:studio": { "env": ["DIRECT_URL", "DATABASE_URL"] },
+    "db:migrate": { "env": ["DIRECT_URL", "DATABASE_URL"] },
     "db:seed": {}
   }
 }

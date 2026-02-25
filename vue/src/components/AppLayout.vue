@@ -6,6 +6,10 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Badge from 'primevue/badge';
 import AdminLoginModal from './AdminLoginModal.vue';
+import GlobalSearch from './GlobalSearch.vue';
+import { provideSearchNotes } from '../composables/useSearchNotes';
+
+provideSearchNotes();
 
 const { user, isSignedIn } = useUser();
 const { getToken } = useAuth();
@@ -78,6 +82,8 @@ function handleAdminLogout() {
         <RouterLink to="/" class="brand-link">
           Elysia Notes – Vue
         </RouterLink>
+
+        <GlobalSearch :admin-api-key="adminApiKey" />
 
         <nav class="header-nav">
           <RouterLink to="/" class="nav-link">Home</RouterLink>

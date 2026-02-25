@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { PublicNotesComponent } from './components/public-notes/public-notes';
 import { PrivateNotesComponent } from './components/private-notes/private-notes';
 import { AdminComponent } from './components/admin/admin';
+import { GlobalSearchComponent } from './components/global-search/global-search';
 import { AuthService } from './services/auth.service';
 
 @Component({
@@ -13,6 +14,7 @@ import { AuthService } from './services/auth.service';
     PublicNotesComponent,
     PrivateNotesComponent,
     AdminComponent,
+    GlobalSearchComponent,
   ],
   template: `
     <!-- Navigation - matches HTMX exactly -->
@@ -22,6 +24,9 @@ import { AuthService } from './services/auth.service';
         <a href="/angular" class="navbar-brand-link">
           <span class="navbar-brand-text">Elysia Notes - Angular</span>
         </a>
+
+        <!-- Global search - right of title, left of nav -->
+        <app-global-search [adminApiKey]="adminApiKey()" />
 
         <!-- Right side nav: links + auth in single flex container -->
         <div class="nav-right">

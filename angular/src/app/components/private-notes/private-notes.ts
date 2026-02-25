@@ -1,6 +1,7 @@
-import { Component, inject, signal, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, computed, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
+import { SearchNotesService } from '../../services/search-notes.service';
 
 /** Private notes (user-only). Loads when token input is set; uses OnChanges to react to token from parent. */
 @Component({
@@ -18,20 +19,23 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       </button>
     </div>
 
+    @if (searchQuery()) {
+      <p class="loading-text">Showing notes matching &quot;{{ searchQuery() }}&quot;</p>
+    }
     @if (error()) {
       <div class="error-banner">{{ error() }}</div>
     }
 
-    @if (loading()) {
+    @if (loading() && !searchQuery()) {
       <div class="loading-text">Loading your notes...</div>
-    } @else if (notes().length === 0) {
+    } @else if (displayedNotes().length === 0) {
       <div class="empty-state">
         <div class="empty-icon">🔒</div>
-        <p class="empty-message">No private notes yet. Create your first one!</p>
+        <p class="empty-message">{{ searchQuery() ? 'No private notes match "' + searchQuery() + '"' : 'No private notes yet. Create your first one!' }}</p>
       </div>
     } @else {
       <div class="notes-grid">
-        @for (note of notes(); track note.id) {
+        @for (note of displayedNotes(); track note.id) {
           <div class="note-card note-card--private">
             <div class="note-card-body">
               <div class="note-card-header">
@@ -280,6 +284,7 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
 })
 export class PrivateNotesComponent implements OnChanges {
   private api = inject(NotesApiService);
+  private searchService = inject(SearchNotesService);
 
   @Input() token: string | null = null;
   @Output() notesChanged = new EventEmitter<void>();
@@ -291,6 +296,13 @@ export class PrivateNotesComponent implements OnChanges {
   formContent = '';
   saving = signal(false);
   modalError = signal('');
+
+  searchQuery = this.searchService.searchQuery.asReadonly();
+  displayedNotes = computed(() => {
+    const q = this.searchService.searchQuery();
+    if (!q.trim()) return this.notes();
+    return this.searchService.searchResults().filter((n) => n.isPublic !== 'true');
+  });
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['token'] && this.token) {

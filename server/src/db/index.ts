@@ -99,6 +99,17 @@ async function createTables(client: PGlite) {
       );
     `);
 
+    // Add full-text search column and index (tsvector + GIN)
+    await client.query(`
+      ALTER TABLE notes ADD COLUMN IF NOT EXISTS search_vector tsvector
+        GENERATED ALWAYS AS (
+          to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, ''))
+        ) STORED;
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS notes_search_idx ON notes USING GIN (search_vector);
+    `);
+
     // Verify tables were created
     const tables = await client.query(`
       SELECT table_name FROM information_schema.tables

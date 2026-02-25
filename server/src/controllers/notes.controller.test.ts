@@ -431,4 +431,113 @@ describe("Notes Controller", () => {
     expect(data.message).toContain("admin");
   });
   });
+
+  describe("Global search (GET /search)", () => {
+    it("returns empty array for empty query", async () => {
+      const { app } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        withAuth: false,
+      });
+      if (!app) throw new Error("App not initialized");
+      const api = treaty(app) as any;
+
+      const { data, error } = await api.api.notes.search.get({
+        query: { q: "" },
+      });
+
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data).toHaveLength(0);
+    });
+
+    it("returns public notes when not authenticated", async () => {
+      await dbUtils.createPublicAnonymousNote();
+      const { app } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        withAuth: false,
+      });
+      if (!app) throw new Error("App not initialized");
+      const api = treaty(app) as any;
+
+      const { data, error } = await api.api.notes.search.get({
+        query: { q: "anonymous" },
+      });
+
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBeGreaterThanOrEqual(1);
+      expect(data!.some((n: Note) => n.content.includes("anonymous"))).toBe(true);
+    });
+
+    it("returns public and own private notes when authenticated", async () => {
+      const { app, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      });
+      if (!app) throw new Error("App not initialized");
+      const api = treaty(app) as any;
+
+      await api.api.notes.post(
+        {
+          title: "Searchable private",
+          content: "uniqueSearchablePrivateContent",
+          isPublic: false,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const { data, error } = await api.api.notes.search.get({
+        query: { q: "uniqueSearchablePrivateContent" },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBeGreaterThanOrEqual(1);
+      expect(data!.some((n: Note) => n.content.includes("uniqueSearchablePrivateContent"))).toBe(true);
+    });
+
+    it("returns all notes when X-API-Key is valid admin key", async () => {
+      const { app: userApp, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      });
+      if (!userApp) throw new Error("App not initialized");
+      const userApi = treaty(userApp) as any;
+
+      await userApi.api.notes.post(
+        {
+          title: "Admin search private",
+          content: "adminSearchPrivateContent",
+          isPublic: false,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      await dbUtils.createPublicAnonymousNote();
+
+      const { app: adminApp } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        withAuth: false,
+        withApiKey: true,
+        apiKey: ADMIN_API_KEY,
+      });
+      if (!adminApp) throw new Error("Admin app not initialized");
+      const adminApi = treaty(adminApp) as any;
+
+      const { data, error } = await adminApi.api.notes.search.get({
+        query: { q: "adminSearchPrivateContent" },
+        headers: { "X-API-Key": ADMIN_API_KEY },
+      });
+
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.some((n: Note) => n.content.includes("adminSearchPrivateContent"))).toBe(true);
+    });
+  });
 });
