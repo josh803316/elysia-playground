@@ -55,9 +55,27 @@ jobs:
         working-directory: e2e-tests
         run: bunx playwright install --with-deps chromium
 
+      - name: Wait for deployment to be ready
+        run: |
+          BASE="${E2E_BASE_URL%/}"
+          echo "Polling $BASE/health until 200 (max 2 min)..."
+          for i in $(seq 1 24); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/health" || true)
+            if [ "$CODE" = "200" ]; then
+              echo "Deployment ready (HTTP $CODE)."
+              exit 0
+            fi
+            echo "Attempt $i/24: HTTP $CODE, retrying in 5s..."
+            sleep 5
+          done
+          echo "Deployment did not respond with 200 in time."
+          exit 1
+
       - name: Run E2E tests against preview
         working-directory: e2e-tests
         run: bun run e2e -- --reporter=line --retries=1
+        env:
+          PLAYWRIGHT_WORKERS: 2
 
       - name: Upload Playwright report
         if: always()
