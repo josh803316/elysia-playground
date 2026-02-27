@@ -58,19 +58,20 @@ jobs:
       - name: Wait for deployment to be ready
         env:
           EXPECTED_SHA: ${{ github.sha }}
-          API_KEY: ${{ secrets.E2E_ADMIN_API_KEY }}
         run: |
           BASE="${E2E_BASE_URL%/}"
-          if [ -n "$API_KEY" ] && [ "${{ github.event_name }}" = "deployment_status" ]; then
+          if [ "${{ github.event_name }}" = "deployment_status" ] && [ -n "$EXPECTED_SHA" ]; then
             echo "Polling $BASE/versions until commitSha matches $EXPECTED_SHA (max 2 min)..."
             for i in $(seq 1 24); do
-              RESP=$(curl -s -H "X-API-Key: $API_KEY" "$BASE/versions" || true)
-              COMMIT_SHA=$(echo "$RESP" | jq -r '.commitSha // empty')
-              if [ "$COMMIT_SHA" = "$EXPECTED_SHA" ]; then
+              RESP=$(curl -s -w "\n%{http_code}" "$BASE/versions" || true)
+              HTTP_CODE=$(echo "$RESP" | tail -n1)
+              HTTP_BODY=$(echo "$RESP" | sed '$d')
+              COMMIT_SHA=$(echo "$HTTP_BODY" | jq -r '.commitSha // empty' 2>/dev/null || true)
+              if [ "$HTTP_CODE" = "200" ] && [ -n "$COMMIT_SHA" ] && [ "$COMMIT_SHA" = "$EXPECTED_SHA" ]; then
                 echo "Deployment ready (commit $EXPECTED_SHA is live)."
                 exit 0
               fi
-              echo "Attempt $i/24: current commit ${COMMIT_SHA:-unknown}, waiting for $EXPECTED_SHA..."
+              echo "Attempt $i/24: HTTP $HTTP_CODE, commit ${COMMIT_SHA:-unknown}, waiting for $EXPECTED_SHA..."
               sleep 5
             done
             echo "Deployment did not match expected SHA in time."
