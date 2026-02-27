@@ -62,12 +62,12 @@ jobs:
           BASE="${E2E_BASE_URL%/}"
           log_response() {
             local url="$1" code="$2" body="$3"
-            echo "[versions] GET $url -> HTTP $code"
+            echo "[versions] GET $url -> HTTP $code" >&2
             if [ -n "$body" ]; then
               if [ "${#body}" -gt 500 ]; then
-                echo "[versions] response body (first 500 chars): ${body:0:500}..."
+                echo "[versions] response body (first 500 chars): ${body:0:500}..." >&2
               else
-                echo "[versions] response body: $body"
+                echo "[versions] response body: $body" >&2
               fi
             fi
           }
@@ -98,8 +98,11 @@ jobs:
               else
                 echo "Attempt $i/24: /versions and /api/versions both 404, trying health fallback..."
                 for path in "/health" "/api/health"; do
-                  CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE$path" || true)
-                  echo "[versions] GET $BASE$path -> HTTP $CODE"
+                  RESP=$(curl -s -w "\n%{http_code}" "$BASE$path" || true)
+                  CODE=$(echo "$RESP" | tail -n1)
+                  BODY=$(echo "$RESP" | sed '$d')
+                  echo "[versions] GET $BASE$path -> HTTP $CODE" >&2
+                  [ -n "$BODY" ] && echo "[versions] response body: ${BODY:0:300}" >&2
                   if [ "$CODE" = "200" ]; then
                     echo "Deployment responds at $BASE$path (SHA not verified - API may be at different URL)."
                     exit 0
@@ -118,8 +121,8 @@ jobs:
                 RESP=$(curl -s -w "\n%{http_code}" "$BASE$path" || true)
                 CODE=$(echo "$RESP" | tail -n1)
                 BODY=$(echo "$RESP" | sed '$d')
-                echo "[versions] GET $BASE$path -> HTTP $CODE"
-                [ -n "$BODY" ] && echo "[versions] response body: ${BODY:0:300}"
+                echo "[versions] GET $BASE$path -> HTTP $CODE" >&2
+                [ -n "$BODY" ] && echo "[versions] response body: ${BODY:0:300}" >&2
                 if [ "$CODE" = "200" ]; then
                   echo "Deployment ready (HTTP $CODE at $path)."
                   exit 0
