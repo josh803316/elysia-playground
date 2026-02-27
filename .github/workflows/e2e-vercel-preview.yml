@@ -27,10 +27,11 @@ jobs:
         github.event_name == 'deployment_status' &&
         github.event.deployment_status.state == 'success' &&
         (github.event.deployment.environment == 'Preview' || github.event.deployment.environment == 'preview') &&
-        contains(github.event.deployment_status.target_url, 'vercel.app')
+        contains(github.event.deployment_status.environment_url || github.event.deployment_status.target_url, 'vercel.app')
       )
     env:
-      E2E_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.preview_url || github.event.deployment_status.target_url }}
+      # Prefer environment_url (preview URL) over target_url when Vercel posts deployment status; see deployment-status action / API.
+      E2E_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.preview_url || (github.event.deployment_status.environment_url || github.event.deployment_status.target_url) }}
       CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
       CLERK_FRONTEND_API: ${{ secrets.CLERK_FRONTEND_API }}
@@ -55,11 +56,30 @@ jobs:
         working-directory: e2e-tests
         run: bunx playwright install --with-deps chromium
 
+      - name: Log deployment URL (debug)
+        run: |
+          echo "github.event_name = ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "inputs.preview_url = ${{ inputs.preview_url }}"
+            echo "E2E_BASE_URL (resolved) = ${{ github.event_name == 'workflow_dispatch' && inputs.preview_url || (github.event.deployment_status.environment_url || github.event.deployment_status.target_url) }}"
+          else
+            echo "deployment_status.state = ${{ github.event.deployment_status.state }}"
+            echo "deployment_status.environment_url = ${{ github.event.deployment_status.environment_url }}"
+            echo "deployment_status.target_url = ${{ github.event.deployment_status.target_url }}"
+            echo "deployment.environment = ${{ github.event.deployment.environment }}"
+            echo "E2E_BASE_URL (resolved) = ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}"
+          fi
+          echo "EXPECTED_SHA (github.sha) = ${{ github.sha }}"
+
       - name: Wait for deployment to be ready
         env:
           EXPECTED_SHA: ${{ github.sha }}
         run: |
           BASE="${E2E_BASE_URL%/}"
+          if [ "${{ github.event_name }}" = "deployment_status" ]; then
+            echo "Giving Vercel 30s to propagate the deployment URL..."
+            sleep 30
+          fi
           log_response() {
             local url="$1" code="$2" body="$3"
             echo "[versions] GET $url -> HTTP $code" >&2
@@ -77,6 +97,11 @@ jobs:
               CODE=$(echo "$RESP" | tail -n1)
               BODY=$(echo "$RESP" | sed '$d')
               log_response "$BASE$path" "$CODE" "$BODY"
+              if echo "$BODY" | grep -q "DEPLOYMENT_NOT_FOUND\|could not be found on Vercel"; then
+                echo "::error::E2E_BASE_URL is not a valid Vercel deployment URL (got 'deployment could not be found'). When using deployment_status, GitHub receives target_url from the deployment creator. Ensure your Vercel project is linked to this repo and that Vercel sets target_url to the preview URL (e.g. https://your-project-git-branch.vercel.app). To run E2E against a specific URL, use workflow_dispatch and enter the preview URL manually."
+                echo "VERCEL_DEPLOYMENT_NOT_FOUND"
+                return 0
+              fi
               if [ "$CODE" = "200" ]; then
                 echo "$BODY"
                 return 0
@@ -88,6 +113,9 @@ jobs:
             echo "Polling for $BASE/versions or $BASE/api/versions until commitSha matches $EXPECTED_SHA (max 2 min)..."
             for i in $(seq 1 24); do
               BODY=$(fetch_versions) || true
+              if [ "$BODY" = "VERCEL_DEPLOYMENT_NOT_FOUND" ]; then
+                exit 1
+              fi
               if [ -n "$BODY" ]; then
                 COMMIT_SHA=$(echo "$BODY" | jq -r '.commitSha // empty' 2>/dev/null || true)
                 if [ -n "$COMMIT_SHA" ] && [ "$COMMIT_SHA" = "$EXPECTED_SHA" ]; then
