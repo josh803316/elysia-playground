@@ -8,6 +8,16 @@ import Badge from 'primevue/badge';
 import AdminLoginModal from './AdminLoginModal.vue';
 import GlobalSearch from './GlobalSearch.vue';
 
+interface VersionsPayload {
+  version: string;
+  name: string;
+  environment: string;
+  commitSha: string | null;
+  timestamp: string;
+  elysia: string | null;
+  frameworks: Record<string, { name: string; version: string; dependencies: Record<string, string> }>;
+}
+
 const { user, isSignedIn } = useUser();
 const { getToken } = useAuth();
 const clerk = useClerk();
@@ -18,12 +28,20 @@ const adminApiKey = ref<string | null>(null);
 const publicNotesCount = ref(0);
 const privateNotesCount = ref(0);
 
+const versionsData = ref<VersionsPayload | null>(null);
+const versionsOpen = ref(false);
+const versionsError = ref<string | null>(null);
+
 onMounted(() => {
   const stored = localStorage.getItem('adminApiKey');
   if (stored) {
     adminApiKey.value = stored;
     isAdminLoggedIn.value = true;
   }
+  fetch('/versions')
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    .then((data: VersionsPayload) => { versionsData.value = data; })
+    .catch((err) => { versionsError.value = err?.message ?? 'Failed to load versions'; });
 });
 
 watch(isSignedIn, async (val) => {
@@ -141,14 +159,42 @@ function handleAdminLogout() {
       </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="app-footer">
+    <!-- Footer: Versions inline with other links -->
+    <footer class="app-footer app-footer--with-versions">
+      <div v-if="versionsOpen" class="versions-panel versions-panel--above-footer">
+        <div class="versions-panel-header">
+          <span>Versions</span>
+          <button type="button" class="versions-close" aria-label="Close" @click="versionsOpen = false">×</button>
+        </div>
+        <p v-if="versionsError" class="versions-error">{{ versionsError }}</p>
+        <template v-else-if="versionsData">
+          <dl class="versions-dl">
+            <div><dt>App</dt><dd>{{ versionsData.name }} @ {{ versionsData.version }}</dd></div>
+            <div v-if="versionsData.elysia"><dt>Elysia</dt><dd>{{ versionsData.elysia }}</dd></div>
+            <div v-if="versionsData.commitSha"><dt>Commit</dt><dd class="versions-commit">{{ versionsData.commitSha }}</dd></div>
+            <div><dt>Environment</dt><dd>{{ versionsData.environment }}</dd></div>
+            <div v-if="Object.keys(versionsData.frameworks).length">
+              <dt class="versions-frameworks-dt">Frameworks</dt>
+              <dd>
+                <div v-for="(info, key) in versionsData.frameworks" :key="key" class="versions-framework">
+                  <span class="versions-fw-name">{{ info.name }}</span> <span class="versions-fw-ver">{{ info.version }}</span>
+                  <ul v-if="Object.keys(info.dependencies).length" class="versions-deps">
+                    <li v-for="(ver, dep) in info.dependencies" :key="dep">{{ dep }}: {{ ver }}</li>
+                  </ul>
+                </div>
+              </dd>
+            </div>
+          </dl>
+        </template>
+        <p v-else class="versions-loading">Loading…</p>
+      </div>
       <div class="app-container footer-inner">
         <span>© 2024 Notes App</span>
         <div class="footer-links">
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>
           <a href="#">Contact Us</a>
+          <button type="button" class="footer-link-btn" @click="versionsOpen = !versionsOpen">Versions</button>
         </div>
       </div>
     </footer>
@@ -249,6 +295,25 @@ function handleAdminLogout() {
   color: #9ca3af;
   padding: 1rem;
 }
+.app-footer--with-versions {
+  position: relative;
+}
+.footer-link-btn {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.footer-link-btn:hover { color: #d1d5db; }
+.versions-panel--above-footer {
+  position: absolute;
+  bottom: 100%;
+  right: 1rem;
+  margin-bottom: 4px;
+  z-index: 50;
+}
 
 .footer-inner {
   display: flex;
@@ -268,4 +333,46 @@ function handleAdminLogout() {
 }
 
 .footer-links a:hover { color: #d1d5db; }
+
+.versions-panel {
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  max-width: 360px;
+  max-height: 70vh;
+  overflow: auto;
+  text-align: left;
+}
+.versions-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.versions-panel-header span { font-weight: 600; color: #1f2937; }
+.versions-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #6b7280;
+  cursor: pointer;
+}
+.versions-error { font-size: 0.875rem; color: #dc2626; margin: 0; }
+.versions-loading { font-size: 0.875rem; color: #6b7280; margin: 0; }
+.versions-dl { font-size: 0.875rem; margin: 0; }
+.versions-dl div { margin-bottom: 0.5rem; }
+.versions-dl dt { color: #6b7280; }
+.versions-dl dd { font-weight: 500; margin: 0; }
+.versions-commit { font-family: monospace; font-size: 0.75rem; word-break: break-all; }
+.versions-frameworks-dt { margin-top: 0.75rem; margin-bottom: 0.25rem; }
+.versions-framework {
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid #e5e7eb;
+}
+.versions-fw-name { font-weight: 500; }
+.versions-fw-ver { color: #4b5563; }
+.versions-deps { font-size: 0.75rem; color: #6b7280; margin: 0.25rem 0 0 0; padding-left: 1rem; }
 </style>

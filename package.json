@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.3.9",
+  "packageManager": "bun@1.3.10",
   "workspaces": [
     "react",
     "svelte",
@@ -60,11 +60,11 @@
     "@clerk/backend": "2.29.2"
   },
   "dependencies": {
-    "elysia": "^1.4.25"
+    "elysia": "^1.4.26"
   },
   "devDependencies": {
     "bun-types": "latest",
-    "turbo": "^2.8.10"
+    "turbo": "^2.8.12"
   },
   "patchedDependencies": {
     "@clerk/backend@2.29.2": "patches/@clerk%2Fbackend@2.29.2.patch"

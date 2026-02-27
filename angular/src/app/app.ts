@@ -6,6 +6,16 @@ import { AdminComponent } from './components/admin/admin';
 import { GlobalSearchComponent } from './components/global-search/global-search';
 import { AuthService } from './services/auth.service';
 
+interface VersionsPayload {
+  version: string;
+  name: string;
+  environment: string;
+  commitSha: string | null;
+  timestamp: string;
+  elysia: string | null;
+  frameworks: Record<string, { name: string; version: string; dependencies: Record<string, string> }>;
+}
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -106,14 +116,54 @@ import { AuthService } from './services/auth.service';
       }
     </main>
 
-    <!-- Footer - matches HTMX dark footer -->
-    <footer class="dark-footer">
+    <!-- Footer - matches HTMX dark footer; Versions inline with other links -->
+    <footer class="dark-footer dark-footer--with-versions">
+      @if (versionsOpen()) {
+        <div class="versions-panel versions-panel--above-footer">
+          <div class="versions-panel-header">
+            <span>Versions</span>
+            <button type="button" class="versions-close" (click)="versionsOpen.set(false)" aria-label="Close">×</button>
+          </div>
+          @if (versionsError()) {
+            <p class="versions-error">{{ versionsError() }}</p>
+          } @else if (versionsData(); as d) {
+            <dl class="versions-dl">
+              <div><dt>App</dt><dd>{{ d.name }} @ {{ d.version }}</dd></div>
+              @if (d.elysia) { <div><dt>Elysia</dt><dd>{{ d.elysia }}</dd></div> }
+              @if (d.commitSha) { <div><dt>Commit</dt><dd class="versions-commit">{{ d.commitSha }}</dd></div> }
+              <div><dt>Environment</dt><dd>{{ d.environment }}</dd></div>
+              @if (Object.keys(d.frameworks).length) {
+                <div>
+                  <dt class="versions-frameworks-dt">Frameworks</dt>
+                  <dd>
+                    @for (entry of frameworkEntries(d.frameworks); track entry.key) {
+                      <div class="versions-framework">
+                        <span class="versions-fw-name">{{ entry.info.name }}</span> <span class="versions-fw-ver">{{ entry.info.version }}</span>
+                        @if (Object.keys(entry.info.dependencies).length) {
+                          <ul class="versions-deps">
+                            @for (dep of dependencyEntries(entry.info.dependencies); track dep.key) {
+                              <li>{{ dep.key }}: {{ dep.value }}</li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+          } @else {
+            <p class="versions-loading">Loading…</p>
+          }
+        </div>
+      }
       <div class="dark-footer-inner">
         <span>© 2024 Notes App</span>
         <div class="dark-footer-links">
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>
           <a href="#">Contact Us</a>
+          <button type="button" class="dark-footer-link-btn" (click)="versionsOpen.set(!versionsOpen())">Versions</button>
         </div>
       </div>
     </footer>
@@ -148,6 +198,7 @@ import { AuthService } from './services/auth.service';
         </div>
       </div>
     }
+
   `,
   styles: `
     .navbar-brand-link {
@@ -302,6 +353,7 @@ import { AuthService } from './services/auth.service';
       padding: 1.5rem 0;
       margin-top: 3rem;
     }
+    .dark-footer--with-versions { position: relative; }
     .dark-footer-inner {
       max-width: 1320px;
       margin: 0 auto;
@@ -314,6 +366,7 @@ import { AuthService } from './services/auth.service';
     .dark-footer-links {
       display: flex;
       gap: 1rem;
+      align-items: center;
     }
     .dark-footer-links a {
       font-size: 0.875rem;
@@ -322,6 +375,23 @@ import { AuthService } from './services/auth.service';
       transition: color 0.15s;
     }
     .dark-footer-links a:hover { color: white; }
+    .dark-footer-link-btn {
+      font-size: 0.875rem;
+      color: #9ca3af;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .dark-footer-link-btn:hover { color: white; }
+    .versions-panel--above-footer {
+      position: absolute;
+      bottom: 100%;
+      right: 1rem;
+      margin-bottom: 4px;
+      z-index: 50;
+    }
 
     /* Modal */
     .modal-overlay {
@@ -373,20 +443,75 @@ import { AuthService } from './services/auth.service';
       gap: 0.75rem;
       margin-top: 1rem;
     }
+
+    .versions-widget {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .versions-panel {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+      border: 1px solid #e5e7eb;
+      padding: 1rem;
+      max-width: 360px;
+      max-height: 70vh;
+      overflow: auto;
+      text-align: left;
+    }
+    .versions-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .versions-panel-header span { font-weight: 600; color: #1f2937; }
+    .versions-close {
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      color: #6b7280;
+      cursor: pointer;
+    }
+    .versions-error { font-size: 0.875rem; color: #dc2626; margin: 0; }
+    .versions-loading { font-size: 0.875rem; color: #6b7280; margin: 0; }
+    .versions-dl { font-size: 0.875rem; margin: 0; }
+    .versions-dl div { margin-bottom: 0.5rem; }
+    .versions-dl dt { color: #6b7280; }
+    .versions-dl dd { font-weight: 500; margin: 0; }
+    .versions-commit { font-family: monospace; font-size: 0.75rem; word-break: break-all; }
+    .versions-frameworks-dt { margin-top: 0.75rem; margin-bottom: 0.25rem; }
+    .versions-framework {
+      margin-bottom: 0.5rem;
+      padding-left: 0.5rem;
+      border-left: 2px solid #e5e7eb;
+    }
+    .versions-fw-name { font-weight: 500; }
+    .versions-fw-ver { color: #4b5563; }
+    .versions-deps { font-size: 0.75rem; color: #6b7280; margin: 0.25rem 0 0 0; padding-left: 1rem; }
+    .versions-btn {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #4b5563;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
   `,
 })
-/**
- * Root app component: single-page layout with public notes, private notes (when signed in),
- * and optional admin section. Uses Angular signals for reactive UI and inject() for DI.
- *
- * Design notes:
- * - Counts are refreshed on init and when auth/admin state changes via effect();
- *   we avoid setInterval to prevent leaks and unnecessary requests when the tab is idle.
- * - Admin API key is kept in localStorage for session persistence; consider short-lived
- *   tokens in production.
- */
 export class App implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
+  /** Expose global Object for template (Object.keys, etc.) */
+  readonly Object = Object;
 
   showAdminModal = false;
   adminKeyInput = '';
@@ -395,6 +520,10 @@ export class App implements OnInit, OnDestroy {
 
   publicCount = signal(0);
   privateCount = signal(0);
+
+  versionsData = signal<VersionsPayload | null>(null);
+  versionsOpen = signal(false);
+  versionsError = signal<string | null>(null);
 
   /** Clear any polling when the component is destroyed to avoid memory leaks. */
   private countRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -406,6 +535,14 @@ export class App implements OnInit, OnDestroy {
     this.refreshCounts();
   });
 
+  frameworkEntries(frameworks: VersionsPayload['frameworks']): { key: string; info: VersionsPayload['frameworks'][string] }[] {
+    return Object.entries(frameworks).map(([key, info]) => ({ key, info }));
+  }
+
+  dependencyEntries(deps: Record<string, string>): { key: string; value: string }[] {
+    return Object.entries(deps).map(([key, value]) => ({ key, value }));
+  }
+
   ngOnInit() {
     this.auth.init();
     const storedKey = localStorage.getItem('adminApiKey');
@@ -415,6 +552,11 @@ export class App implements OnInit, OnDestroy {
     this.refreshCounts();
     // Fallback: refresh counts periodically so nav badges stay in sync if data changes elsewhere.
     this.countRefreshIntervalId = setInterval(() => this.refreshCounts(), 5000);
+    // Fetch versions once on load (all frameworks from Elysia endpoint)
+    fetch('/versions')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data: VersionsPayload) => this.versionsData.set(data))
+      .catch((err) => this.versionsError.set(err?.message ?? 'Failed to load versions'));
   }
 
   ngOnDestroy() {

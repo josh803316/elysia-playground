@@ -12,20 +12,20 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.61.0",
-    "@clerk/react-router": "^2.4.6",
+    "@clerk/clerk-react": "^5.61.3",
+    "@clerk/react-router": "^2.4.10",
     "@mantine/core": "^8.3.15",
     "@mantine/form": "^8.3.15",
     "@mantine/hooks": "^8.3.15",
-    "@tabler/icons-react": "^3.36.1",
-    "axios": "^1.13.5",
+    "@tabler/icons-react": "^3.37.1",
+    "axios": "^1.13.6",
     "postcss": "^8.5.6",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.0",
-    "rollup-plugin-visualizer": "^6.0.5",
+    "react-router-dom": "^7.13.1",
+    "rollup-plugin-visualizer": "^7.0.0",
     "vite-plugin-compression": "^0.5.1"
   },
   "devDependencies": {
@@ -33,12 +33,12 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
-    "eslint": "^10.0.0",
+    "eslint": "^10.0.2",
     "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.0",
+    "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.3.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.56.0",
+    "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
   }

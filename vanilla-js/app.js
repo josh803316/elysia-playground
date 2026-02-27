@@ -306,9 +306,75 @@ onChange(({ user, token }) => {
 
 // ── Init ─────────────────────────────────────────────────────
 
+// ── Versions (footer) ───────────────────────────────────────
+
+let versionsData = null;
+let versionsError = null;
+
+function renderVersionsPanel() {
+  const panel = $("#versions-panel");
+  if (!panel) return;
+  if (versionsError) {
+    panel.innerHTML = `<p class="versions-error">${versionsError}</p>`;
+    return;
+  }
+  if (!versionsData) {
+    panel.innerHTML = "<p class=\"versions-loading\">Loading…</p>";
+    return;
+  }
+  const d = versionsData;
+  let html = '<div class="versions-panel-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem"><span style="font-weight:600;color:#1f2937">Versions</span><button type="button" id="versions-close" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280">×</button></div>';
+  html += "<dl>";
+  html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">App</dt><dd style="font-weight:500;margin:0">${d.name || ""} @ ${d.version || ""}</dd></div>`;
+  if (d.elysia) html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Elysia</dt><dd style="font-weight:500;margin:0">${d.elysia}</dd></div>`;
+  if (d.commitSha) html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Commit</dt><dd style="font-family:monospace;font-size:0.75rem;word-break:break-all;margin:0">${d.commitSha}</dd></div>`;
+  html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Environment</dt><dd style="margin:0">${d.environment || ""}</dd></div>`;
+  if (d.frameworks && Object.keys(d.frameworks).length) {
+    html += '<div style="margin-top:0.75rem"><dt style="color:#6b7280;margin-bottom:0.25rem">Frameworks</dt><dd>';
+    for (const name of Object.keys(d.frameworks)) {
+      const info = d.frameworks[name];
+      html += `<div style="margin-bottom:0.5rem;padding-left:0.5rem;border-left:2px solid #e5e7eb"><span style="font-weight:500">${info.name || name}</span> <span style="color:#4b5563">${info.version || ""}</span>`;
+      if (info.dependencies && Object.keys(info.dependencies).length) {
+        html += '<ul style="font-size:0.75rem;color:#6b7280;margin:0.25rem 0 0 0;padding-left:1rem">';
+        for (const dep of Object.keys(info.dependencies)) html += `<li>${dep}: ${info.dependencies[dep]}</li>`;
+        html += "</ul>";
+      }
+      html += "</div>";
+    }
+    html += "</dd></div>";
+  }
+  html += "</dl>";
+  panel.innerHTML = html;
+  $("#versions-close")?.addEventListener("click", () => {
+    panel.setAttribute("aria-hidden", "true");
+  });
+}
+
+function initVersions() {
+  fetch("/versions")
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    .then((d) => {
+      versionsData = d;
+    })
+    .catch((e) => {
+      versionsError = e?.message ?? "Failed to load versions";
+    });
+  const panel = $("#versions-panel");
+  const btn = $("#versions-btn");
+  btn?.addEventListener("click", () => {
+    const hidden = panel.getAttribute("aria-hidden") !== "false";
+    panel.setAttribute("aria-hidden", String(!hidden));
+    if (!hidden) return;
+    renderVersionsPanel();
+  });
+}
+
+// ── Init ─────────────────────────────────────────────────────
+
 async function init() {
   body.classList.add("signed-out");
   bindNavButtons();
+  initVersions();
 
   // Restore admin session if key exists
   if (adminApiKey) {

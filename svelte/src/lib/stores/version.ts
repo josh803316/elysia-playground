@@ -1,15 +1,28 @@
 import { writable } from "svelte/store";
 import apiClient from "../api/client";
 
+export interface VersionsResponse {
+  version: string;
+  name: string;
+  environment: string;
+  commitSha: string | null;
+  timestamp: string;
+  elysia: string | null;
+  frameworks: Record<
+    string,
+    { name: string; version: string; dependencies: Record<string, string> }
+  >;
+}
+
 interface VersionState {
-  version: string | null;
+  data: VersionsResponse | null;
   loading: boolean;
   error: Error | null;
 }
 
 function createVersionStore() {
   const { subscribe, set } = writable<VersionState>({
-    version: null,
+    data: null,
     loading: false,
     error: null,
   });
@@ -17,13 +30,13 @@ function createVersionStore() {
   return {
     subscribe,
     fetchVersion: async () => {
-      set({ version: null, loading: true, error: null });
+      set({ data: null, loading: true, error: null });
       try {
         const response = await apiClient.versions.get();
-        set({ version: response.data.version, loading: false, error: null });
+        set({ data: response.data, loading: false, error: null });
       } catch (err) {
         set({
-          version: null,
+          data: null,
           loading: false,
           error:
             err instanceof Error ? err : new Error("Failed to fetch version"),

@@ -21,6 +21,16 @@ import AdminLoginForm from "./AdminLoginForm";
 import { GlobalSearch } from "./GlobalSearch";
 import { useNoteContext } from "../context/NoteContext";
 
+interface VersionsPayload {
+  version: string;
+  name: string;
+  environment: string;
+  commitSha: string | null;
+  timestamp: string;
+  elysia: string | null;
+  frameworks: { [k: string]: { name: string; version: string; dependencies: { [key: string]: string } } };
+}
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -121,6 +131,17 @@ export const Layout = ({ children }: LayoutProps) => {
       console.error("Error fetching note counts:", err);
     }
   };
+
+  // Versions: fetch once on load, show in expandable panel
+  const [versionsData, setVersionsData] = useState<VersionsPayload | null>(null);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versionsError, setVersionsError] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/versions")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))))
+      .then((data: VersionsPayload) => setVersionsData(data))
+      .catch((err) => setVersionsError(err?.message ?? "Failed to load versions"));
+  }, []);
 
   // Check for existing admin API key in localStorage on mount
   useEffect(() => {
@@ -297,11 +318,89 @@ export const Layout = ({ children }: LayoutProps) => {
           </Grid>
         </Container>
 
-        {/* Footer – matches HTMX dark footer at end of content */}
-        <footer style={{ background: "#1f2937", color: "#9ca3af", padding: "1.5rem 0", marginTop: "3rem" }}>
+        {/* Footer – matches HTMX dark footer; Versions inline with other links */}
+        <footer style={{ background: "#1f2937", color: "#9ca3af", padding: "1.5rem 0", marginTop: "3rem", position: "relative" }}>
+          {versionsOpen && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "100%",
+                right: "1rem",
+                marginBottom: 4,
+                background: "#fff",
+                borderRadius: 8,
+                boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                border: "1px solid #e5e7eb",
+                padding: 16,
+                maxWidth: 360,
+                maxHeight: "70vh",
+                overflow: "auto",
+                textAlign: "left",
+                zIndex: 50,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontWeight: 600, color: "#1f2937" }}>Versions</span>
+                <button
+                  type="button"
+                  style={{ background: "none", border: "none", fontSize: "1.25rem", cursor: "pointer", color: "#6b7280" }}
+                  onClick={() => setVersionsOpen(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              {versionsError && <p style={{ fontSize: "0.875rem", color: "#dc2626" }}>{versionsError}</p>}
+              {versionsData && (
+                <dl style={{ fontSize: "0.875rem", margin: 0 }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <dt style={{ color: "#6b7280" }}>App</dt>
+                    <dd style={{ fontWeight: 500, margin: 0 }}>{versionsData.name} @ {versionsData.version}</dd>
+                  </div>
+                  {versionsData.elysia && (
+                    <div style={{ marginBottom: 8 }}>
+                      <dt style={{ color: "#6b7280" }}>Elysia</dt>
+                      <dd style={{ fontWeight: 500, margin: 0 }}>{versionsData.elysia}</dd>
+                    </div>
+                  )}
+                  {versionsData.commitSha && (
+                    <div style={{ marginBottom: 8 }}>
+                      <dt style={{ color: "#6b7280" }}>Commit</dt>
+                      <dd style={{ fontFamily: "monospace", fontSize: "0.75rem", wordBreak: "break-all", margin: 0 }}>{versionsData.commitSha}</dd>
+                    </div>
+                  )}
+                  <div style={{ marginBottom: 8 }}>
+                    <dt style={{ color: "#6b7280" }}>Environment</dt>
+                    <dd style={{ margin: 0 }}>{versionsData.environment}</dd>
+                  </div>
+                  {Object.keys(versionsData.frameworks).length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <dt style={{ color: "#6b7280", marginBottom: 4 }}>Frameworks</dt>
+                      <dd style={{ margin: 0 }}>
+                        {Object.entries(versionsData.frameworks).map(([key, info]) => (
+                          <div key={key} style={{ marginBottom: 8, paddingLeft: 8, borderLeft: "2px solid #e5e7eb" }}>
+                            <span style={{ fontWeight: 500 }}>{info.name}</span>{" "}
+                            <span style={{ color: "#4b5563" }}>{info.version}</span>
+                            {Object.keys(info.dependencies).length > 0 && (
+                              <ul style={{ fontSize: "0.75rem", color: "#6b7280", margin: "4px 0 0 0", paddingLeft: 16 }}>
+                                {Object.entries(info.dependencies).map(([dep, ver]) => (
+                                  <li key={dep}>{dep}: {ver}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+              {!versionsData && !versionsError && <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Loading…</p>}
+            </div>
+          )}
           <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: "0.875rem" }}>© 2024 Notes App</span>
-            <div style={{ display: "flex", gap: "1rem" }}>
+            <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
               <a href="#" style={footerLinkStyle}
                 onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = "white"; }}
                 onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = "#9ca3af"; }}
@@ -314,6 +413,15 @@ export const Layout = ({ children }: LayoutProps) => {
                 onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = "white"; }}
                 onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = "#9ca3af"; }}
               >Contact Us</a>
+              <button
+                type="button"
+                style={{ ...footerLinkStyle, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = "white"; }}
+                onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = "#9ca3af"; }}
+                onClick={() => setVersionsOpen((o) => !o)}
+              >
+                Versions
+              </button>
             </div>
           </div>
         </footer>

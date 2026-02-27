@@ -30,6 +30,7 @@
 	import GlobalSearch from '$lib/components/GlobalSearch.svelte';
 
     let { children } = $props();
+	let versionsOpen = $state(false);
 
 	let publicNotesCount = $state(0);
 	let privateNotesCount = $state(0);
@@ -326,15 +327,57 @@
 			</div>
 		</main>
 
-		<!-- Footer - match HTMX dark footer -->
-		<footer class="bg-gray-800 text-gray-400 py-6 mt-12">
+		<!-- Footer - match HTMX dark footer; Versions inline with other links -->
+		<footer class="bg-gray-800 text-gray-400 py-6 mt-12 relative">
+			{#if versionsOpen}
+				<div class="versions-panel absolute bottom-full right-4 mb-1 bg-white rounded-lg shadow-lg border border-gray-200 p-4 text-left max-w-sm max-h-[70vh] overflow-auto z-50">
+					<div class="flex justify-between items-center mb-3">
+						<span class="font-semibold text-gray-800">Versions</span>
+						<button type="button" class="text-gray-500 hover:text-gray-700 text-lg leading-none" onclick={() => (versionsOpen = false)} aria-label="Close">×</button>
+					</div>
+					{#if $versionStore.loading}
+						<p class="text-sm text-gray-500">Loading…</p>
+					{:else if $versionStore.error}
+						<p class="text-sm text-red-600">{$versionStore.error.message}</p>
+					{:else if $versionStore.data}
+						{@const d = $versionStore.data}
+						<dl class="text-sm space-y-2">
+							<div><dt class="text-gray-500">App</dt><dd class="font-medium">{d.name} @ {d.version}</dd></div>
+							{#if d.elysia}<div><dt class="text-gray-500">Elysia</dt><dd class="font-medium">{d.elysia}</dd></div>{/if}
+							{#if d.commitSha}<div><dt class="text-gray-500">Commit</dt><dd class="font-mono text-xs break-all">{d.commitSha}</dd></div>{/if}
+							<div><dt class="text-gray-500">Environment</dt><dd>{d.environment}</dd></div>
+							{#if Object.keys(d.frameworks).length > 0}
+								<div><dt class="text-gray-500 mt-2">Frameworks</dt>
+									<dd class="mt-1 space-y-1">
+										{#each Object.entries(d.frameworks) as [name, info]}
+											<div class="pl-2 border-l-2 border-gray-200">
+												<span class="font-medium">{info.name}</span> <span class="text-gray-600">{info.version}</span>
+												{#if Object.keys(info.dependencies).length > 0}
+													<ul class="text-xs text-gray-500 mt-0.5">
+														{#each Object.entries(info.dependencies) as [dep, ver]}
+															<li>{dep}: {ver}</li>
+														{/each}
+													</ul>
+												{/if}
+											</div>
+										{/each}
+									</dd>
+								</div>
+							{/if}
+						</dl>
+					{:else}
+						<p class="text-sm text-gray-500">No version data</p>
+					{/if}
+				</div>
+			{/if}
 			<div class="mx-auto px-4" style="max-width: 1320px;">
 				<div class="flex justify-between items-center">
 					<span class="text-sm">© 2024 Notes App</span>
-					<div class="flex gap-4 text-sm">
+					<div class="flex gap-4 text-sm items-center flex-wrap">
 						<a href={toBasePath('/')} class="hover:text-white transition-colors">Privacy Policy</a>
 						<a href={toBasePath('/')} class="hover:text-white transition-colors">Terms of Service</a>
 						<a href={toBasePath('/')} class="hover:text-white transition-colors">Contact Us</a>
+						<button type="button" class="text-sm text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0" onclick={() => (versionsOpen = !versionsOpen)}>Versions</button>
 					</div>
 				</div>
 			</div>
@@ -367,6 +410,7 @@
 			isEditing={false}
 			initialPublic={createPublicNote}
 		/>
+
 	</div>
 </ClerkProvider>
 {:else}

@@ -93,7 +93,9 @@ interface ExpectedClient {
     };
   };
   versions: {
-    get: () => Promise<{ data: { version: string } }>;
+    get: () => Promise<{
+      data: import("$lib/stores/version").VersionsResponse;
+    }>;
   };
 }
 

@@ -125,13 +125,15 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
     ${content}
   </main>
   
-  <footer class="bg-gray-800 text-gray-400 py-6 mt-12">
+  <footer class="bg-gray-800 text-gray-400 py-6 mt-12 relative">
+    <div id="versions-panel" class="hidden absolute bottom-full right-4 mb-1 bg-white rounded-lg shadow-lg border border-gray-200 p-4 text-left text-sm max-w-sm max-h-[70vh] overflow-auto z-50 text-gray-800" style="width: 360px;"></div>
     <div class="max-w-[1320px] mx-auto px-4 flex justify-between items-center">
       <span class="text-sm">© 2024 Notes App</span>
-      <div class="flex gap-4 text-sm">
+      <div class="flex gap-4 text-sm items-center">
         <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
         <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
         <a href="#" class="hover:text-white transition-colors">Contact Us</a>
+        <button type="button" id="versions-btn" class="bg-transparent border-none text-gray-400 hover:text-white transition-colors cursor-pointer p-0 text-sm">Versions</button>
       </div>
     </div>
   </footer>
@@ -204,6 +206,55 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
       window.updateAdminNav();
       // Always fetch public count immediately (shows even before Clerk loads)
       window.refreshNavNoteCounts();
+      // Versions: fetch on load, toggle panel on button click
+      var versionsData = null;
+      var versionsError = null;
+      fetch('/versions').then(function(r) { return r.ok ? r.json() : Promise.reject(new Error(r.status)); })
+        .then(function(d) { versionsData = d; })
+        .catch(function(e) { versionsError = e && e.message ? e.message : 'Failed to load versions'; });
+      var versionsPanel = document.getElementById('versions-panel');
+      var versionsBtn = document.getElementById('versions-btn');
+      function renderVersionsPanel() {
+        if (!versionsPanel) return;
+        if (versionsError) {
+          versionsPanel.innerHTML = '<p class="text-red-600 text-sm">' + versionsError + '</p>';
+          return;
+        }
+        if (!versionsData) {
+          versionsPanel.innerHTML = '<p class="text-gray-500 text-sm">Loading…</p>';
+          return;
+        }
+        var d = versionsData;
+        var html = '<div class="flex justify-between items-center mb-3"><span class="font-semibold text-gray-800">Versions</span><button type="button" id="versions-close" class="text-gray-500 text-lg leading-none">×</button></div>';
+        html += '<dl class="text-sm">';
+        html += '<div class="mb-2"><dt class="text-gray-500">App</dt><dd class="font-medium">' + (d.name || '') + ' @ ' + (d.version || '') + '</dd></div>';
+        if (d.elysia) html += '<div class="mb-2"><dt class="text-gray-500">Elysia</dt><dd class="font-medium">' + d.elysia + '</dd></div>';
+        if (d.commitSha) html += '<div class="mb-2"><dt class="text-gray-500">Commit</dt><dd class="font-mono text-xs break-all">' + d.commitSha + '</dd></div>';
+        html += '<div class="mb-2"><dt class="text-gray-500">Environment</dt><dd>' + (d.environment || '') + '</dd></div>';
+        if (d.frameworks && Object.keys(d.frameworks).length) {
+          html += '<div class="mt-3"><dt class="text-gray-500 mb-1">Frameworks</dt><dd>';
+          for (var name in d.frameworks) {
+            var info = d.frameworks[name];
+            html += '<div class="mb-2 pl-2 border-l-2 border-gray-200"><span class="font-medium">' + (info.name || name) + '</span> <span class="text-gray-600">' + (info.version || '') + '</span>';
+            if (info.dependencies && Object.keys(info.dependencies).length) {
+              html += '<ul class="text-xs text-gray-500 mt-0.5 pl-4">';
+              for (var dep in info.dependencies) html += '<li>' + dep + ': ' + info.dependencies[dep] + '</li>';
+              html += '</ul>';
+            }
+            html += '</div>';
+          }
+          html += '</dd></div>';
+        }
+        html += '</dl>';
+        versionsPanel.innerHTML = html;
+        versionsPanel.querySelector('#versions-close')?.addEventListener('click', function() {
+          versionsPanel.classList.add('hidden');
+        });
+      }
+      versionsBtn?.addEventListener('click', function() {
+        versionsPanel.classList.toggle('hidden');
+        if (!versionsPanel.classList.contains('hidden')) renderVersionsPanel();
+      });
     });
     document.body.addEventListener('htmx:configRequest', function(evt) {
       var el = evt.detail && evt.detail.elt;
