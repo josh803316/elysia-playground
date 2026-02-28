@@ -8,11 +8,10 @@ import { TokenType } from "@clerk/backend/internal";
 import { Elysia } from "elysia";
 
 function patchRequest(request: Request): Request {
+  // Use only RequestInit properties that are in strict lib (no cache/redirect)
   const cloned = new Request(request.url, {
     headers: request.headers,
     method: request.method,
-    redirect: request.redirect,
-    cache: request.cache,
     signal: request.signal,
   });
   if (
@@ -72,7 +71,8 @@ export function clerkPluginWithRequestOrigin(options: ClerkPluginOptions) {
         } as Parameters<typeof clerkClient.authenticateRequest>[1]
       );
 
-      const auth = (opts?: unknown) => requestState.toAuth(opts);
+      type AuthOptions = Parameters<typeof requestState.toAuth>[0];
+      const auth = (opts?: AuthOptions) => requestState.toAuth(opts);
       requestState.headers.forEach((value, key) => {
         set.headers[key] = value;
       });
