@@ -6,7 +6,7 @@
 import { Elysia, NotFoundError } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { opentelemetry } from "@elysiajs/opentelemetry";
-import { clerkPlugin } from "elysia-clerk";
+import { clerkPluginWithRequestOrigin } from "./clerk-with-request-origin.js";
 import { cors } from "@elysiajs/cors";
 import { promises as fs } from "fs";
 import { join, resolve } from "path";
@@ -177,19 +177,14 @@ useLogger(app);
 app
   .use(opentelemetry())
   .use(swagger())
-  // Add Clerk plugin with path exclusions
+  // Clerk plugin: include request origin in authorizedParties so same-host tokens (e.g. Vercel deployment URL) are accepted.
   .use(
-    clerkPlugin({
+    clerkPluginWithRequestOrigin({
       publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
       secretKey: process.env.CLERK_SECRET_KEY,
-      // Allow auth from local dev and deployed frontend origins.
       authorizedParties: allowedOrigins,
-      // Skip authentication for public paths
-      // Using type assertion since runtime may support this even if types don't
-      protectedRoutes: (path: string) => {
-        return isProtectedRoute(path);
-      },
-    } as any)
+      protectedRoutes: (path: string) => isProtectedRoute(path),
+    })
   )
   .use(
     cors({

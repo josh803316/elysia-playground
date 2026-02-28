@@ -45,6 +45,7 @@ import {
   loginAsAdmin,
   adminDeleteE2ENotes,
   adminDeleteE2ENotesByApi,
+  waitForClerkSessionToken,
 } from './helpers/notes-flow.js';
 
 const adminApiKey = process.env.E2E_ADMIN_API_KEY ?? '';
@@ -134,6 +135,7 @@ for (const appDef of APP_PATHS) {
       ).first();
       await expect(yourNotes).toBeVisible({ timeout: 10_000 });
 
+      await waitForClerkSessionToken(page, 15_000);
       await createPrivateNote(page, content, title);
       await expect(
         page.getByText(title).or(page.getByText(content)).first()

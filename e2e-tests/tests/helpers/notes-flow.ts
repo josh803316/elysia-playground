@@ -26,6 +26,33 @@ export function e2eNotePattern(): RegExp {
   return new RegExp(E2E_PREFIX);
 }
 
+/**
+ * Wait until the page has a Clerk session token (so API requests will send Bearer token).
+ * Polls window.Clerk.session.getToken() to avoid creating private notes before session is ready.
+ */
+export async function waitForClerkSessionToken(
+  page: Page,
+  timeoutMs: number = 15_000
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const token = await page.evaluate(async () => {
+      const getToken = (window as any)?.Clerk?.session?.getToken;
+      if (typeof getToken !== 'function') return null;
+      try {
+        return (await getToken()) ?? null;
+      } catch {
+        return null;
+      }
+    });
+    if (token && typeof token === 'string' && token.length > 0) return;
+    await page.waitForTimeout(400);
+  }
+  throw new Error(
+    `Clerk session token not available after ${timeoutMs}ms. Ensure sign-in completed and CLERK keys match the app.`
+  );
+}
+
 /** Scope to the open modal/dialog so we don't hit header buttons or overlays. */
 function withinModal(page: Page) {
   return page.getByRole('dialog').or(page.locator('.modal-box, .modal, [class*="Modal"]')).first();
@@ -233,8 +260,7 @@ export async function createPublicNote(
   const createPromise = page.waitForResponse(
     (res) =>
       (res.url().includes('/api/public-notes') || res.url().includes('/api/notes')) &&
-      (res.request().method() === 'POST' || res.request().method() === 'PUT') &&
-      res.status() < 400,
+      (res.request().method() === 'POST' || res.request().method() === 'PUT'),
     { timeout: 20000 }
   );
   await clickSubmitButton(
@@ -245,7 +271,13 @@ export async function createPublicNote(
     /post public note|save public note|save note|post note/i
   );
   try {
-    await createPromise;
+    const response = await createPromise;
+    if (response.status() >= 400) {
+      const body = await response.text().catch(() => '');
+      throw new Error(
+        `Public note create failed: HTTP ${response.status()} ${response.statusText()}. ${body ? `Body: ${body.slice(0, 300)}` : ''}`
+      );
+    }
   } catch (err) {
     // Svelte signed-out modal occasionally fails to submit via UI interaction in CI;
     // fallback to API create so downstream edit/delete coverage can still run.
@@ -302,12 +334,11 @@ export async function createPrivateNote(
 
   await fillContentField(page, modal, content);
 
-  // Wait for successful create response so tests do not continue on failed submit.
+  // Wait for create request response (any status) so we can assert and fail with a clear message on 401/4xx.
   const createPromise = page.waitForResponse(
     (res) =>
       (res.url().includes('/api/notes') || res.url().includes('/api/private-notes')) &&
-      (res.request().method() === 'POST' || res.request().method() === 'PUT') &&
-      res.status() < 400,
+      (res.request().method() === 'POST' || res.request().method() === 'PUT'),
     { timeout: 20000 }
   );
 
@@ -319,7 +350,13 @@ export async function createPrivateNote(
     /save private note/i
   );
   try {
-    await createPromise;
+    const response = await createPromise;
+    if (response.status() >= 400) {
+      const body = await response.text().catch(() => '');
+      throw new Error(
+        `Private note create failed: HTTP ${response.status()} ${response.statusText()}. ${body ? `Body: ${body.slice(0, 300)}` : ''}`
+      );
+    }
   } catch (err) {
     if (!page.url().includes('/htmx')) throw err;
     await page.evaluate(async ({ fallbackTitle, fallbackContent }) => {

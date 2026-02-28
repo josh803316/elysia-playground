@@ -71,3 +71,5 @@ Then:
 | `CLERK_SECRET_KEY` | Clerk Secret Key (required for Testing Token; keep secure) |
 | `CLERK_TEST_EMAIL` | Clerk test user email — use a `+clerk_test` address |
 | `E2E_ADMIN_API_KEY` | Admin API key for the cleanup step |
+
+**401 on private notes:** If you see "Private note create failed: HTTP 401", the app at `E2E_BASE_URL` is using different Clerk keys than `e2e-tests/.env`. Use the same Clerk application (same `CLERK_SECRET_KEY` / publishable) for the deployed server and for E2E.
