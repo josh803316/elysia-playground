@@ -20,7 +20,7 @@ All five frontends talk to the same **Elysia + Bun** backend and Notes data mode
 ```mermaid
 flowchart LR
 
-  S[server (Elysia + Bun)]
+  S[Server]
   R[react app]
   Sv[svelte app]
   A[angular app]
@@ -36,11 +36,11 @@ flowchart LR
   CL[Clerk]
   GH[GitHub Actions]
 
-  S <-- API / auth --> R
-  S <-- API / auth --> Sv
-  S <-- API / auth --> A
-  S <-- API / auth --> H
-  S <-- API / auth --> VJ
+  S --> R
+  S --> Sv
+  S --> A
+  S --> H
+  S --> VJ
 
   GH -. uses .-> SCI
   SCI -. deploys .-> VC
@@ -135,6 +135,28 @@ At a glance:
   - The patterns and directory structure in `e2e-tests/` align with what `shared-test-automation` provides.
 - **Why it matters**: CI can run the **same style of black‑box tests** (against Vercel preview or production URLs) across multiple apps, using consistent helpers and conventions.
 - **Repo**: `shared-test-automation` on GitHub.
+
+## Commit Convention
+
+Commits follow **Conventional Commits**. Linear ticket refs (`[ELY-N]`) are **always optional** — both forms are valid:
+
+```
+fix: [ELY-5] Fix the bug           # with ticket
+feat: Add new feature              # without ticket
+feat(scope): [ELY-12] New thing   # with scope and ticket
+```
+
+When a commit or PR title contains an `[ELY-N]` ref, the CI automation handles Linear state transitions automatically:
+
+| GitHub event                         | Linear ticket action                              |
+| ------------------------------------ | ------------------------------------------------- |
+| PR opened → Vercel preview deployed  | → **In Progress** + preview URL posted as comment |
+| PR converted to draft                | → **In Progress**                                 |
+| PR marked ready for review           | → **In Review**                                   |
+| PR review: changes requested         | → **In Progress**                                 |
+| Merged to `main` + release published | → **Done**                                        |
+
+Commits without ticket refs pass through all steps unchanged.
 
 ## Entry Points
 
