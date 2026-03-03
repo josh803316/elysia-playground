@@ -1,10 +1,11 @@
-import { Elysia, t } from "elysia";
-import { eq, desc } from "drizzle-orm";
-import { notes, users } from "../db/schema.js";
-import { BaseApiController } from "./base-api.controller.js";
-import { NotesModel, Note } from "../models/notes.model.js";
-import { UsersModel } from "../models/users.model.js";
-import type { Database } from "../db/index.js";
+import {Elysia, t} from 'elysia';
+import {eq, desc} from 'drizzle-orm';
+import {notes, users} from '../db/schema.js';
+import {BaseApiController} from './base-api.controller.js';
+import {NotesModel} from '../models/notes.model.js';
+import type {Note} from '../models/notes.model.js';
+import {UsersModel} from '../models/users.model.js';
+import type {Database} from '../db/index.js';
 
 // Schema for public notes (title and content required)
 const publicNoteSchema = t.Object({
@@ -22,7 +23,7 @@ const updatePublicNoteSchema = t.Object({
 // Type for database context
 interface DbContext {
   db: Database;
-  params?: { id: string };
+  params?: {id: string};
   body?: any;
   request: {
     headers: Headers;
@@ -38,7 +39,7 @@ export class PublicNotesController extends BaseApiController<Note> {
 
   constructor() {
     const notesModel = new NotesModel();
-    super(notesModel, "/public-notes", "Public Note");
+    super(notesModel, '/public-notes', 'Public Note');
     this.notesModel = notesModel;
     this.usersModel = new UsersModel();
   }
@@ -56,9 +57,9 @@ export class PublicNotesController extends BaseApiController<Note> {
           updatePublicNote: updatePublicNoteSchema,
         })
         // Get all public notes
-        .get("/", async (ctx) => {
+        .get('/', async (ctx) => {
           try {
-            console.log("Public notes endpoint called - no auth required");
+            console.log('Public notes endpoint called - no auth required');
             const typedCtx = ctx as unknown as DbContext;
 
             // Get all public notes with user information
@@ -73,7 +74,7 @@ export class PublicNotesController extends BaseApiController<Note> {
               })
               .from(notes)
               .leftJoin(users, eq(notes.userId, users.id))
-              .where(eq(notes.isPublic, "true"))
+              .where(eq(notes.isPublic, 'true'))
               .orderBy(desc(notes.createdAt));
 
             // Format the response to include user data
@@ -86,97 +87,81 @@ export class PublicNotesController extends BaseApiController<Note> {
               } | null;
             };
 
-            const formattedNotes = publicNotesWithUsers.map(
-              (item: NoteWithUser) => ({
-                ...item.note,
-                user: item.user || null,
-              })
-            );
+            const formattedNotes = publicNotesWithUsers.map((item: NoteWithUser) => ({
+              ...item.note,
+              user: item.user || null,
+            }));
 
             return formattedNotes;
           } catch (error) {
-            console.error("Error fetching public notes:", error);
-            return new Response("Error fetching public notes", { status: 500 });
+            console.error('Error fetching public notes:', error);
+            return new Response('Error fetching public notes', {status: 500});
           }
         })
         // Create a new public note (anonymous)
         .post(
-          "/",
+          '/',
           async (ctx) => {
             try {
               const typedCtx = ctx as unknown as DbContext;
 
               // Create new note
               const newNote = {
-                title: typedCtx.body.title.trim() || "Public Note",
+                title: typedCtx.body.title.trim() || 'Public Note',
                 content: typedCtx.body.content,
                 userId: null, // anonymous note
-                isPublic: "true", // Ensure this is a string
+                isPublic: 'true', // Ensure this is a string
                 createdAt: new Date(),
                 updatedAt: new Date(),
               };
 
               // Insert note into database
-              const inserted = await typedCtx.db
-                .insert(notes)
-                .values(newNote)
-                .returning();
+              const inserted = await typedCtx.db.insert(notes).values(newNote).returning();
 
               return inserted[0];
             } catch (error) {
-              console.error("Error creating public note:", error);
+              console.error('Error creating public note:', error);
               return new Response(
                 JSON.stringify({
-                  error: "Database Error",
-                  details: "Failed to create public note",
-                  technicalDetails:
-                    error instanceof Error ? error.message : "Unknown error",
+                  error: 'Database Error',
+                  details: 'Failed to create public note',
+                  technicalDetails: error instanceof Error ? error.message : 'Unknown error',
                 }),
-                { status: 500 }
+                {status: 500},
               );
             }
           },
           {
-            body: "publicNote",
-          }
+            body: 'publicNote',
+          },
         )
         // Update a public note
         .put(
-          "/:id",
+          '/:id',
           async (ctx) => {
             try {
               const typedCtx = ctx as unknown as DbContext & {
-                params: { id: string };
+                params: {id: string};
               };
-              const { id } = typedCtx.params;
+              const {id} = typedCtx.params;
               const noteId = Number(id);
 
               if (isNaN(noteId)) {
-                return new Response("Invalid note ID", { status: 400 });
+                return new Response('Invalid note ID', {status: 400});
               }
 
               // Check if note exists and is public
-              const noteToUpdate = await typedCtx.db
-                .select()
-                .from(notes)
-                .where(eq(notes.id, noteId))
-                .limit(1);
+              const noteToUpdate = await typedCtx.db.select().from(notes).where(eq(notes.id, noteId)).limit(1);
 
               if (!noteToUpdate || noteToUpdate.length === 0) {
-                return new Response("Note not found", { status: 404 });
+                return new Response('Note not found', {status: 404});
               }
 
               // Verify the note is public and anonymous
-              if (
-                noteToUpdate[0].isPublic !== "true" ||
-                noteToUpdate[0].userId !== null
-              ) {
-                return new Response(
-                  "Cannot edit non-public or user-owned note",
-                  {
-                    status: 403,
-                  }
-                );
+              if (noteToUpdate[0].isPublic !== 'true' || noteToUpdate[0].userId !== null) {
+                return new Response('Cannot edit non-public or user-owned note', {
+                  status: 403,
+                });
               }
 
               // Update the note
@@ -187,59 +172,45 @@ export class PublicNotesController extends BaseApiController<Note> {
                 updatedAt: new Date(),
               };
 
-              const result = await typedCtx.db
-                .update(notes)
-                .set(updatedNote)
-                .where(eq(notes.id, noteId))
-                .returning();
+              const result = await typedCtx.db.update(notes).set(updatedNote).where(eq(notes.id, noteId)).returning();
 
               return result[0];
             } catch (error) {
-              console.error("Error updating public note:", error);
-              return new Response("Error updating public note", {
+              console.error('Error updating public note:', error);
+              return new Response('Error updating public note', {
                 status: 500,
               });
             }
           },
           {
-            body: "updatePublicNote",
-          }
+            body: 'updatePublicNote',
+          },
         )
         // Delete a public note
-        .delete("/:id", async (ctx) => {
+        .delete('/:id', async (ctx) => {
           try {
             const typedCtx = ctx as unknown as DbContext & {
-              params: { id: string };
+              params: {id: string};
             };
-            const { id } = typedCtx.params;
+            const {id} = typedCtx.params;
             const noteId = Number(id);
 
             if (isNaN(noteId)) {
-              return new Response("Invalid note ID", { status: 400 });
+              return new Response('Invalid note ID', {status: 400});
             }
 
             // Check if note exists and is public
-            const noteToDelete = await typedCtx.db
-              .select()
-              .from(notes)
-              .where(eq(notes.id, noteId))
-              .limit(1);
+            const noteToDelete = await typedCtx.db.select().from(notes).where(eq(notes.id, noteId)).limit(1);
 
             if (!noteToDelete || noteToDelete.length === 0) {
-              return new Response("Note not found", { status: 404 });
+              return new Response('Note not found', {status: 404});
             }
 
             // Verify the note is public and anonymous
-            if (
-              noteToDelete[0].isPublic !== "true" ||
-              noteToDelete[0].userId !== null
-            ) {
-              return new Response(
-                "Cannot delete non-public or user-owned note",
-                {
-                  status: 403,
-                }
-              );
+            if (noteToDelete[0].isPublic !== 'true' || noteToDelete[0].userId !== null) {
+              return new Response('Cannot delete non-public or user-owned note', {
+                status: 403,
+              });
             }
 
             // Delete the note
@@ -247,11 +218,11 @@ export class PublicNotesController extends BaseApiController<Note> {
 
             return {
               success: true,
-              message: "Public note deleted successfully",
+              message: 'Public note deleted successfully',
             };
           } catch (error) {
-            console.error("Error deleting public note:", error);
-            return new Response("Error deleting public note", { status: 500 });
+            console.error('Error deleting public note:', error);
+            return new Response('Error deleting public note', {status: 500});
           }
         });
 
@@ -262,7 +233,7 @@ export class PublicNotesController extends BaseApiController<Note> {
   /**
    * Override isAuthorized to allow public note access without auth
    */
-  protected async isAuthorized(): Promise<boolean> {
+  protected override async isAuthorized(_userId: string | null, _resourceId: string | number): Promise<boolean> {
     // Public notes don't require authorization for read operations
     return true;
   }
