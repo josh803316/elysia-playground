@@ -22,13 +22,6 @@ jobs:
   playwright-e2e-main:
     name: Run Full E2E on Main
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard:
-          - 1/3
-          - 2/3
-          - 3/3
     timeout-minutes: 40
     env:
       E2E_BASE_URL: ${{ inputs.base_url != '' && inputs.base_url || secrets.E2E_PROD_BASE_URL }}
@@ -145,15 +138,15 @@ jobs:
             exit 1
           fi
 
-      - name: Run full E2E suite (shard ${{ matrix.shard }})
+      - name: Run full E2E suite
         working-directory: e2e-tests
-        run: bun run e2e -- --reporter=line --retries=1 --shard=${{ matrix.shard }}
+        run: bun run e2e -- --reporter=line --retries=1
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-main-${{ matrix.shard }}
+          name: playwright-report-main
           path: e2e-tests/playwright-report
           if-no-files-found: ignore
 
@@ -161,6 +154,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-test-results-main-${{ matrix.shard }}
+          name: playwright-test-results-main
           path: e2e-tests/test-results
           if-no-files-found: ignore
