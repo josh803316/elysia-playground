@@ -19,7 +19,8 @@ All five frontends talk to the same **Elysia + Bun** backend and Notes data mode
 
 ```mermaid
 flowchart LR
-  subgraph Monorepo ["elysia-playground (this repo)"]
+
+  subgraph Monorepo["elysia-playground (this repo)"]
     direction TB
     S[server (Elysia + Bun)]
     R[react app]
@@ -35,17 +36,17 @@ flowchart LR
     S <-- API / auth --> VJ
   end
 
-  subgraph SharedLibs ["Shared libraries"]
+  subgraph SharedLibs["Shared libraries"]
     SC["@josh803316/shared-config\n(ESLint, TS, Prettier, Husky)"]
     SRH["@josh803316/semantic-release-helper\n(semantic-release presets + plugins)"]
     ST["shared-test-automation\n(e2e test helpers + patterns)"]
   end
 
-  subgraph CIWorkflows ["GitHub Workflows"]
+  subgraph CIWorkflows["GitHub Workflows"]
     SCI["josh803316/shared-ci-workflows\n(reusable workflows)"]
   end
 
-  subgraph ExternalServices ["External services"]
+  subgraph ExternalServices["External services"]
     VC[Vercel\n(preview + prod deploys)]
     CL[Clerk\n(auth provider)]
     GH[GitHub\n(repo + Actions)]
