@@ -2,7 +2,7 @@ import {useNavigate, useParams} from 'react-router-dom';
 import {TextInput, Textarea, Button, Group, Checkbox, Stack, Text, Paper, Title, Modal} from '@mantine/core';
 import {useForm} from '@mantine/form';
 import {useNotes} from '../hooks/useNotes';
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import ErrorBoundary from './ErrorBoundary';
 
 interface ApiError extends Error {
@@ -70,13 +70,15 @@ const NoteFormContent = ({initialValues, isOpen, onClose, onSubmitSuccess}: Note
     }
   }, [id, isEditing, form]);
 
-  // Update form values when initialValues or localInitialValues changes
+  // Only sync initialValues when the modal opens (not on every render), so typing isn't reset
+  const prevOpenRef = useRef(false);
   useEffect(() => {
-    if (initialValues) {
-      console.log('Updating form with initialValues:', initialValues);
+    const justOpened = isOpen === true && !prevOpenRef.current;
+    prevOpenRef.current = isOpen === true;
+    if (justOpened && initialValues) {
       form.setValues(initialValues);
     }
-  }, [initialValues, form]);
+  }, [isOpen, initialValues, form]);
 
   const handleSubmit = async (values: FormValues) => {
     try {
