@@ -8,7 +8,7 @@
         "elysia": "^1.4.27",
       },
       "devDependencies": {
-        "@josh803316/shared-config": "^1.1.0",
+        "@josh803316/shared-config": "^1.2.0",
         "@types/eslint__js": "^9.14.0",
         "bun-types": "latest",
         "turbo": "^2.8.12",
@@ -474,7 +474,7 @@
 
     "@josh803316/react-client": ["@josh803316/react-client@workspace:react"],
 
-    "@josh803316/shared-config": ["@josh803316/shared-config@1.1.0", "https://npm.pkg.github.com/download/@josh803316/shared-config/1.1.0/3aa440a32b4ee367b635f4c3d76cc68d11526ac3", { "dependencies": { "@eslint/config-inspector": "^1.2.0", "@eslint/js": "^9.35.0", "@types/bun": "^1.2.22", "@types/eslint__js": "^9.14.0", "@types/node": "^24.5.0", "eslint": "^9.35.0", "eslint-formatter-summary": "^2.0.2", "eslint-nibble": "^9.0.0", "globals": "^16.4.0", "husky": "^9.1.7", "lint-staged": "^16.1.6", "prettier": "^3.6.2", "typescript": "^5.9.2", "typescript-eslint": "^8.44.0" } }, "sha512-1m5B6l2/UhzhnARcX1+xrs+N0By9dDyujJr2ZZQM/lTSmRmZ8kvgqRWiy4Rd+BDt0JnS6T2HlpyKfHC1VAlbuw=="],
+    "@josh803316/shared-config": ["@josh803316/shared-config@1.2.0", "https://npm.pkg.github.com/download/@josh803316/shared-config/1.2.0/56f4299ebc95bf5bb97e787c683b4cd297eef177", { "dependencies": { "@eslint/config-inspector": "^1.2.0", "@eslint/js": "^9.35.0", "@types/bun": "^1.2.22", "@types/eslint__js": "^9.14.0", "@types/node": "^24.5.0", "eslint": "^9.35.0", "eslint-formatter-summary": "^2.0.2", "eslint-nibble": "^9.0.0", "globals": "^16.4.0", "husky": "^9.1.7", "lint-staged": "^16.1.6", "prettier": "^3.6.2", "typescript": "^5.9.2", "typescript-eslint": "^8.44.0" } }, "sha512-nTy9MgscJSIrjp2umxjC6pT9HMsByZ/v1I41vC3cSmImSIQunTaUnQ7mClgQaNQfLIBu9KJabB0LhthXL7YbPw=="],
 
     "@josh803316/svelte-client": ["@josh803316/svelte-client@workspace:svelte"],
 
