@@ -1,6 +1,6 @@
 import {Container, Grid, AppShell, Modal} from '@mantine/core';
 import {Link, useNavigate} from 'react-router-dom';
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import {SignInButton, SignedIn, SignedOut, useUser, useAuth, useClerk} from '@clerk/clerk-react';
 import AdminLoginForm from './AdminLoginForm';
 import {GlobalSearch} from './GlobalSearch';
