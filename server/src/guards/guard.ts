@@ -1,16 +1,18 @@
-import { Elysia, t } from "elysia";
+import {Elysia, t} from 'elysia';
 
-const API_KEY = "test-api-key"; // In a real app, this would be stored securely
+const API_KEY = 'test-api-key'; // In a real app, this would be stored securely
 
-type Context = {
-  headers: Record<string, string | undefined>;
-  status: (code: number, message: string) => Response;
-};
+export const checkApiKey = (ctx: any) => {
+  const hasRequestHeaders = typeof ctx.request?.headers?.get === 'function' || ctx.request?.headers;
 
-export const checkApiKey = ({ headers, status }: Context) => {
-  const apiKey = headers["x-api-key"];
+  const apiKey = hasRequestHeaders
+    ? typeof ctx.request.headers.get === 'function'
+      ? ctx.request.headers.get('x-api-key')
+      : (ctx.request.headers as Record<string, string | undefined>)['x-api-key']
+    : ctx.headers?.['x-api-key'];
+
   if (!apiKey || apiKey !== API_KEY) {
-    return status(401, "Unauthorized - Invalid API Key");
+    return ctx.status(401, 'Unauthorized - Invalid API Key');
   }
 };
 

@@ -28,8 +28,6 @@ export const Layout = ({children}: LayoutProps) => {
   const {refreshTrigger} = useNoteContext();
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  // adminApiKey is used for localStorage persistence and should be kept
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [adminApiKey, setAdminApiKey] = useState<string | null>(null);
   const [publicNotesCount, setPublicNotesCount] = useState(0);
   const [privateNotesCount, setPrivateNotesCount] = useState(0);
@@ -44,7 +42,7 @@ export const Layout = ({children}: LayoutProps) => {
   }, [isSignedIn, user?.id]);
 
   // Fetch note counts
-  const fetchNoteCounts = async () => {
+  const fetchNoteCounts = useCallback(async () => {
     if (!isSignedIn) {
       // Still fetch public notes count even when signed out
       try {
@@ -113,7 +111,7 @@ export const Layout = ({children}: LayoutProps) => {
     } catch (err) {
       console.error('Error fetching note counts:', err);
     }
-  };
+  }, [isSignedIn, isAdminLoggedIn, adminApiKey, getToken]);
 
   // Versions: fetch once on load, show in expandable panel
   const [versionsData, setVersionsData] = useState<VersionsPayload | null>(null);
@@ -139,7 +137,7 @@ export const Layout = ({children}: LayoutProps) => {
   // Fetch note counts on load, auth state changes, and note refresh events
   useEffect(() => {
     fetchNoteCounts();
-  }, [isSignedIn, refreshTrigger, isAdminLoggedIn, adminApiKey]);
+  }, [fetchNoteCounts, refreshTrigger]);
 
   const handleAdminLogin = (apiKey: string) => {
     // For simplicity, we're not making the actual API call here

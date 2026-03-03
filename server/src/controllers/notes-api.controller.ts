@@ -1,8 +1,8 @@
-import { Elysia, t } from "elysia";
-import { BaseApiController } from "./base-api.controller.js";
-import { NotesModel, Note, NoteDTO } from "../models/notes.model.js";
-import { UsersModel } from "../models/users.model.js";
-import type { Database } from "../db/index.js";
+import {Elysia, t} from 'elysia';
+import {BaseApiController} from './base-api.controller.js';
+import {NotesModel, Note, NoteDTO} from '../models/notes.model.js';
+import {UsersModel} from '../models/users.model.js';
+import type {Database} from '../db/index.js';
 
 // Context interface for authentication
 interface AuthContext {
@@ -30,7 +30,7 @@ export class NotesApiController extends BaseApiController<Note> {
 
   constructor() {
     const notesModel = new NotesModel();
-    super(notesModel, "/api/notes", "Note");
+    super(notesModel, '/api/notes', 'Note');
     this.notesModel = notesModel;
     this.usersModel = new UsersModel();
   }
@@ -44,46 +44,39 @@ export class NotesApiController extends BaseApiController<Note> {
     // Instead of using a generic, create and return an Elysia instance
     return app.group(this.basePath, (app) => {
       // Get user's notes
-      app.get("/user", async (context: AuthContext) => {
+      app.get('/user', async (ctx: any) => {
+        const context = ctx as AuthContext;
         // Extract userId from JWT token
         const userId = context.jwt?.sub || context.auth?.userId;
 
         if (!userId) {
-          return new Response(
-            JSON.stringify({ error: "Authentication required" }),
-            { status: 401 }
-          );
+          return new Response(JSON.stringify({error: 'Authentication required'}), {status: 401});
         }
 
         try {
-          const userRecord = await this.usersModel.findByClerkId(
-            context.db,
-            userId
-          );
+          const userRecord = await this.usersModel.findByClerkId(context.db, userId);
 
           if (!userRecord) {
-            return new Response(JSON.stringify({ error: "User not found" }), {
+            return new Response(JSON.stringify({error: 'User not found'}), {
               status: 404,
             });
           }
 
-          const notes = await this.notesModel.findByUserId(
-            context.db,
-            userRecord.id
-          );
+          const notes = await this.notesModel.findByUserId(context.db, userRecord.id);
           return this.notesModel.toDTOs(notes);
         } catch (error) {
-          console.error("Error fetching user notes:", error);
-          throw new Error("Failed to fetch notes");
+          console.error('Error fetching user notes:', error);
+          throw new Error('Failed to fetch notes');
         }
       });
 
       // Admin: get all notes
-      app.get("/admin", async (context: AuthContext) => {
-        const apiKey = context.request.headers.get("x-api-key");
+      app.get('/admin', async (ctx: any) => {
+        const context = ctx as AuthContext;
+        const apiKey = context.request.headers.get('x-api-key');
 
         if (!this.isAdminRequest(apiKey)) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          return new Response(JSON.stringify({error: 'Unauthorized'}), {
             status: 403,
           });
         }
@@ -92,46 +85,38 @@ export class NotesApiController extends BaseApiController<Note> {
           const notes = await this.notesModel.findAll(context.db);
           return this.notesModel.toDTOs(notes);
         } catch (error) {
-          console.error("Error fetching all notes:", error);
-          throw new Error("Failed to fetch notes");
+          console.error('Error fetching all notes:', error);
+          throw new Error('Failed to fetch notes');
         }
       });
 
       // Create a note
       app.post(
-        "/",
-        async (
-          context: AuthContext & {
-            body: { title: string; content: string; isPublic?: boolean };
-          }
-        ) => {
+        '/',
+        async (ctx: any) => {
+          const context = ctx as AuthContext & {
+            body: {title: string; content: string; isPublic?: boolean};
+          };
           const userId = context.auth?.userId;
 
           if (!userId) {
-            return new Response(
-              JSON.stringify({ error: "Authentication required" }),
-              { status: 401 }
-            );
+            return new Response(JSON.stringify({error: 'Authentication required'}), {status: 401});
           }
 
           try {
-            const userRecord = await this.usersModel.findByClerkId(
-              context.db,
-              userId
-            );
+            const userRecord = await this.usersModel.findByClerkId(context.db, userId);
 
             if (!userRecord) {
               return new Response(
                 JSON.stringify({
-                  error: "User not found",
-                  details:
-                    "The user account could not be found in the database",
+                  error: 'User not found',
+                  details: 'The user account could not be found in the database',
                 }),
-                { status: 404 }
+                {status: 404},
               );
             }
 
-            const { title, content, isPublic = false } = context.body;
+            const {title, content, isPublic = false} = context.body;
 
             try {
               // Convert boolean to string "true" or "false"
@@ -146,31 +131,26 @@ export class NotesApiController extends BaseApiController<Note> {
 
               return this.notesModel.toDTO(newNote);
             } catch (dbError) {
-              console.error("Database error creating note:", dbError);
+              console.error('Database error creating note:', dbError);
               return new Response(
                 JSON.stringify({
-                  error: "Database Error",
-                  details: "Failed to save note to database",
-                  technicalDetails:
-                    dbError instanceof Error
-                      ? dbError.message
-                      : "Unknown error",
+                  error: 'Database Error',
+                  details: 'Failed to save note to database',
+                  technicalDetails: dbError instanceof Error ? dbError.message : 'Unknown error',
                 }),
-                { status: 500 }
+                {status: 500},
               );
             }
           } catch (error) {
-            console.error("Error creating note:", error);
+            console.error('Error creating note:', error);
             // Return a proper error response that will be caught by the client
             return new Response(
               JSON.stringify({
-                error: "Server Error",
-                details:
-                  "An unexpected error occurred while processing your request",
-                technicalDetails:
-                  error instanceof Error ? error.message : "Unknown error",
+                error: 'Server Error',
+                details: 'An unexpected error occurred while processing your request',
+                technicalDetails: error instanceof Error ? error.message : 'Unknown error',
               }),
-              { status: 500 }
+              {status: 500},
             );
           }
         },
@@ -180,35 +160,28 @@ export class NotesApiController extends BaseApiController<Note> {
             content: t.String(),
             isPublic: t.Optional(t.Boolean()),
           }),
-        }
+        },
       );
 
       // Update a note
       app.put(
-        "/:id",
-        async (
-          context: AuthContext & {
-            params: { id: string };
-            body: { title?: string; content?: string; isPublic?: boolean };
-          }
-        ) => {
+        '/:id',
+        async (ctx: any) => {
+          const context = ctx as AuthContext & {
+            params: {id: string};
+            body: {title?: string; content?: string; isPublic?: boolean};
+          };
           const userId = context.auth?.userId;
 
           if (!userId) {
-            return new Response(
-              JSON.stringify({ error: "Authentication required" }),
-              { status: 401 }
-            );
+            return new Response(JSON.stringify({error: 'Authentication required'}), {status: 401});
           }
 
           try {
-            const userRecord = await this.usersModel.findByClerkId(
-              context.db,
-              userId
-            );
+            const userRecord = await this.usersModel.findByClerkId(context.db, userId);
 
             if (!userRecord) {
-              return new Response(JSON.stringify({ error: "User not found" }), {
+              return new Response(JSON.stringify({error: 'User not found'}), {
                 status: 404,
               });
             }
@@ -217,25 +190,19 @@ export class NotesApiController extends BaseApiController<Note> {
             const note = await this.notesModel.findById(context.db, noteId);
 
             if (!note) {
-              return new Response(JSON.stringify({ error: "Note not found" }), {
+              return new Response(JSON.stringify({error: 'Note not found'}), {
                 status: 404,
               });
             }
 
             // Check if user owns the note
-            if (
-              !(await this.notesModel.isOwner(
-                context.db,
-                noteId,
-                userRecord.id
-              ))
-            ) {
-              return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            if (!(await this.notesModel.isOwner(context.db, noteId, userRecord.id))) {
+              return new Response(JSON.stringify({error: 'Unauthorized'}), {
                 status: 403,
               });
             }
 
-            const { title, content, isPublic } = context.body;
+            const {title, content, isPublic} = context.body;
             const updateData: Partial<Note> = {};
 
             if (title !== undefined) updateData.title = title;
@@ -247,21 +214,14 @@ export class NotesApiController extends BaseApiController<Note> {
             // Add updatedAt timestamp
             updateData.updatedAt = new Date();
 
-            const updatedNote = await this.notesModel.update(
-              context.db,
-              noteId,
-              updateData
-            );
+            const updatedNote = await this.notesModel.update(context.db, noteId, updateData);
             if (!updatedNote) {
-              return new Response(
-                JSON.stringify({ error: "Failed to update note" }),
-                { status: 500 }
-              );
+              return new Response(JSON.stringify({error: 'Failed to update note'}), {status: 500});
             }
             return this.notesModel.toDTO(updatedNote);
           } catch (error) {
-            console.error("Error updating note:", error);
-            throw new Error("Failed to update note");
+            console.error('Error updating note:', error);
+            throw new Error('Failed to update note');
           }
         },
         {
@@ -273,30 +233,25 @@ export class NotesApiController extends BaseApiController<Note> {
             content: t.Optional(t.String()),
             isPublic: t.Optional(t.Boolean()),
           }),
-        }
+        },
       );
 
       // Delete a note
       app.delete(
-        "/:id",
-        async (context: AuthContext & { params: { id: string } }) => {
+        '/:id',
+        async (ctx: any) => {
+          const context = ctx as AuthContext & {params: {id: string}};
           const userId = context.auth?.userId;
 
           if (!userId) {
-            return new Response(
-              JSON.stringify({ error: "Authentication required" }),
-              { status: 401 }
-            );
+            return new Response(JSON.stringify({error: 'Authentication required'}), {status: 401});
           }
 
           try {
-            const userRecord = await this.usersModel.findByClerkId(
-              context.db,
-              userId
-            );
+            const userRecord = await this.usersModel.findByClerkId(context.db, userId);
 
             if (!userRecord) {
-              return new Response(JSON.stringify({ error: "User not found" }), {
+              return new Response(JSON.stringify({error: 'User not found'}), {
                 status: 404,
               });
             }
@@ -305,20 +260,14 @@ export class NotesApiController extends BaseApiController<Note> {
             const note = await this.notesModel.findById(context.db, noteId);
 
             if (!note) {
-              return new Response(JSON.stringify({ error: "Note not found" }), {
+              return new Response(JSON.stringify({error: 'Note not found'}), {
                 status: 404,
               });
             }
 
             // Check if user owns the note
-            if (
-              !(await this.notesModel.isOwner(
-                context.db,
-                noteId,
-                userRecord.id
-              ))
-            ) {
-              return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            if (!(await this.notesModel.isOwner(context.db, noteId, userRecord.id))) {
+              return new Response(JSON.stringify({error: 'Unauthorized'}), {
                 status: 403,
               });
             }
@@ -327,23 +276,22 @@ export class NotesApiController extends BaseApiController<Note> {
             if (!result.success) {
               return new Response(
                 JSON.stringify({
-                  error: result.message || "Failed to delete note",
+                  error: result.message || 'Failed to delete note',
                 }),
-                { status: 500 }
+                {status: 500},
               );
             }
 
-            return { success: true, message: "Note deleted successfully" };
+            return {success: true, message: 'Note deleted successfully'};
           } catch (error) {
-            console.error("Error deleting note:", error);
+            console.error('Error deleting note:', error);
             return new Response(
               JSON.stringify({
-                error: "Server Error",
-                details: "Failed to delete note",
-                technicalDetails:
-                  error instanceof Error ? error.message : "Unknown error",
+                error: 'Server Error',
+                details: 'Failed to delete note',
+                technicalDetails: error instanceof Error ? error.message : 'Unknown error',
               }),
-              { status: 500 }
+              {status: 500},
             );
           }
         },
@@ -351,39 +299,34 @@ export class NotesApiController extends BaseApiController<Note> {
           params: t.Object({
             id: t.String(),
           }),
-        }
+        },
       );
 
       // Admin: delete a note (no ownership check)
-      app.delete(
-        "/admin/:id",
-        async (context: AuthContext & { params: { id: string } }) => {
-          const apiKey = context.request.headers.get("x-api-key");
+      app.delete('/admin/:id', async (ctx: any) => {
+        const context = ctx as AuthContext & {params: {id: string}};
+        const apiKey = context.request.headers.get('x-api-key');
 
-          if (!this.isAdminRequest(apiKey)) {
-            return new Response(JSON.stringify({ error: "Unauthorized" }), {
-              status: 403,
-            });
-          }
-
-          try {
-            const noteId = parseInt(context.params.id, 10);
-            const result = await this.notesModel.delete(context.db, noteId);
-
-            if (!result.success) {
-              return new Response(
-                JSON.stringify({ error: result.message || "Note not found" }),
-                { status: 404 }
-              );
-            }
-
-            return { success: true, message: "Note deleted successfully" };
-          } catch (error) {
-            console.error("Error deleting note:", error);
-            throw new Error("Failed to delete note");
-          }
+        if (!this.isAdminRequest(apiKey)) {
+          return new Response(JSON.stringify({error: 'Unauthorized'}), {
+            status: 403,
+          });
         }
-      );
+
+        try {
+          const noteId = parseInt(context.params.id, 10);
+          const result = await this.notesModel.delete(context.db, noteId);
+
+          if (!result.success) {
+            return new Response(JSON.stringify({error: result.message || 'Note not found'}), {status: 404});
+          }
+
+          return {success: true, message: 'Note deleted successfully'};
+        } catch (error) {
+          console.error('Error deleting note:', error);
+          throw new Error('Failed to delete note');
+        }
+      });
 
       return app;
     });
@@ -392,10 +335,7 @@ export class NotesApiController extends BaseApiController<Note> {
   /**
    * Override isAuthorized to check note ownership
    */
-  protected async isAuthorized(
-    userId: string,
-    noteId: string
-  ): Promise<boolean> {
+  protected async isAuthorized(userId: string, noteId: string): Promise<boolean> {
     // We would need db access here, but this method signature
     // doesn't provide it. For now, just check if userId exists
     return !!userId;

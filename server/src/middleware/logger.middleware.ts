@@ -1,12 +1,10 @@
-import { createPinoLogger, type InferContext } from "@bogeychan/elysia-logger";
-import { Elysia } from "elysia";
-import * as util from "util";
+import {createPinoLogger} from '@bogeychan/elysia-logger';
+import {Elysia} from 'elysia';
+import * as util from 'util';
 
 // Explicitly check for development mode - default to development if not set
-const isProductionMode = process.env.NODE_ENV === "production";
-console.log(
-  `Logger running in ${isProductionMode ? "production" : "development"} mode`
-);
+const isProductionMode = process.env.NODE_ENV === 'production';
+console.log(`Logger running in ${isProductionMode ? 'production' : 'development'} mode`);
 
 util.inspect.defaultOptions = {
   depth: 5,
@@ -20,97 +18,86 @@ export function useLogger(app: Elysia) {
   const logger = createPinoLogger({
     redact: {
       paths: [
-        "body.password",
-        "body.token",
-        "body.authenticationToken",
-        "body.*.password",
-        "body.*.token",
-        "params.password",
-        "params.token",
-        "query.password",
-        "query.token",
-        "headers.authorization",
+        'body.password',
+        'body.token',
+        'body.authenticationToken',
+        'body.*.password',
+        'body.*.token',
+        'params.password',
+        'params.token',
+        'query.password',
+        'query.token',
+        'headers.authorization',
       ],
-      censor: "[Redacted]",
+      censor: '[Redacted]',
     },
     // pino-pretty transport is for local development only.
     // In serverless production environments, use default JSON logger.
     ...(!isProductionMode
       ? {
           transport: {
-            target: "pino-pretty",
+            target: 'pino-pretty',
             options: {
               colorize: true,
               singleLine: false,
-              translateTime: "HH:MM:ss.l",
-              ignore: "pid,hostname",
-              level: "debug",
+              translateTime: 'HH:MM:ss.l',
+              ignore: 'pid,hostname',
+              level: 'debug',
             },
           },
         }
       : {}),
-    level: isProductionMode ? "info" : "debug",
+    level: isProductionMode ? 'info' : 'debug',
   });
 
   // Override console methods globally
   console.log = (...args: unknown[]) => {
-    const formattedArgs = args.map((arg) =>
-      typeof arg === "object" ? util.inspect(arg) : arg
-    );
-    logger.info(formattedArgs.join(" "));
+    const formattedArgs = args.map((arg) => (typeof arg === 'object' ? util.inspect(arg) : arg));
+    logger.info(formattedArgs.join(' '));
   };
 
   console.debug = (...args: unknown[]) => {
-    const formattedArgs = args.map((arg) =>
-      typeof arg === "object" ? util.inspect(arg) : arg
-    );
-    logger.debug(formattedArgs.join(" "));
+    const formattedArgs = args.map((arg) => (typeof arg === 'object' ? util.inspect(arg) : arg));
+    logger.debug(formattedArgs.join(' '));
   };
 
   console.error = (...args: unknown[]) => {
-    const formattedArgs = args.map((arg) =>
-      typeof arg === "object" ? util.inspect(arg) : arg
-    );
-    logger.error(formattedArgs.join(" "));
+    const formattedArgs = args.map((arg) => (typeof arg === 'object' ? util.inspect(arg) : arg));
+    logger.error(formattedArgs.join(' '));
   };
 
   console.warn = (...args: unknown[]) => {
-    const formattedArgs = args.map((arg) =>
-      typeof arg === "object" && !isProductionMode ? util.inspect(arg) : arg
-    );
-    logger.warn(formattedArgs.join(" "));
+    const formattedArgs = args.map((arg) => (typeof arg === 'object' && !isProductionMode ? util.inspect(arg) : arg));
+    logger.warn(formattedArgs.join(' '));
   };
 
   app.use(
     logger.into({
       autoLogging: true,
-      customProps: (ctx: InferContext<typeof app>) => {
-        if (ctx.isError) {
+      customProps: (ctx: any) => {
+        if (ctx?.isError) {
           return {
             error: ctx.error,
             code: ctx.code,
             path: ctx.path,
-            headers: ctx.request.headers,
+            headers: ctx.request?.headers,
           };
         }
         return {
-          body: ctx.body,
-          params: ctx.params,
-          query: ctx.query,
-          status:
-            typeof (ctx as any).response?.status === "number"
-              ? (ctx as any).response.status
-              : ctx.set.status,
+          body: ctx?.body,
+          params: ctx?.params,
+          query: ctx?.query,
+          status: typeof ctx?.response?.status === 'number' ? ctx.response.status : ctx?.set?.status,
           request: {
-            method: ctx.request.method,
-            url: ctx.request.url,
+            method: ctx.request?.method,
+            url: ctx.request?.url,
             referrer: null,
-            headers: ctx.request.headers,
+            headers: ctx.request?.headers,
           },
           responseTime: calculateResponseTime(ctx.request),
         };
       },
-    })
+    }) as any,
   );
 
   // Track request start times
@@ -128,11 +115,11 @@ export function useLogger(app: Elysia) {
   };
 
   // Add onRequest hook to track when requests start
-  app.onRequest(({ request }) => {
+  app.onRequest(({request}) => {
     requestTimes.set(request.url, performance.now());
   });
 
-  app.decorate("logger", logger);
+  app.decorate('logger', logger);
 
   return logger;
 }

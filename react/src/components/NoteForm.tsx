@@ -2,7 +2,7 @@ import {useNavigate, useParams} from 'react-router-dom';
 import {TextInput, Textarea, Button, Group, Checkbox, Stack, Text, Paper, Title, Modal} from '@mantine/core';
 import {useForm} from '@mantine/form';
 import {useNotes} from '../hooks/useNotes';
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import ErrorBoundary from './ErrorBoundary';
 
 interface ApiError extends Error {
@@ -29,7 +29,6 @@ const NoteFormContent = ({initialValues, isOpen, onClose, onSubmitSuccess}: Note
   const navigate = useNavigate();
   const {createNote, updateNote, isLoading, error} = useNotes();
   const isEditing = !!id;
-  const [localInitialValues, setLocalInitialValues] = useState<FormValues | null>(null);
 
   // Initialize form with default values
   const form = useForm<FormValues>({
@@ -60,9 +59,6 @@ const NoteFormContent = ({initialValues, isOpen, onClose, onSubmitSuccess}: Note
               content: parsedNote.content,
               isPublic: parsedNote.isPublic === 'true' || parsedNote.isPublic === true,
             };
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setLocalInitialValues(noteData);
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             form.setValues(noteData);
           }
           // Clear localStorage after retrieving the data
@@ -72,18 +68,15 @@ const NoteFormContent = ({initialValues, isOpen, onClose, onSubmitSuccess}: Note
         }
       }
     }
-  }, [id, isEditing]);
+  }, [id, isEditing, form]);
 
   // Update form values when initialValues or localInitialValues changes
   useEffect(() => {
     if (initialValues) {
       console.log('Updating form with initialValues:', initialValues);
       form.setValues(initialValues);
-    } else if (localInitialValues) {
-      console.log('Updating form with localInitialValues:', localInitialValues);
-      form.setValues(localInitialValues);
     }
-  }, [initialValues, localInitialValues]);
+  }, [initialValues, form]);
 
   const handleSubmit = async (values: FormValues) => {
     try {

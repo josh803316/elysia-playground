@@ -3,7 +3,8 @@
  * Children call triggerRefresh() after create/update/delete. GlobalSearch sets search
  * query/results; notes views filter by search when active.
  */
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import React, {createContext, useContext, useState, useCallback, ReactNode} from 'react';
 
 export interface SearchNote {
   id: number;
@@ -26,11 +27,9 @@ interface NoteContextType {
 
 const NoteContext = createContext<NoteContextType | undefined>(undefined);
 
-export const NoteProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const NoteProvider: React.FC<{children: ReactNode}> = ({children}) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchNote[]>([]);
 
   const triggerRefresh = useCallback(() => {
@@ -43,7 +42,7 @@ export const NoteProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const clearSearch = useCallback(() => {
-    setSearchQuery("");
+    setSearchQuery('');
     setSearchResults([]);
   }, []);
 
@@ -67,7 +66,7 @@ export const NoteProvider: React.FC<{ children: ReactNode }> = ({
 export const useNoteContext = (): NoteContextType => {
   const context = useContext(NoteContext);
   if (context === undefined) {
-    throw new Error("useNoteContext must be used within a NoteProvider");
+    throw new Error('useNoteContext must be used within a NoteProvider');
   }
   return context;
 };
