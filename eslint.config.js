@@ -1,30 +1,24 @@
 import josh803316SharedConfig from '@josh803316/shared-config/eslint.config.js';
-import drizzle from 'eslint-plugin-drizzle';
-
-// the Drizzle ESLint plugin is a bit dumb, it doesn't understand types,
-// so you have to tell it the variable names you're going to use for it
-const drizzleObjectName = ['db', 'tx'];
 
 const config = [
-  ...josh803316SharedConfig, // Spread the shared config into the main array
+  ...josh803316SharedConfig,
   {
-    plugins: {
-      drizzle,
-    },
-    rules: {
-      ...drizzle.configs.recommended.rules,
-      'drizzle/enforce-delete-with-where': ['error', {drizzleObjectName}],
-      'drizzle/enforce-update-with-where': ['error', {drizzleObjectName}],
-    },
-  },
-  {
+    // Each subpackage has its own eslint config; only lint root-level files here
     ignores: [
+      'react/',
+      'svelte/',
+      'server/',
+      'htmx/',
+      'vanilla-js/',
+      'angular/',
+      'vue/',
+      'e2e-tests/',
       'dist/',
-      'tests/', // the Bun test framework seems woefully undertyped
+      'tests/',
       'playwright-report/',
       'test-results/',
-    ], // Explicitly ignore this file
+    ],
   },
-]; // Main configuration is an array
+];
 
 export default config;

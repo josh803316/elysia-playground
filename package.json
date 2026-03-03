@@ -56,7 +56,9 @@
     "db:studio": "cd server && bun run db:studio",
     "db:seed": "cd server && bun run db:seed",
     "e2e": "cd e2e-tests && bun run e2e",
-    "e2e:ui": "cd e2e-tests && bun run e2e:ui"
+    "e2e:ui": "cd e2e-tests && bun run e2e:ui",
+    "format": "prettier -wu .",
+    "prepare": "husky"
   },
   "overrides": {
     "esbuild": "^0.25.0",
@@ -67,9 +69,13 @@
     "elysia": "^1.4.26"
   },
   "devDependencies": {
+    "@josh803316/shared-config": "^1.1.0",
     "bun-types": "latest",
     "turbo": "^2.8.12"
   },
+  "trustedDependencies": [
+    "@josh803316/shared-config"
+  ],
   "patchedDependencies": {
     "@clerk/backend@2.29.2": "patches/@clerk%2Fbackend@2.29.2.patch"
   }

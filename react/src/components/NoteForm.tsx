@@ -1,20 +1,9 @@
-import { useNavigate, useParams } from "react-router-dom";
-import {
-  TextInput,
-  Textarea,
-  Button,
-  Group,
-  Checkbox,
-  Stack,
-  Text,
-  Paper,
-  Title,
-  Modal,
-} from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { useNotes } from "../hooks/useNotes";
-import { useEffect, useState } from "react";
-import ErrorBoundary from "./ErrorBoundary";
+import {useNavigate, useParams} from 'react-router-dom';
+import {TextInput, Textarea, Button, Group, Checkbox, Stack, Text, Paper, Title, Modal} from '@mantine/core';
+import {useForm} from '@mantine/form';
+import {useNotes} from '../hooks/useNotes';
+import {useEffect, useState} from 'react';
+import ErrorBoundary from './ErrorBoundary';
 
 interface ApiError extends Error {
   details?: string;
@@ -35,30 +24,23 @@ interface NoteFormProps {
   onSubmitSuccess?: () => void;
 }
 
-const NoteFormContent = ({
-  initialValues,
-  isOpen,
-  onClose,
-  onSubmitSuccess,
-}: NoteFormProps) => {
-  const { id } = useParams();
+const NoteFormContent = ({initialValues, isOpen, onClose, onSubmitSuccess}: NoteFormProps) => {
+  const {id} = useParams();
   const navigate = useNavigate();
-  const { createNote, updateNote, isLoading, error } = useNotes();
+  const {createNote, updateNote, isLoading, error} = useNotes();
   const isEditing = !!id;
-  const [localInitialValues, setLocalInitialValues] =
-    useState<FormValues | null>(null);
+  const [localInitialValues, setLocalInitialValues] = useState<FormValues | null>(null);
 
   // Initialize form with default values
   const form = useForm<FormValues>({
     initialValues: initialValues || {
-      title: "",
-      content: "",
+      title: '',
+      content: '',
       isPublic: false,
     },
     validate: {
-      title: (value) => (value.trim().length < 1 ? "Title is required" : null),
-      content: (value) =>
-        value.trim().length < 1 ? "Content is required" : null,
+      title: (value) => (value.trim().length < 1 ? 'Title is required' : null),
+      content: (value) => (value.trim().length < 1 ? 'Content is required' : null),
     },
   });
 
@@ -66,26 +48,27 @@ const NoteFormContent = ({
   useEffect(() => {
     if (isEditing) {
       // Try to get note data from localStorage (used when editing from admin view)
-      const storedNote = localStorage.getItem("editingNote");
+      const storedNote = localStorage.getItem('editingNote');
       if (storedNote) {
         try {
           const parsedNote = JSON.parse(storedNote);
           if (parsedNote && parsedNote.id === id) {
-            console.log("Found note data in localStorage:", parsedNote);
+            console.log('Found note data in localStorage:', parsedNote);
             // Convert string 'true'/'false' to boolean
             const noteData = {
               title: parsedNote.title,
               content: parsedNote.content,
-              isPublic:
-                parsedNote.isPublic === "true" || parsedNote.isPublic === true,
+              isPublic: parsedNote.isPublic === 'true' || parsedNote.isPublic === true,
             };
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLocalInitialValues(noteData);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             form.setValues(noteData);
           }
           // Clear localStorage after retrieving the data
-          localStorage.removeItem("editingNote");
+          localStorage.removeItem('editingNote');
         } catch (e) {
-          console.error("Error parsing stored note:", e);
+          console.error('Error parsing stored note:', e);
         }
       }
     }
@@ -94,10 +77,10 @@ const NoteFormContent = ({
   // Update form values when initialValues or localInitialValues changes
   useEffect(() => {
     if (initialValues) {
-      console.log("Updating form with initialValues:", initialValues);
+      console.log('Updating form with initialValues:', initialValues);
       form.setValues(initialValues);
     } else if (localInitialValues) {
-      console.log("Updating form with localInitialValues:", localInitialValues);
+      console.log('Updating form with localInitialValues:', localInitialValues);
       form.setValues(localInitialValues);
     }
   }, [initialValues, localInitialValues]);
@@ -113,10 +96,10 @@ const NoteFormContent = ({
         onSubmitSuccess();
       }
       if (!isOpen) {
-        navigate("/notes");
+        navigate('/notes');
       }
     } catch (err) {
-      console.error("Error saving note:", err);
+      console.error('Error saving note:', err);
       // Don't close the modal on error
       // Re-throw the error to be caught by ErrorBoundary
       throw err;
@@ -127,53 +110,45 @@ const NoteFormContent = ({
     if (onClose) {
       onClose();
     } else {
-      navigate("/notes");
+      navigate('/notes');
     }
   };
 
   const formContent = (
     <form onSubmit={form.onSubmit(handleSubmit)}>
-      <Stack gap="md">
-        <TextInput
-          label="Title"
-          placeholder="Enter note title"
-          {...form.getInputProps("title")}
-          required
-        />
+      <Stack gap='md'>
+        <TextInput label='Title' placeholder='Enter note title' {...form.getInputProps('title')} required />
         <Textarea
-          label="Content"
-          placeholder="Enter note content"
+          label='Content'
+          placeholder='Enter note content'
           minRows={8}
-          {...form.getInputProps("content")}
+          {...form.getInputProps('content')}
           required
         />
-        <Checkbox
-          label="Make this note public"
-          {...form.getInputProps("isPublic", { type: "checkbox" })}
-        />
+        <Checkbox label='Make this note public' {...form.getInputProps('isPublic', {type: 'checkbox'})} />
         {error && (
-          <Stack gap="xs">
-            <Text color="red" size="sm" fw={500}>
-              Error: {(error as ApiError).message || "Failed to save note"}
+          <Stack gap='xs'>
+            <Text color='red' size='sm' fw={500}>
+              Error: {(error as ApiError).message || 'Failed to save note'}
             </Text>
             {(error as ApiError).details && (
-              <Text color="red" size="sm">
+              <Text color='red' size='sm'>
                 Details: {(error as ApiError).details}
               </Text>
             )}
             {(error as ApiError).technicalDetails && (
-              <Text color="dimmed" size="xs">
+              <Text color='dimmed' size='xs'>
                 Technical details: {(error as ApiError).technicalDetails}
               </Text>
             )}
           </Stack>
         )}
-        <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={handleClose}>
+        <Group justify='flex-end' mt='md'>
+          <Button variant='default' onClick={handleClose}>
             Cancel
           </Button>
-          <Button type="submit" loading={isLoading}>
-            {isEditing ? "Update" : "Create"}
+          <Button type='submit' loading={isLoading}>
+            {isEditing ? 'Update' : 'Create'}
           </Button>
         </Group>
       </Stack>
@@ -186,15 +161,9 @@ const NoteFormContent = ({
       <Modal
         opened={isOpen}
         onClose={handleClose}
-        title={
-          isEditing
-            ? "Edit Note"
-            : initialValues?.isPublic
-              ? "Create Public Note"
-              : "Create Private Note"
-        }
+        title={isEditing ? 'Edit Note' : initialValues?.isPublic ? 'Create Public Note' : 'Create Private Note'}
         centered
-        size="lg"
+        size='lg'
       >
         {formContent}
       </Modal>
@@ -203,9 +172,9 @@ const NoteFormContent = ({
 
   // If used as a page
   return (
-    <Paper p="lg" shadow="sm" radius="md" withBorder>
-      <Title order={2} mb="xl">
-        {isEditing ? "Edit Note" : "Create New Note"}
+    <Paper p='lg' shadow='sm' radius='md' withBorder>
+      <Title order={2} mb='xl'>
+        {isEditing ? 'Edit Note' : 'Create New Note'}
       </Title>
       {formContent}
     </Paper>
