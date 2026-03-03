@@ -633,7 +633,7 @@ export class NotesController extends BaseApiController<Note> {
   /**
    * Check if a request is from an admin
    */
-  protected isAdminRequest(apiKey: string | null): boolean {
+  protected override isAdminRequest(apiKey: string | null): boolean {
     return apiKey === process.env.ADMIN_API_KEY;
   }
 }
