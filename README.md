@@ -20,38 +20,28 @@ All five frontends talk to the same **Elysia + Bun** backend and Notes data mode
 ```mermaid
 flowchart LR
 
-  subgraph Monorepo
-    S[server (Elysia + Bun)]
-    R[react app]
-    Sv[svelte app]
-    A[angular app]
-    H[htmx app]
-    VJ[vanilla-js app]
+  S[server (Elysia + Bun)]
+  R[react app]
+  Sv[svelte app]
+  A[angular app]
+  H[htmx app]
+  VJ[vanilla-js app]
 
-    S <-- API / auth --> R
-    S <-- API / auth --> Sv
-    S <-- API / auth --> A
-    S <-- API / auth --> H
-    S <-- API / auth --> VJ
-  end
+  SC["@josh803316/shared-config"]
+  SRH["@josh803316/semantic-release-helper"]
+  ST["shared-test-automation"]
+  SCI["josh803316/shared-ci-workflows"]
 
-  subgraph SharedLibs
-    SC["@josh803316/shared-config"]
-    SRH["@josh803316/semantic-release-helper"]
-    ST["shared-test-automation"]
-  end
+  VC[Vercel]
+  CL[Clerk]
+  GH[GitHub Actions]
 
-  subgraph CIWorkflows
-    SCI["josh803316/shared-ci-workflows"]
-  end
+  S <-- API / auth --> R
+  S <-- API / auth --> Sv
+  S <-- API / auth --> A
+  S <-- API / auth --> H
+  S <-- API / auth --> VJ
 
-  subgraph ExternalServices
-    VC[Vercel]
-    CL[Clerk]
-    GH[GitHub Actions]
-  end
-
-  Monorepo --> SC
   GH -. uses .-> SCI
   SCI -. deploys .-> VC
   SCI -. releases .-> GH
