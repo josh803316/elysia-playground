@@ -13,3 +13,18 @@ jobs:
       vercel-org-id: ${{ vars.VERCEL_ORG_ID }}
       build-command: 'bun run build'
     secrets: inherit
+
+  # Move the referenced Linear ticket to "In Progress" and post the preview URL.
+  # Ticket refs (e.g. [ELY-5]) in the PR title or branch name are optional —
+  # the step is a no-op when none are found.
+  linear:
+    needs: preview
+    if: always() && needs.preview.result == 'success'
+    uses: josh803316/shared-ci-workflows/.github/workflows/linear-pr-handler.yml@main
+    with:
+      event_type: PR_OPENED
+      pr_title: ${{ github.event.pull_request.title }}
+      branch_name: ${{ github.head_ref }}
+      preview_url: ${{ needs.preview.outputs.deployment-url }}
+      ticket_prefix: ELY
+    secrets: inherit

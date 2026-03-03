@@ -43,7 +43,7 @@ jobs:
       # Install release tooling — not in package.json to avoid Vercel needing GitHub Packages auth
       # GITHUB_TOKEN must be set here so Bun can expand ${GITHUB_TOKEN} in .npmrc
       - name: Install release dependencies
-        run: bun add @josh803316/semantic-release-helper semantic-release
+        run: bun add @josh803316/semantic-release-helper @josh803316/shared-ci-workflows semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.BUN_AUTH_TOKEN }}
 
@@ -52,3 +52,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BUN_AUTH_TOKEN }}
           SEMANTIC_RELEASE_PACKAGE: elysia-playground
+          LINEAR_ISSUE_PREFIX: ELY
+          LINEAR_WORKSPACE: elysia-playground
+
+      # Mark any ELY-N tickets referenced in commits since the previous tag as Done.
+      # Ticket refs are optional — this step is a no-op when none are found.
+      - name: Mark Linear tickets Done
+        if: success()
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --format="%s" "${PREV_TAG}..HEAD" | tr '\n' ',')
+          else
+            COMMITS=$(git log --format="%s" -50 | tr '\n' ',')
+          fi
+          echo "Commit subjects since last release: $COMMITS"
+          bunx workflow-linear transition \
+            --event-type PR_MERGED \
+            --commit-messages "$COMMITS"
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_ISSUE_PREFIX: ELY

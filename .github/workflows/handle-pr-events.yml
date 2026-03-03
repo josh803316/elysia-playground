@@ -1,0 +1,35 @@
+##
+## Handle PR review and draft/ready events → transition the Linear ticket.
+##
+## PR opened with a preview URL is handled by vercel-preview.yml (which also
+## triggers the Linear "In Progress" update after Vercel deploys).
+##
+## This workflow covers the remaining PR lifecycle events:
+##   - PR converted to draft     → In Progress
+##   - PR marked ready for review → In Review
+##   - PR review submitted        → In Progress (changes requested) or In Review (approved)
+##
+
+name: Handle PR Events
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [converted_to_draft, ready_for_review]
+
+jobs:
+  linear:
+    uses: josh803316/shared-ci-workflows/.github/workflows/linear-pr-handler.yml@main
+    with:
+      event_type: >-
+        ${{
+          github.event_name == 'pull_request_review' && 'PR_REVIEW_SUBMITTED' ||
+          github.event.pull_request.draft && 'PR_DRAFT' ||
+          'PR_READY'
+        }}
+      review_state: ${{ github.event.review.state || '' }}
+      pr_title: ${{ github.event.pull_request.title }}
+      branch_name: ${{ github.event.pull_request.head.ref }}
+      ticket_prefix: ELY
+    secrets: inherit
