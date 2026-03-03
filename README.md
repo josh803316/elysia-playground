@@ -20,8 +20,7 @@ All five frontends talk to the same **Elysia + Bun** backend and Notes data mode
 ```mermaid
 flowchart LR
 
-  subgraph Monorepo["elysia-playground (this repo)"]
-    direction TB
+  subgraph Monorepo
     S[server (Elysia + Bun)]
     R[react app]
     Sv[svelte app]
@@ -36,27 +35,27 @@ flowchart LR
     S <-- API / auth --> VJ
   end
 
-  subgraph SharedLibs["Shared libraries"]
-    SC["@josh803316/shared-config\n(ESLint, TS, Prettier, Husky)"]
-    SRH["@josh803316/semantic-release-helper\n(semantic-release presets + plugins)"]
-    ST["shared-test-automation\n(e2e test helpers + patterns)"]
+  subgraph SharedLibs
+    SC["@josh803316/shared-config"]
+    SRH["@josh803316/semantic-release-helper"]
+    ST["shared-test-automation"]
   end
 
-  subgraph CIWorkflows["GitHub Workflows"]
-    SCI["josh803316/shared-ci-workflows\n(reusable workflows)"]
+  subgraph CIWorkflows
+    SCI["josh803316/shared-ci-workflows"]
   end
 
-  subgraph ExternalServices["External services"]
-    VC[Vercel\n(preview + prod deploys)]
-    CL[Clerk\n(auth provider)]
-    GH[GitHub\n(repo + Actions)]
+  subgraph ExternalServices
+    VC[Vercel]
+    CL[Clerk]
+    GH[GitHub Actions]
   end
 
   Monorepo --> SC
   GH -. uses .-> SCI
   SCI -. deploys .-> VC
-  SCI -. release via semantic-release .-> GH
-  SRH -. extends .-> GH
+  SCI -. releases .-> GH
+  SRH -. config .-> GH
 
   S --> CL
   R --> CL
@@ -65,7 +64,7 @@ flowchart LR
   H --> CL
   VJ --> CL
 
-  ST -. e2e tests against .-> VC
+  ST -. e2e tests .-> VC
 ```
 
 At a glance:
