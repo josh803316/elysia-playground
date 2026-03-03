@@ -1,10 +1,11 @@
-import { Elysia, t } from "elysia";
-import { BaseApiController } from "./base-api.controller.js";
-import { NotesModel, Note } from "../models/notes.model.js";
-import { UsersModel } from "../models/users.model.js";
-import type { Database } from "../db/index.js";
-import { authGuard } from "../guards/auth-guard.js";
-import { ownershipGuard } from "../guards/ownership-guard.js";
+import {Elysia, t} from 'elysia';
+import {BaseApiController} from './base-api.controller.js';
+import {NotesModel} from '../models/notes.model.js';
+import type {Note} from '../models/notes.model.js';
+import {UsersModel} from '../models/users.model.js';
+import type {Database} from '../db/index.js';
+import {authGuard} from '../guards/auth-guard.js';
+import {ownershipGuard} from '../guards/ownership-guard.js';
 
 // Schema for private notes
 const privateMemoSchema = t.Object({
@@ -14,19 +15,19 @@ const privateMemoSchema = t.Object({
 
 // Type for context with clerk auth and database
 type ClerkContext = {
-  auth: () => { userId: string; [key: string]: any };
+  auth: () => {userId: string; [key: string]: any};
   clerk: {
     users: {
       getUser: (id: string) => Promise<{
         firstName?: string;
         lastName?: string;
-        emailAddresses?: Array<{ emailAddress: string }>;
+        emailAddresses?: Array<{emailAddress: string}>;
         [key: string]: any;
       }>;
     };
   };
   db: Database;
-  params?: { id: string };
+  params?: {id: string};
   body?: any;
 };
 
@@ -39,7 +40,7 @@ export class PrivateNotesController extends BaseApiController<Note> {
 
   constructor() {
     const notesModel = new NotesModel();
-    super(notesModel, "/private-notes", "Private Note");
+    super(notesModel, '/private-notes', 'Private Note');
     this.notesModel = notesModel;
     this.usersModel = new UsersModel();
   }
@@ -63,133 +64,115 @@ export class PrivateNotesController extends BaseApiController<Note> {
           (app) =>
             app
               // Get all private notes for the current user
-              .get("/", async (ctx) => {
+              .get('/', async (ctx) => {
                 try {
                   const typedCtx = ctx as unknown as ClerkContext;
                   const authData = typedCtx.auth();
 
-                  console.log(
-                    "Looking up notes for Clerk user:",
-                    authData.userId
-                  );
+                  console.log('Looking up notes for Clerk user:', authData.userId);
 
                   // Find or create the user using the users model
                   const user = await this.usersModel.findOrCreateByClerkId(
                     typedCtx.db,
                     authData.userId,
-                    typedCtx.clerk
+                    typedCtx.clerk,
                   );
 
                   // Get notes using the database ID
-                  const userNotes = await this.notesModel.findByUserId(
-                    typedCtx.db,
-                    user.id
-                  );
+                  const userNotes = await this.notesModel.findByUserId(typedCtx.db, user.id);
 
-                  console.log(
-                    `Found ${userNotes.length} notes for user ID:`,
-                    user.id
-                  );
+                  console.log(`Found ${userNotes.length} notes for user ID:`, user.id);
 
                   return userNotes;
                 } catch (error) {
-                  console.error("Error accessing notes:", error);
-                  return new Response("Error accessing notes", { status: 500 });
+                  console.error('Error accessing notes:', error);
+                  return new Response('Error accessing notes', {status: 500});
                 }
               })
               // Create a new private note
               .put(
-                "/",
+                '/',
                 async (ctx) => {
                   try {
                     const typedCtx = ctx as unknown as ClerkContext;
                     const authData = typedCtx.auth();
 
-                    console.log(
-                      "Creating note for Clerk user:",
-                      authData.userId
-                    );
+                    console.log('Creating note for Clerk user:', authData.userId);
 
                     // Find or create the user using the users model
                     const user = await this.usersModel.findOrCreateByClerkId(
                       typedCtx.db,
                       authData.userId,
-                      typedCtx.clerk
+                      typedCtx.clerk,
                     );
 
                     // Create new note using the database ID
-                    const rawTitle = (typedCtx.body.title || "").trim();
+                    const rawTitle = (typedCtx.body.title || '').trim();
                     if (!rawTitle) {
-                      return new Response(
-                        JSON.stringify({ error: "Title is required" }),
-                        { status: 400, headers: { "Content-Type": "application/json" } }
-                      );
+                      return new Response(JSON.stringify({error: 'Title is required'}), {
+                        status: 400,
+                        headers: {'Content-Type': 'application/json'},
+                      });
                     }
                     const noteData = {
                       title: rawTitle,
                       content: typedCtx.body.data,
                       userId: user.id,
-                      isPublic: "false",
+                      isPublic: 'false',
                     };
 
-                    console.log("Creating note with user ID:", user.id);
+                    console.log('Creating note with user ID:', user.id);
 
                     // Create the note using the model
-                    const note = await this.notesModel.createNote(
-                      typedCtx.db,
-                      noteData
-                    );
+                    const note = await this.notesModel.createNote(typedCtx.db, noteData);
 
                     // Return the newly created note
                     return note;
                   } catch (error) {
-                    console.error("Error creating note:", error);
-                    return new Response("Error creating note", { status: 500 });
+                    console.error('Error creating note:', error);
+                    return new Response('Error creating note', {status: 500});
                   }
                 },
                 {
-                  body: "privateMemo",
-                }
+                  body: 'privateMemo',
+                },
               )
               // Delete a private note
-              .delete("/:id", async (ctx) => {
+              .delete('/:id', async (ctx) => {
                 try {
                   const typedCtx = ctx as unknown as ClerkContext & {
-                    params: { id: string };
+                    params: {id: string};
                   };
                   const authData = typedCtx.auth();
-                  const { id } = typedCtx.params;
+                  const {id} = typedCtx.params;
                   const noteId = Number(id);
 
                   if (isNaN(noteId)) {
-                    return new Response("Invalid note ID", { status: 400 });
+                    return new Response('Invalid note ID', {status: 400});
                   }
 
                   // Find the user using the users model
                   const user = await this.usersModel.findOrCreateByClerkId(
                     typedCtx.db,
                     authData.userId,
-                    typedCtx.clerk
+                    typedCtx.clerk,
                   );
 
                   // Delete the note
-                  const result = await this.notesModel.delete(
-                    typedCtx.db,
-                    noteId
-                  );
+                  const result = await this.notesModel.delete(typedCtx.db, noteId);
                   if (!result.success) {
-                    return new Response("Note not found", { status: 404 });
+                    return new Response('Note not found', {status: 404});
                   }
 
                   return {
                     success: true,
-                    message: "Note deleted successfully",
+                    message: 'Note deleted successfully',
                   };
                 } catch (error) {
-                  console.error("Error deleting note:", error);
-                  return new Response("Error deleting note", { status: 500 });
+                  console.error('Error deleting note:', error);
+                  return new Response('Error deleting note', {status: 500});
                 }
-              })
+              }),
         );
 
       return app;
@@ -199,7 +182,7 @@ export class PrivateNotesController extends BaseApiController<Note> {
   /**
    * Override isAuthorized to ensure proper authorization
    */
-  protected async isAuthorized(userId: string | null): Promise<boolean> {
+  protected override async isAuthorized(userId: string | null, _resourceId: string | number): Promise<boolean> {
     // Private notes require authentication
     return userId !== null;
   }
