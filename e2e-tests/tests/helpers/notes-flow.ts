@@ -1,4 +1,4 @@
-import {Page} from '@playwright/test';
+import {Page, expect} from '@playwright/test';
 import type {AppName} from './apps.js';
 import {timed, logStep} from './timing.js';
 
@@ -84,6 +84,20 @@ function noteCardLocator(page: Page, contentSnippet: string) {
 
 function noteCardWithEditedLocator(page: Page, baseContent: string) {
   return page.locator(NOTE_CARD_SELECTOR).filter({hasText: baseContent}).filter({hasText: 'edited'}).first();
+}
+
+export async function waitForNoteCardVisible(
+  page: Page,
+  contentSnippet: string,
+  timeout: number = 15_000,
+): Promise<void> {
+  const card = noteCardLocator(page, contentSnippet);
+  await expect(card).toBeVisible({timeout});
+}
+
+export async function waitForNoteCardGone(page: Page, contentSnippet: string, timeout: number = 8_000): Promise<void> {
+  const card = noteCardLocator(page, contentSnippet);
+  await expect(card).not.toBeVisible({timeout});
 }
 
 /**
