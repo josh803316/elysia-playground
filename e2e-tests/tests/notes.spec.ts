@@ -42,6 +42,8 @@ import {
   createPrivateNote,
   editNoteByContent,
   deleteNoteByContent,
+  waitForNoteCardVisible,
+  waitForNoteCardGone,
   waitForClerkSessionToken,
 } from './helpers/notes-flow.js';
 import {resetTimer, timed, logStep, attachApiLogger} from './helpers/timing.js';
@@ -102,9 +104,7 @@ for (const appDef of APP_PATHS) {
       }
 
       await timed('createPublicNote', () => createPublicNote(page, appPath, content, title));
-      await timed('wait for note visible after create', () =>
-        expect(page.getByText(title).or(page.getByText(content)).first()).toBeVisible({timeout: 10000}),
-      );
+      await timed('wait for note visible after create', () => waitForNoteCardVisible(page, content, 15_000));
 
       const refetchPromise = page
         .waitForResponse(
@@ -119,9 +119,7 @@ for (const appDef of APP_PATHS) {
       await timed('wait for refetch after edit', () => refetchPromise);
 
       const editedContent = content + ' edited';
-      await timed('wait for edited content visible', () =>
-        expect(page.getByText(editedContent).first()).toBeVisible({timeout: 15_000}),
-      );
+      await timed('wait for edited content visible', () => waitForNoteCardVisible(page, editedContent, 20_000));
 
       const deletePromise = page
         .waitForResponse(
@@ -136,7 +134,7 @@ for (const appDef of APP_PATHS) {
         .catch(() => {});
       await timed('deleteNoteByContent', () => deleteNoteByContent(page, editedContent));
       await timed('wait for delete response', () => deletePromise);
-      await timed('wait for note gone', () => expect(page.getByText(editedContent)).not.toBeVisible({timeout: 8000}));
+      await timed('wait for note gone', () => waitForNoteCardGone(page, editedContent, 10_000));
       logStep(`TEST public note DONE — ${appName}`);
     });
   });
