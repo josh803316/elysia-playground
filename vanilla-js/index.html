@@ -1,143 +1,151 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elysia Notes - Vanilla JS</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css">
-  <!-- Vanilla JS env bootstrap (exposes window.__VANILLA_ENV__ from server env vars) -->
-  <script src="/vanilla-js/env.js"></script>
-</head>
-<body class="signed-out">
-  <!-- Navigation -->
-  <nav class="navbar">
-    <div class="navbar-inner">
-      <a href="/vanilla-js" class="navbar-brand-link">
-        <h1 class="navbar-brand-text">Elysia Notes - Vanilla JS</h1>
-      </a>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elysia Notes - Vanilla JS</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/vanilla-js/styles.css" />
+    <!-- Vanilla JS env bootstrap (exposes window.__VANILLA_ENV__ from server env vars) -->
+    <script src="/vanilla-js/env.js"></script>
+  </head>
+  <body class="signed-out">
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="navbar-inner">
+        <a href="/vanilla-js" class="navbar-brand-link">
+          <h1 class="navbar-brand-text">Elysia Notes - Vanilla JS</h1>
+        </a>
 
-      <div class="nav-right">
-        <div class="nav-links">
-          <a href="/vanilla-js" class="nav-home-link">Home</a>
-          <!-- Public badge: only when signed out -->
-          <span class="nav-count-badge nav-count-badge--green show-when-signed-out" id="nav-public-standalone">Public: <span id="public-count">0</span></span>
-          <!-- My Notes + both badges: only when signed in -->
-          <span class="nav-notes-group">
-            <a href="/vanilla-js" class="nav-link-plain">My Notes</a>
-            <span class="nav-count-badge nav-count-badge--green">Public: <span id="public-count-signed-in">0</span></span>
-            <span class="nav-count-badge nav-count-badge--purple">Private: <span id="private-count">0</span></span>
-          </span>
-        </div>
-
-        <div class="nav-auth">
-          <!-- Signed-out state -->
-          <div class="show-when-signed-out">
-            <button class="btn btn-sign-in" id="btn-sign-in">Sign In</button>
+        <div class="nav-right">
+          <div class="nav-links">
+            <a href="/vanilla-js" class="nav-home-link">Home</a>
+            <!-- Public badge: only when signed out -->
+            <span class="nav-count-badge nav-count-badge--green show-when-signed-out" id="nav-public-standalone"
+              >Public: <span id="public-count">0</span></span
+            >
+            <!-- My Notes + both badges: only when signed in -->
+            <span class="nav-notes-group">
+              <a href="/vanilla-js" class="nav-link-plain">My Notes</a>
+              <span class="nav-count-badge nav-count-badge--green"
+                >Public: <span id="public-count-signed-in">0</span></span
+              >
+              <span class="nav-count-badge nav-count-badge--purple">Private: <span id="private-count">0</span></span>
+            </span>
           </div>
 
-          <!-- Signed-in state -->
-          <div class="show-when-signed-in">
-            <span class="nav-user">Hello, <strong id="user-name"></strong></span>
-            <button class="btn-text-link" id="btn-sign-out">Sign Out</button>
-          </div>
+          <div class="nav-auth">
+            <!-- Signed-out state -->
+            <div class="show-when-signed-out">
+              <button class="btn btn-sign-in" id="btn-sign-in">Sign In</button>
+            </div>
 
-          <!-- Admin buttons -->
-          <button class="btn-teal-sm hide-when-admin" id="btn-admin-login">Admin Login</button>
-          <button class="btn-danger-sm show-when-admin" id="btn-admin-logout">Admin Logout</button>
+            <!-- Signed-in state -->
+            <div class="show-when-signed-in">
+              <span class="nav-user">Hello, <strong id="user-name"></strong></span>
+              <button class="btn-text-link" id="btn-sign-out">Sign Out</button>
+            </div>
+
+            <!-- Admin buttons -->
+            <button class="btn-teal-sm hide-when-admin" id="btn-admin-login">Admin Login</button>
+            <button class="btn-danger-sm show-when-admin" id="btn-admin-logout">Admin Logout</button>
+          </div>
         </div>
       </div>
-    </div>
-  </nav>
+    </nav>
 
-  <!-- Main Content -->
-  <main class="container">
-    <!-- Admin Section (visible when admin; match HTMX order) -->
-    <section class="section show-when-admin-block">
-      <div class="section-box">
-        <div class="section-header">
-          <h2>All Notes (Admin View)</h2>
-          <p class="section-subtitle">View and manage all notes in the system</p>
-        </div>
-        <div class="delete-by-regex-row">
-          <input type="text" id="admin-regex-input" placeholder="e.g. e2e- or ^test" class="regex-input" />
-          <button type="button" id="btn-delete-by-regex" class="btn-delete-matching">Delete matching notes</button>
-        </div>
-        <p class="regex-hint">Delete notes whose content or title matches the regex</p>
-        <div id="admin-table-container">
-          <div class="empty-state">Loading admin notes...</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Public Notes (match HTMX: same heading and button) -->
-    <section class="section">
-      <div class="section-box">
-        <div class="section-header">
-          <div>
-            <h2>Public Notes</h2>
-            <p class="section-subtitle">Visible to everyone</p>
+    <!-- Main Content -->
+    <main class="container">
+      <!-- Admin Section (visible when admin; match HTMX order) -->
+      <section class="section show-when-admin-block">
+        <div class="section-box">
+          <div class="section-header">
+            <h2>All Notes (Admin View)</h2>
+            <p class="section-subtitle">View and manage all notes in the system</p>
           </div>
-          <button class="btn btn-primary" id="btn-create-public">
-            <span class="icon-plus"></span>
-            Create Public Note
+          <div class="delete-by-regex-row">
+            <input type="text" id="admin-regex-input" placeholder="e.g. e2e- or ^test" class="regex-input" />
+            <button type="button" id="btn-delete-by-regex" class="btn-delete-matching">Delete matching notes</button>
+          </div>
+          <p class="regex-hint">Delete notes whose content or title matches the regex</p>
+          <div id="admin-table-container">
+            <div class="empty-state">Loading admin notes...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Public Notes (match HTMX: same heading and button) -->
+      <section class="section">
+        <div class="section-box">
+          <div class="section-header">
+            <div>
+              <h2>Public Notes</h2>
+              <p class="section-subtitle">Visible to everyone</p>
+            </div>
+            <button class="btn btn-primary" id="btn-create-public">
+              <span class="icon-plus"></span>
+              Create Public Note
+            </button>
+          </div>
+          <div class="notes-grid" id="public-notes-grid">
+            <div class="empty-state">Loading public notes...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Your Notes / Private (signed-in only; match HTMX "Your Notes") -->
+      <section class="section show-when-signed-in-block">
+        <div class="section-box">
+          <div class="section-header">
+            <div>
+              <h2>Your Notes</h2>
+              <p class="section-subtitle">Only you can see these notes</p>
+            </div>
+            <button class="btn btn-primary" id="btn-create-private">
+              <span class="icon-plus"></span>
+              Create Private Note
+            </button>
+          </div>
+          <div class="notes-grid" id="private-notes-grid">
+            <div class="empty-state">Loading private notes...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sign-in prompt (signed-out only) -->
+      <section class="section show-when-signed-out-block">
+        <div class="section-box sign-in-prompt">
+          <h2 class="sign-in-title">Want to create private notes?</h2>
+          <p>Sign in to create and manage your own private notes.</p>
+          <button
+            class="btn btn-sign-in"
+            style="margin-top: 1rem"
+            onclick="document.getElementById('btn-sign-in').click()"
+          >
+            Sign In to Get Started
           </button>
         </div>
-        <div class="notes-grid" id="public-notes-grid">
-          <div class="empty-state">Loading public notes...</div>
+      </section>
+    </main>
+
+    <!-- Footer: Versions inline with other links -->
+    <footer class="footer footer--with-versions">
+      <div id="versions-panel" class="versions-panel versions-panel--above-footer" aria-hidden="true"></div>
+      <div class="footer-inner">
+        <span>&copy; 2024 Notes App</span>
+        <div class="footer-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Contact Us</a>
+          <button type="button" id="versions-btn" class="footer-link-btn">Versions</button>
         </div>
       </div>
-    </section>
+    </footer>
 
-    <!-- Your Notes / Private (signed-in only; match HTMX "Your Notes") -->
-    <section class="section show-when-signed-in-block">
-      <div class="section-box">
-        <div class="section-header">
-          <div>
-            <h2>Your Notes</h2>
-            <p class="section-subtitle">Only you can see these notes</p>
-          </div>
-          <button class="btn btn-primary" id="btn-create-private">
-            <span class="icon-plus"></span>
-            Create Private Note
-          </button>
-        </div>
-        <div class="notes-grid" id="private-notes-grid">
-          <div class="empty-state">Loading private notes...</div>
-        </div>
-      </div>
-    </section>
+    <!-- Modal container -->
+    <div id="modal-container"></div>
 
-    <!-- Sign-in prompt (signed-out only) -->
-    <section class="section show-when-signed-out-block">
-      <div class="section-box sign-in-prompt">
-        <h2 class="sign-in-title">Want to create private notes?</h2>
-        <p>Sign in to create and manage your own private notes.</p>
-        <button class="btn btn-sign-in" style="margin-top: 1rem;" onclick="document.getElementById('btn-sign-in').click()">
-          Sign In to Get Started
-        </button>
-      </div>
-    </section>
-  </main>
-
-  <!-- Footer: Versions inline with other links -->
-  <footer class="footer footer--with-versions">
-    <div id="versions-panel" class="versions-panel versions-panel--above-footer" aria-hidden="true"></div>
-    <div class="footer-inner">
-      <span>&copy; 2024 Notes App</span>
-      <div class="footer-links">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Contact Us</a>
-        <button type="button" id="versions-btn" class="footer-link-btn">Versions</button>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Modal container -->
-  <div id="modal-container"></div>
-
-  <!-- App entry point (ES module) -->
-  <script type="module" src="app.js"></script>
-</body>
+    <!-- App entry point (ES module) -->
+    <script type="module" src="/vanilla-js/app.js"></script>
+  </body>
 </html>

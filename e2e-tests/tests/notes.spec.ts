@@ -1,22 +1,22 @@
 /**
  * E2E: For each app (React, Vue, Angular, Svelte, Vanilla JS, HTMX), validate:
- * - Create public note, edit it, delete it
+ * - Create public note, edit it, delete it (per-app, unauthenticated)
  * - Create private note (signed in), edit it (if supported), delete it
- * Then admin cleanup via API.
  *
- * Auth strategy: each test starts unauthenticated. Private note tests call
- * clerk.signIn() directly — no storageState, no conditional sign-in checks.
+ * Auth strategy: globalSetup signs in once and saves storage state to
+ * playwright/.auth/user.json. All tests (public + private) run with that
+ * session pre-loaded — no per-test clerk.signIn() overhead.
  *
  * supportsPrivateNoteEdit: Angular, Vanilla JS, and HTMX private note cards
  * render only a Delete button, so the edit step is skipped for those apps.
  */
-import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { test, expect } from '@playwright/test';
-import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright';
-import { APP_PATHS, type AppName } from './helpers/apps.js';
-import { requireEnvVars } from './helpers/env.js';
+import {readFileSync, existsSync} from 'fs';
+import {join, dirname} from 'path';
+import {fileURLToPath} from 'url';
+import {test, expect} from '@playwright/test';
+import {setupClerkTestingToken} from '@clerk/testing/playwright';
+import {APP_PATHS, type AppName} from './helpers/apps.js';
+import {requireEnvVars} from './helpers/env.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -30,7 +30,7 @@ function loadClerkEnvFromFile() {
 
 requireEnvVars(
   ['E2E_BASE_URL', 'CLERK_PUBLISHABLE_KEY', 'CLERK_SECRET_KEY', 'CLERK_TEST_EMAIL'],
-  'notes.spec (E2E flows)'
+  'notes.spec (E2E flows)',
 );
 
 import {
@@ -42,158 +42,191 @@ import {
   createPrivateNote,
   editNoteByContent,
   deleteNoteByContent,
-  loginAsAdmin,
-  adminDeleteE2ENotes,
-  adminDeleteE2ENotesByApi,
   waitForClerkSessionToken,
 } from './helpers/notes-flow.js';
+import {resetTimer, timed, logStep, attachApiLogger} from './helpers/timing.js';
 
-const adminApiKey = process.env.E2E_ADMIN_API_KEY ?? '';
+/* ── Shared beforeEach: restore Clerk testing token ── */
+
+function sharedBeforeEach(appName: string) {
+  return async ({page}: {page: import('@playwright/test').Page}) => {
+    resetTimer();
+    // Clear any admin state left in localStorage (e.g. from prior browser sessions with channel:'chrome')
+    await page.addInitScript(() => {
+      localStorage.removeItem('adminApiKey');
+    });
+    logStep(`beforeEach: ${appName} — start`);
+    attachApiLogger(page);
+    loadClerkEnvFromFile();
+    await timed('setupClerkTestingToken', () => setupClerkTestingToken({page}));
+    logStep(`beforeEach: ${appName} — done`);
+  };
+}
+
+/* ── Public note tests: one per app ── */
 
 for (const appDef of APP_PATHS) {
-  const { name: appName, path: appPath, supportsPrivateNoteEdit } = appDef;
+  const {name: appName, path: appPath} = appDef;
 
   test.describe(`${appName} app`, () => {
-    // Each test starts unauthenticated. setupClerkTestingToken must be called
-    // before any navigation so Clerk FAPI requests are not blocked as bots.
-    test.beforeEach(async ({ page }) => {
-      loadClerkEnvFromFile();
-      await setupClerkTestingToken({ page });
-      await page.goto(appPath, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-      await page.waitForLoadState('load');
-      await page.waitForLoadState('networkidle').catch(() => {});
-      // Page ready: public notes section/heading, or nav (production/CI may hydrate slowly)
-      const pageReady = page.getByTestId('section-public-notes')
-        .or(page.getByRole('heading', { name: /public notes/i }))
-        .or(page.getByRole('button', { name: /sign in|create public note/i }))
-        .or(page.getByRole('link', { name: /home|my notes/i })).first();
-      await expect(pageReady).toBeVisible({ timeout: 25_000 });
-    });
+    test.beforeEach(sharedBeforeEach(appName));
 
-    test('public note: create, edit, delete', async ({ page }) => {
+    test('public note: create, edit, delete', async ({page}) => {
       if (appName === 'htmx') test.slow();
       const appNameTyped = appName as AppName;
       const content = publicNoteContent(appNameTyped);
       const title = publicNoteTitle(appNameTyped);
-      await createPublicNote(page, appPath, content, title);
-      await expect(
-        page.getByText(title).or(page.getByText(content)).first()
-      ).toBeVisible({ timeout: 10000 });
+      logStep(`TEST public note: create, edit, delete — ${appName}`);
 
-      // Wait for list refetch after edit
-      const refetchPromise = page.waitForResponse(
-        (res) => res.url().includes('/api/public-notes') && res.request().method() === 'GET' && res.status() === 200,
-        { timeout: 20000 }
-      ).catch(() => {});
-      await editNoteByContent(page, content, content + ' edited');
-      await refetchPromise;
-      await page.waitForTimeout(800);
+      await timed(`page.goto ${appPath}`, () => page.goto(appPath, {waitUntil: 'domcontentloaded', timeout: 20_000}));
+      await timed('waitForLoadState load', () => page.waitForLoadState('load'));
+      const pageReady = page
+        .getByTestId('section-public-notes')
+        .or(page.getByRole('heading', {name: /public notes/i}))
+        .or(page.getByRole('button', {name: /sign in|create public note/i}))
+        .or(page.getByRole('link', {name: /home|my notes/i}))
+        .first();
+      await timed('wait for page ready', () => expect(pageReady).toBeVisible({timeout: 25_000}));
+
+      // Svelte: ClerkProvider blocks full render until Clerk initializes from session cookies.
+      // Wait for an element only present after client-side hydration (GlobalSearch or sign-in button).
+      if (appName === 'svelte') {
+        await timed('wait for svelte hydration', () =>
+          page
+            .getByTestId('global-search-input')
+            .or(page.getByRole('button', {name: /sign in|sign out/i}).first())
+            .first()
+            .waitFor({state: 'visible', timeout: 30_000})
+            .catch(() => {}),
+        );
+      }
+
+      await timed('createPublicNote', () => createPublicNote(page, appPath, content, title));
+      await timed('wait for note visible after create', () =>
+        expect(page.getByText(title).or(page.getByText(content)).first()).toBeVisible({timeout: 10000}),
+      );
+
+      const refetchPromise = page
+        .waitForResponse(
+          (res) =>
+            (res.url().includes('/api/public-notes') || res.url().includes('/htmx/notes')) &&
+            res.request().method() === 'GET' &&
+            res.status() === 200,
+          {timeout: 20000},
+        )
+        .catch(() => {});
+      await timed('editNoteByContent', () => editNoteByContent(page, content, content + ' edited'));
+      await timed('wait for refetch after edit', () => refetchPromise);
 
       const editedContent = content + ' edited';
-      await expect(
-        page.getByText(editedContent).first()
-      ).toBeVisible({ timeout: 15_000 });
+      await timed('wait for edited content visible', () =>
+        expect(page.getByText(editedContent).first()).toBeVisible({timeout: 15_000}),
+      );
 
-      // Wait for DELETE response then verify note is gone
-      const deletePromise = page.waitForResponse(
-        (res) => (res.url().includes('/api/public-notes') || res.url().includes('/api/notes')) &&
-          res.request().method() === 'DELETE' &&
-          res.status() < 400,
-        { timeout: 15000 }
-      ).catch(() => {});
-      await deleteNoteByContent(page, editedContent);
-      await deletePromise;
-      await expect(page.getByText(editedContent)).not.toBeVisible({ timeout: 8000 });
-    });
-
-    test('private note: create, edit, delete', async ({ page }) => {
-      if (appName === 'htmx') test.slow();
-      const appNameTyped = appName as AppName;
-      const content = privateNoteContent(appNameTyped);
-      const title = privateNoteTitle(appNameTyped);
-      const email = process.env.CLERK_TEST_EMAIL;
-      if (!email) throw new Error('CLERK_TEST_EMAIL required');
-
-      // Sign in fresh — page is always unauthenticated here (no storageState),
-      // so clerk.signIn() never encounters an "already signed in" error.
-      await clerk.signIn({
-        page,
-        signInParams: { strategy: 'email_code', identifier: email },
-      });
-
-      // Ensure we're on the app page after sign-in (Clerk may redirect)
-      await page.goto(appPath, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-      await page.waitForLoadState('load');
-      await page.waitForLoadState('networkidle').catch(() => {});
-
-      await expect(
-        page.getByRole('button', { name: /create private note/i })
-      ).toBeVisible({ timeout: 25_000 });
-
-      const yourNotes = page.getByTestId('section-your-notes').or(
-        page.locator('section', { has: page.getByRole('heading', { name: /your notes|your private notes/i }) })
-      ).first();
-      await expect(yourNotes).toBeVisible({ timeout: 10_000 });
-
-      await waitForClerkSessionToken(page, 15_000);
-      await createPrivateNote(page, content, title);
-      await expect(
-        page.getByText(title).or(page.getByText(content)).first()
-      ).toBeVisible({ timeout: 10000 });
-
-      if (supportsPrivateNoteEdit) {
-        await editNoteByContent(page, content, content + ' edited');
-        const editedContent = content + ' edited';
-        await expect(
-          page.getByText(editedContent).first()
-        ).toBeVisible({ timeout: 20_000 });
-
-        // Wait for DELETE response then verify note is gone
-        const deletePromise = page.waitForResponse(
-          (res) => res.url().includes('/api/') && res.request().method() === 'DELETE' && res.status() < 400,
-          { timeout: 15000 }
-        ).catch(() => {});
-        await deleteNoteByContent(page, editedContent);
-        await deletePromise;
-        await expect(page.getByText(editedContent)).not.toBeVisible({ timeout: 8000 });
-      } else {
-        // App doesn't support private note editing — just delete the original
-        const deletePromise = page.waitForResponse(
-          (res) => res.url().includes('/api/') && res.request().method() === 'DELETE' && res.status() < 400,
-          { timeout: 15000 }
-        ).catch(() => {});
-        await deleteNoteByContent(page, content);
-        await deletePromise;
-        // Some HTMX/vanilla flows need a hard refresh to reflect deletion.
-        await page.reload({ waitUntil: 'domcontentloaded' });
-        await page.waitForLoadState('load');
-        await expect(page.getByText(content)).not.toBeVisible({ timeout: 8000 });
-      }
+      const deletePromise = page
+        .waitForResponse(
+          (res) =>
+            (res.url().includes('/api/public-notes') ||
+              res.url().includes('/api/notes') ||
+              res.url().includes('/htmx/notes')) &&
+            res.request().method() === 'DELETE' &&
+            res.status() < 400,
+          {timeout: 15000},
+        )
+        .catch(() => {});
+      await timed('deleteNoteByContent', () => deleteNoteByContent(page, editedContent));
+      await timed('wait for delete response', () => deletePromise);
+      await timed('wait for note gone', () => expect(page.getByText(editedContent)).not.toBeVisible({timeout: 8000}));
+      logStep(`TEST public note DONE — ${appName}`);
     });
   });
 }
 
-test.describe('admin cleanup', () => {
-  test('admin login and delete all e2e test notes', async ({ page }) => {
-    if (!adminApiKey) {
-      test.skip();
-      return;
-    }
-    const baseUrl = process.env.E2E_BASE_URL ?? 'http://localhost:3500';
-    try {
-      await adminDeleteE2ENotesByApi(adminApiKey, baseUrl);
-      return;
-    } catch {
-      // Fallback: use UI if API not available
-    }
+/* ── Private note tests: auth from storageState, no per-test signIn ── */
+
+test.describe('private notes (signed in)', () => {
+  // Serial so tests don't compete for private note visibility across apps
+  test.describe.configure({mode: 'serial'});
+
+  test.beforeEach(async ({page}) => {
+    resetTimer();
+    await page.addInitScript(() => {
+      localStorage.removeItem('adminApiKey');
+    });
+    attachApiLogger(page);
     loadClerkEnvFromFile();
-    await setupClerkTestingToken({ page });
-    await page.goto('/react', { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    await page.waitForLoadState('load');
-    await loginAsAdmin(page, adminApiKey);
-    await page.getByTestId('section-admin-table').or(
-      page.locator('section, div', { has: page.getByRole('heading', { name: /all notes|admin/i }) })
-    ).first().waitFor({ state: 'visible', timeout: 10000 });
-    await adminDeleteE2ENotes(page);
+    await timed('setupClerkTestingToken', () => setupClerkTestingToken({page}));
   });
+
+  for (const appDef of APP_PATHS) {
+    const {name: appName, path: appPath, supportsPrivateNoteEdit} = appDef;
+
+    test(`${appName}: private note create, edit, delete`, async ({page}) => {
+      if (appName === 'htmx') test.slow();
+      const appNameTyped = appName as AppName;
+      const content = privateNoteContent(appNameTyped);
+      const title = privateNoteTitle(appNameTyped);
+      logStep(`TEST private note: create, edit, delete — ${appName}`);
+
+      // Navigate to app — storage state provides auth session automatically.
+      await timed(`page.goto ${appPath}`, () => page.goto(appPath, {waitUntil: 'domcontentloaded', timeout: 20_000}));
+      await timed('waitForLoadState load', () => page.waitForLoadState('load'));
+
+      await timed('wait for Create Private Note button', () =>
+        expect(page.getByRole('button', {name: /create private note/i})).toBeVisible({timeout: 25_000}),
+      );
+
+      const yourNotes = page
+        .getByTestId('section-your-notes')
+        .or(page.locator('section', {has: page.getByRole('heading', {name: /your notes|your private notes/i})}))
+        .first();
+      await timed('wait for your notes section', () => expect(yourNotes).toBeVisible({timeout: 10_000}));
+
+      await timed('waitForClerkSessionToken', () => waitForClerkSessionToken(page, 15_000));
+      await timed('createPrivateNote', () => createPrivateNote(page, content, title));
+      await timed('wait for note visible after create', () =>
+        expect(page.getByText(title).or(page.getByText(content)).first()).toBeVisible({timeout: 10000}),
+      );
+
+      if (supportsPrivateNoteEdit) {
+        await timed('editNoteByContent (private)', () => editNoteByContent(page, content, content + ' edited'));
+        const editedContent = content + ' edited';
+        await timed('wait for edited content visible', () =>
+          expect(page.getByText(editedContent).first()).toBeVisible({timeout: 20_000}),
+        );
+
+        const deletePromise = page
+          .waitForResponse(
+            (res) =>
+              (res.url().includes('/api/') || res.url().includes('/htmx/')) &&
+              res.request().method() === 'DELETE' &&
+              res.status() < 400,
+            {timeout: 15000},
+          )
+          .catch(() => {});
+        await timed('deleteNoteByContent (private, edited)', () => deleteNoteByContent(page, editedContent));
+        await timed('wait for delete response', () => deletePromise);
+        await timed('wait for note gone', () => expect(page.getByText(editedContent)).not.toBeVisible({timeout: 8000}));
+      } else {
+        const deletePromise = page
+          .waitForResponse(
+            (res) =>
+              (res.url().includes('/api/') || res.url().includes('/htmx/')) &&
+              res.request().method() === 'DELETE' &&
+              res.status() < 400,
+            {timeout: 15000},
+          )
+          .catch(() => {});
+        await timed('deleteNoteByContent (private, no edit)', () => deleteNoteByContent(page, content));
+        await timed('wait for delete response', () => deletePromise);
+        await page.reload({waitUntil: 'domcontentloaded'});
+        await page.waitForLoadState('load');
+        await timed('wait for note gone', () => expect(page.getByText(content)).not.toBeVisible({timeout: 8000}));
+      }
+      logStep(`TEST private note DONE — ${appName}`);
+    });
+  }
 });
+
+// Admin cleanup is handled by globalTeardown (playwright.config.ts) which runs
+// after ALL tests complete, avoiding race conditions with parallel test execution.
