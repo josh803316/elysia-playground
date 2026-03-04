@@ -827,6 +827,30 @@ app
   .use(api) // Use the API router with prefix
   // Serve built React app at /react
   .use(serveSPA(reactAssetsPath, '/react'))
+  // Serve SvelteKit's /_app/ assets (referenced by relative paths in svelte/build/index.html
+  // when the page is loaded without a trailing slash, e.g. GET /svelte resolves ./ to /)
+  .group('/_app', (app) =>
+    app.get('/*', async ({params}) => {
+      const reqPath = params['*'] ?? '';
+      const svelteAppDir = resolve(svelteAssetsPath, '_app');
+      const filePath = resolve(svelteAppDir, reqPath);
+      if (!filePath.startsWith(svelteAppDir + '/') && filePath !== svelteAppDir) {
+        throw new NotFoundError();
+      }
+      try {
+        const stat = await fs.stat(filePath);
+        if (stat.isFile()) {
+          const file = await fs.readFile(filePath);
+          return new Response(new Uint8Array(file), {
+            headers: {'content-type': getContentType(filePath)},
+          });
+        }
+      } catch {
+        /* fall through */
+      }
+      throw new NotFoundError();
+    }),
+  )
   // Serve built Svelte app at /svelte
   .use(serveSPA(svelteAssetsPath, '/svelte'))
   // Serve Vanilla JS app at /vanilla-js

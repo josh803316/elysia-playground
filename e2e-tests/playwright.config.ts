@@ -6,7 +6,8 @@ const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3500';
 export default defineConfig({
   testDir: './tests',
   globalSetup: './tests/global-setup.ts',
-  fullyParallel: false,
+  globalTeardown: './tests/global-teardown.ts',
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : 1,
@@ -15,7 +16,7 @@ export default defineConfig({
   expect: {timeout: 10_000},
   use: {
     baseURL,
-    channel: 'chrome', // use system Chrome so no playwright install needed
+    storageState: './playwright/.auth/user.json',
     trace: 'on-first-retry',
     video: 'on-first-retry',
     screenshot: 'only-on-failure',
