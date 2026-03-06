@@ -16,6 +16,7 @@ import {notesController} from './controllers/notes.controller.js';
 import {publicNotesController} from './controllers/public-notes.controller.js';
 import {versionsController} from './controllers/versions.controller.js';
 import {htmxController} from './controllers/htmx.controller.js';
+import {jqueryController} from './controllers/jquery.controller.js';
 import {getDB, initDB} from './db/index.js';
 import {apiKeyGuard} from './guards/api-key-guard.js';
 import {authGuard} from './guards/auth-guard.js';
@@ -712,6 +713,31 @@ app
           "        <article class='card'>",
           "          <div class='card-header'>",
           "            <div class='card-main'>",
+          "              <div class='logo' aria-hidden='true' style='background:radial-gradient(circle at 30% 0,#1a56db,#0b1120);'>",
+          "                <span style='font-size:0.62rem;font-weight:700;color:#93c5fd;letter-spacing:0.08em;'>$( )</span>",
+          '              </div>',
+          '              <div>',
+          "                <div class='title'>jQuery showcase <span>· code expander</span></div>",
+          "                <p class='desc'>Five interactive UI demos — each with an expandable code panel showing the exact jQuery running on the page.</p>",
+          '              </div>',
+          '            </div>',
+          "            <div class='badge'>",
+          "              <span class='badge-dot'></span>",
+          '              Showcase',
+          '            </div>',
+          '          </div>',
+          "          <div class='meta'>",
+          "            <span class='pill'><strong>Stack</strong> jQuery · Prism.js · Tailwind</span>",
+          "            <span class='pill'><strong>Pattern</strong> code expander, slideToggle</span>",
+          '          </div>',
+          "          <a href='/jquery' class='link-btn'>",
+          '            <span>Open jQuery showcase</span>',
+          "            <span class='icon'>↗</span>",
+          '          </a>',
+          '        </article>',
+          "        <article class='card'>",
+          "          <div class='card-header'>",
+          "            <div class='card-main'>",
           "              <div class='logo logo-vanilla' aria-hidden='true'>",
           '                <span>JS</span>',
           '              </div>',
@@ -824,6 +850,7 @@ app
   })
   .use(versionsController) // Add versions controller at the app level
   .use(htmxController) // Add HTMX controller
+  .use(jqueryController) // Add jQuery showcase controller
   .use(api) // Use the API router with prefix
   // Serve built React app at /react
   .use(serveSPA(reactAssetsPath, '/react'))
