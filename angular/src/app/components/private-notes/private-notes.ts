@@ -1,13 +1,48 @@
-import { Component, inject, signal, computed, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  Output,
+  EventEmitter,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
 import { SearchNotesService } from '../../services/search-notes.service';
+import { CodeExpanderComponent } from '../code-expander/code-expander';
+
+const PRIVATE_CODE = `// private-notes.ts — Token passed from parent (AuthService)
+@Component({ selector: 'app-private-notes', ... })
+export class PrivateNotesComponent implements OnChanges {
+  private api = inject(NotesApiService);
+  notes = signal<Note[]>([]);
+
+  @Input() token: string | null = null;
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['token'] && this.token) this.loadNotes();
+  }
+
+  async loadNotes() {
+    const data = await this.api.fetchPrivateNotes(this.token!);
+    this.notes.set(Array.isArray(data) ? data : []);
+  }
+
+  async createNote(content: string) {
+    await this.api.createPrivateNote(this.token!, content);
+    await this.loadNotes();
+    this.notesChanged.emit();
+  }
+}`;
 
 /** Private notes (user-only). Loads when token input is set; uses OnChanges to react to token from parent. */
 @Component({
   selector: 'app-private-notes',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, CodeExpanderComponent],
   template: `
     <div class="section-header">
       <div>
@@ -31,7 +66,13 @@ import { SearchNotesService } from '../../services/search-notes.service';
     } @else if (displayedNotes().length === 0) {
       <div class="empty-state">
         <div class="empty-icon">🔒</div>
-        <p class="empty-message">{{ searchQuery() ? 'No private notes match "' + searchQuery() + '"' : 'No private notes yet. Create your first one!' }}</p>
+        <p class="empty-message">
+          {{
+            searchQuery()
+              ? 'No private notes match "' + searchQuery() + '"'
+              : 'No private notes yet. Create your first one!'
+          }}
+        </p>
       </div>
     } @else {
       <div class="notes-grid">
@@ -39,7 +80,9 @@ import { SearchNotesService } from '../../services/search-notes.service';
           <div class="note-card note-card--private">
             <div class="note-card-body">
               <div class="note-card-header">
-                <h3 class="note-card-title">{{ note.title || note.content.substring(0, 40) || 'Private Note' }}</h3>
+                <h3 class="note-card-title">
+                  {{ note.title || note.content.substring(0, 40) || 'Private Note' }}
+                </h3>
                 <span class="badge-private">🔒 Private</span>
               </div>
               <p class="note-card-content">{{ note.content }}</p>
@@ -54,6 +97,8 @@ import { SearchNotesService } from '../../services/search-notes.service';
         }
       </div>
     }
+
+    <app-code-expander [code]="PRIVATE_CODE" id="angular-private-code" label="Angular code" />
 
     <!-- Create Private Note Modal -->
     @if (showModal()) {
@@ -97,8 +142,16 @@ import { SearchNotesService } from '../../services/search-notes.service';
       justify-content: space-between;
       margin-bottom: 1rem;
     }
-    .section-title { font-size: 1.5rem; font-weight: 700; color: #1f2937; }
-    .section-subtitle { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .section-subtitle {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
 
     .btn-create-private {
       display: inline-flex;
@@ -113,10 +166,15 @@ import { SearchNotesService } from '../../services/search-notes.service';
       font-size: 0.875rem;
       font-weight: 500;
       transition: background 0.15s;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
-    .btn-create-private:hover { background: #6d28d9; }
-    .btn-icon { font-size: 1.2em; font-weight: 700; }
+    .btn-create-private:hover {
+      background: #6d28d9;
+    }
+    .btn-icon {
+      font-size: 1.2em;
+      font-weight: 700;
+    }
 
     .notes-grid {
       display: grid;
@@ -127,16 +185,27 @@ import { SearchNotesService } from '../../services/search-notes.service';
     .note-card {
       background: white;
       border-radius: 0.5rem;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -2px rgba(0, 0, 0, 0.1);
       overflow: hidden;
       transition: box-shadow 0.15s;
       display: flex;
       flex-direction: column;
     }
-    .note-card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
-    .note-card--private { border-left: 4px solid #7c3aed; }
+    .note-card:hover {
+      box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    }
+    .note-card--private {
+      border-left: 4px solid #7c3aed;
+    }
 
-    .note-card-body { padding: 1rem; flex: 1; }
+    .note-card-body {
+      padding: 1rem;
+      flex: 1;
+    }
     .note-card-header {
       display: flex;
       justify-content: space-between;
@@ -193,7 +262,9 @@ import { SearchNotesService } from '../../services/search-notes.service';
       padding: 0;
       transition: color 0.15s;
     }
-    .action-delete:hover { color: #b91c1c; }
+    .action-delete:hover {
+      color: #b91c1c;
+    }
 
     .error-banner {
       background: #fef2f2;
@@ -204,20 +275,30 @@ import { SearchNotesService } from '../../services/search-notes.service';
       margin-bottom: 1rem;
       font-size: 0.875rem;
     }
-    .loading-text { color: #6b7280; font-size: 0.9rem; text-align: center; padding: 2rem 0; }
+    .loading-text {
+      color: #6b7280;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 2rem 0;
+    }
     .empty-state {
       text-align: center;
       padding: 2rem 1rem;
       color: #6b7280;
     }
-    .empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .empty-message { font-size: 0.9rem; }
+    .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .empty-message {
+      font-size: 0.9rem;
+    }
 
     /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -227,7 +308,7 @@ import { SearchNotesService } from '../../services/search-notes.service';
     .modal-box {
       background: white;
       border-radius: 0.5rem;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 32rem;
     }
@@ -240,7 +321,11 @@ import { SearchNotesService } from '../../services/search-notes.service';
       background: linear-gradient(to right, #f5f3ff, #f0fdf4);
       border-radius: 0.5rem 0.5rem 0 0;
     }
-    .modal-header-private h3 { font-size: 1.25rem; font-weight: 600; color: #1f2937; }
+    .modal-header-private h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
     .modal-close {
       background: none;
       border: none;
@@ -250,11 +335,30 @@ import { SearchNotesService } from '../../services/search-notes.service';
       padding: 0.25rem;
       line-height: 1;
     }
-    .modal-close:hover { color: #111827; }
-    .modal-form { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-    .form-group { display: flex; flex-direction: column; gap: 0.25rem; }
-    .private-hint { font-size: 0.875rem; color: #6b7280; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
+    .modal-close:hover {
+      color: #111827;
+    }
+    .modal-form {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .private-hint {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
     .btn-cancel {
       padding: 0.5rem 1rem;
       border-radius: 0.5rem;
@@ -266,7 +370,9 @@ import { SearchNotesService } from '../../services/search-notes.service';
       background: #e5e7eb;
       transition: background 0.15s;
     }
-    .btn-cancel:hover { background: #d1d5db; }
+    .btn-cancel:hover {
+      background: #d1d5db;
+    }
     .btn-submit-purple {
       padding: 0.5rem 1.5rem;
       border-radius: 0.5rem;
@@ -278,11 +384,17 @@ import { SearchNotesService } from '../../services/search-notes.service';
       background: #7c3aed;
       transition: background 0.15s;
     }
-    .btn-submit-purple:hover:not(:disabled) { background: #6d28d9; }
-    .btn-submit-purple:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-submit-purple:hover:not(:disabled) {
+      background: #6d28d9;
+    }
+    .btn-submit-purple:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   `,
 })
 export class PrivateNotesComponent implements OnChanges {
+  readonly PRIVATE_CODE = PRIVATE_CODE;
   private api = inject(NotesApiService);
   private searchService = inject(SearchNotesService);
 
@@ -330,7 +442,9 @@ export class PrivateNotesComponent implements OnChanges {
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+  }
 
   closeOnOverlay(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
@@ -342,7 +456,10 @@ export class PrivateNotesComponent implements OnChanges {
     event.preventDefault();
     if (!this.token) return;
     const content = this.formContent.trim();
-    if (!content) { this.modalError.set('Content is required'); return; }
+    if (!content) {
+      this.modalError.set('Content is required');
+      return;
+    }
     this.saving.set(true);
     this.modalError.set('');
     try {
@@ -372,6 +489,10 @@ export class PrivateNotesComponent implements OnChanges {
 
   formatDate(dateStr?: string): string {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   }
 }

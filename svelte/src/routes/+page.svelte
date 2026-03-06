@@ -24,6 +24,49 @@
   } from 'flowbite-svelte';
   import { Card } from 'flowbite-svelte';
   import NoteModal from '$lib/components/NoteModal.svelte';
+  import CodeExpander from '$lib/components/CodeExpander.svelte';
+
+  const SVELTE_ADMIN_CODE = `// Fetch all notes with admin API key
+  async function fetchAllNotes() {
+    const res = await fetch('/api/notes/all', {
+      headers: { 'X-API-Key': adminApiKey },
+    });
+    allNotes = await res.json();
+  }
+  $: if (isAdminLoggedIn) fetchAllNotes();`;
+
+  const SVELTE_PUBLIC_CODE = `// Fetch public notes on mount
+  import { onMount } from 'svelte';
+  let publicNotes = [];
+
+  onMount(async () => {
+    const res = await fetch('/api/public-notes');
+    publicNotes = await res.json();
+  });
+
+  // Create a public note
+  async function createNote(title, content) {
+    await fetch('/api/public-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content, isPublic: true }),
+    });
+    const res = await fetch('/api/public-notes');
+    publicNotes = await res.json();
+  }`;
+
+  const SVELTE_PRIVATE_CODE = `// Fetch private notes with Clerk token
+  let privateNotes = [];
+
+  async function fetchPrivateNotes(token) {
+    const res = await fetch('/api/private-notes', {
+      headers: { Authorization: \`Bearer \${token}\` },
+    });
+    privateNotes = await res.json();
+  }
+
+  // Reactive: fetch when userToken is available
+  $: if (userToken) fetchPrivateNotes(userToken);`;
 
   // Define note type for better type safety
   interface Note {
@@ -755,6 +798,7 @@
             </Table>
           </div>
         {/if}
+        <CodeExpander code={SVELTE_ADMIN_CODE} id="svelte-admin-code" label="Svelte code" />
       </section>
     {/if}
 
@@ -831,6 +875,7 @@
             {/each}
           </div>
         {/if}
+        <CodeExpander code={SVELTE_PUBLIC_CODE} id="svelte-public-code" label="Svelte code" />
     </section>
 
     <!-- Want to create private notes? - only when signed out (match HTMX/React); client-only so prerender works -->
@@ -916,6 +961,7 @@
             {/each}
           </div>
         {/if}
+          <CodeExpander code={SVELTE_PRIVATE_CODE} id="svelte-private-code" label="Svelte code" />
         </section>
       </SignedIn>
     {/if}

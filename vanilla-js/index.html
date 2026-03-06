@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="/vanilla-js/styles.css" />
     <!-- Vanilla JS env bootstrap (exposes window.__VANILLA_ENV__ from server env vars) -->
     <script src="/vanilla-js/env.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
   </head>
   <body class="signed-out">
     <!-- Navigation -->
@@ -71,6 +73,32 @@
           <div id="admin-table-container">
             <div class="empty-state">Loading admin notes...</div>
           </div>
+          <div class="vjs-code-expander">
+            <button type="button" class="vjs-code-toggle" aria-controls="vjs-admin-code-panel" aria-expanded="false">
+              <span class="vjs-code-icon">&lt;/&gt;</span> Vanilla JS code <span class="vjs-chevron">▼</span>
+            </button>
+            <div id="vjs-admin-code-panel" class="vjs-code-panel" style="display: none">
+              <pre class="language-javascript"><code class="language-javascript">// Fetch all notes with admin API key
+async function loadAdminNotes() {
+  const key = localStorage.getItem('adminApiKey');
+  const res = await fetch('/api/notes/all', {
+    headers: { 'X-API-Key': key },
+  });
+  const notes = await res.json();
+  renderAdminTable(notes);
+}
+
+// Delete note via REST API
+async function deleteNote(id) {
+  const key = localStorage.getItem('adminApiKey');
+  await fetch(`/api/notes/${id}/admin`, {
+    method: 'DELETE',
+    headers: { 'X-API-Key': key },
+  });
+  await loadAdminNotes();
+}</code></pre>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -90,6 +118,31 @@
           <div class="notes-grid" id="public-notes-grid">
             <div class="empty-state">Loading public notes...</div>
           </div>
+          <div class="vjs-code-expander">
+            <button type="button" class="vjs-code-toggle" aria-controls="vjs-public-code-panel" aria-expanded="false">
+              <span class="vjs-code-icon">&lt;/&gt;</span> Vanilla JS code <span class="vjs-chevron">▼</span>
+            </button>
+            <div id="vjs-public-code-panel" class="vjs-code-panel" style="display: none">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// Fetch public notes (no auth required)
+async function loadPublicNotes() {
+  const res = await fetch('/api/public-notes');
+  publicNotes = await res.json();
+  renderPublicNotes();
+}
+
+// Create a public note
+async function createPublicNote(title, content) {
+  await fetch('/api/public-notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content, isPublic: true }),
+  });
+  await loadPublicNotes();
+}</code></pre>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -108,6 +161,36 @@
           </div>
           <div class="notes-grid" id="private-notes-grid">
             <div class="empty-state">Loading private notes...</div>
+          </div>
+          <div class="vjs-code-expander">
+            <button type="button" class="vjs-code-toggle" aria-controls="vjs-private-code-panel" aria-expanded="false">
+              <span class="vjs-code-icon">&lt;/&gt;</span> Vanilla JS code <span class="vjs-chevron">▼</span>
+            </button>
+            <div id="vjs-private-code-panel" class="vjs-code-panel" style="display: none">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// Fetch private notes with Bearer token from Clerk
+async function loadPrivateNotes(token) {
+  const res = await fetch('/api/private-notes', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  privateNotes = await res.json();
+  renderPrivateNotes();
+}
+
+// Create a private note
+async function createPrivateNote(title, content, token) {
+  await fetch('/api/private-notes', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ title, content, isPublic: false }),
+  });
+  await loadPrivateNotes(token);
+}</code></pre>
+            </div>
           </div>
         </div>
       </section>

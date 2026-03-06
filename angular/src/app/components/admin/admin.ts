@@ -1,10 +1,45 @@
-import { Component, inject, signal, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  Output,
+  EventEmitter,
+} from '@angular/core';
 import { NotesApiService, Note } from '../../services/notes-api.service';
+import { CodeExpanderComponent } from '../code-expander/code-expander';
+
+const ADMIN_CODE = `// admin.ts — Inject NotesApiService and load all notes
+@Component({ selector: 'app-admin', ... })
+export class AdminComponent implements OnChanges {
+  private api = inject(NotesApiService);
+  notes = signal<Note[]>([]);
+  loading = signal(false);
+
+  @Input() apiKey: string | null = null;
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['apiKey'] && this.apiKey) this.loadNotes();
+  }
+
+  async loadNotes() {
+    const data = await this.api.fetchAllNotes(this.apiKey!);
+    this.notes.set(Array.isArray(data) ? data : []);
+  }
+
+  async deleteNote(id: number) {
+    await this.api.deleteNote(id, this.apiKey!);
+    await this.loadNotes();
+  }
+}`;
 
 /** Admin view: all notes table with delete. Requires apiKey (X-API-Key). Emits onLogout on 401 so parent can clear key. */
 @Component({
   selector: 'app-admin',
   standalone: true,
+  imports: [CodeExpanderComponent],
   template: `
     <div class="section-header">
       <div>
@@ -81,6 +116,8 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
         </table>
       </div>
     }
+
+    <app-code-expander [code]="ADMIN_CODE" id="angular-admin-code" label="Angular code" />
   `,
   styles: `
     .section-header {
@@ -89,8 +126,16 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       justify-content: space-between;
       margin-bottom: 1rem;
     }
-    .section-title { font-size: 1.5rem; font-weight: 700; color: #1f2937; }
-    .section-subtitle { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .section-subtitle {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
 
     .table-wrapper {
       overflow-x: auto;
@@ -102,7 +147,9 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       border-collapse: collapse;
       font-size: 0.875rem;
     }
-    .admin-table thead { background: #f3f4f6; }
+    .admin-table thead {
+      background: #f3f4f6;
+    }
     .admin-table th {
       padding: 0.75rem 1rem;
       text-align: left;
@@ -117,7 +164,9 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       color: #374151;
       border-top: 1px solid #e5e7eb;
     }
-    .admin-table tbody tr:hover td { background: #f9fafb; }
+    .admin-table tbody tr:hover td {
+      background: #f9fafb;
+    }
     .content-cell {
       max-width: 200px;
       overflow: hidden;
@@ -155,7 +204,9 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       padding: 0;
       transition: color 0.15s;
     }
-    .action-delete:hover { color: #b91c1c; }
+    .action-delete:hover {
+      color: #b91c1c;
+    }
 
     .error-banner {
       background: #fef2f2;
@@ -166,13 +217,21 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       margin-bottom: 1rem;
       font-size: 0.875rem;
     }
-    .loading-text { color: #6b7280; font-size: 0.9rem; text-align: center; padding: 2rem 0; }
+    .loading-text {
+      color: #6b7280;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 2rem 0;
+    }
     .empty-state {
       text-align: center;
       padding: 2rem 1rem;
       color: #6b7280;
     }
-    .empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
 
     .delete-by-regex-row {
       display: flex;
@@ -198,12 +257,22 @@ import { NotesApiService, Note } from '../../services/notes-api.service';
       border-radius: 0.375rem;
       cursor: pointer;
     }
-    .btn-delete-matching:hover:not(:disabled) { background: #fee2e2; }
-    .btn-delete-matching:disabled { opacity: 0.6; cursor: not-allowed; }
-    .regex-hint { font-size: 0.75rem; color: #6b7280; margin: 0 0 1rem 0; }
+    .btn-delete-matching:hover:not(:disabled) {
+      background: #fee2e2;
+    }
+    .btn-delete-matching:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .regex-hint {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin: 0 0 1rem 0;
+    }
   `,
 })
 export class AdminComponent implements OnChanges {
+  readonly ADMIN_CODE = ADMIN_CODE;
   private api = inject(NotesApiService);
 
   @Input() apiKey: string | null = null;
@@ -248,7 +317,7 @@ export class AdminComponent implements OnChanges {
     this.error.set('');
     try {
       await this.api.deleteNoteAdmin(key, id);
-      this.notes.update(n => n.filter(note => note.id !== id));
+      this.notes.update((n) => n.filter((note) => note.id !== id));
     } catch (e: any) {
       this.error.set(e.message);
     }
@@ -286,6 +355,10 @@ export class AdminComponent implements OnChanges {
 
   formatDate(dateStr?: string): string {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   }
 }

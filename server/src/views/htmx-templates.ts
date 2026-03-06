@@ -29,7 +29,11 @@ export interface User {
 /**
  * Base HTML layout with HTMX script, Tailwind CSS, and Clerk JS
  */
-export function baseLayout(content: string, title: string = "Elysia Notes - HTMX", clerkPublishableKey?: string): string {
+export function baseLayout(
+  content: string,
+  title: string = 'Elysia Notes - HTMX',
+  clerkPublishableKey?: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,13 +42,19 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
   <title>${title}</title>
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  ${clerkPublishableKey ? `<script
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  ${
+    clerkPublishableKey
+      ? `<script
     async
     crossorigin="anonymous"
     data-clerk-publishable-key="${clerkPublishableKey}"
     src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
     type="text/javascript"
-  ></script>` : ''}
+  ></script>`
+      : ''
+  }
   <style>
     .htmx-indicator {
       display: none;
@@ -75,6 +85,8 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
     .clerk-signed-in .show-when-signed-in { display: block !important; }
     /* Keep nav "My Notes" + badges in one row when signed in */
     .clerk-signed-in .show-when-signed-in.nav-notes-row { display: flex !important; }
+    /* Code expander */
+    .htmx-chevron { display: inline-block; transition: transform 0.2s; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen clerk-loading">
@@ -278,6 +290,18 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
         if (window.updateAdminNav) window.updateAdminNav();
       }
     });
+    document.addEventListener('click', function(evt) {
+      var btn = evt.target.closest && evt.target.closest('.htmx-code-toggle');
+      if (!btn) return;
+      var panelId = btn.getAttribute('aria-controls');
+      var panel = panelId ? document.getElementById(panelId) : null;
+      if (!panel) return;
+      var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+      panel.style.display = isExpanded ? 'none' : '';
+      btn.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+      var chevron = btn.querySelector('.htmx-chevron');
+      if (chevron) chevron.style.transform = isExpanded ? '' : 'rotate(180deg)';
+    });
     document.body.addEventListener('click', function(evt) {
       if (evt.target && evt.target.id === 'btn-delete-by-regex') {
         var input = document.getElementById('admin-regex-input');
@@ -307,7 +331,9 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
       }
     });
   </script>
-  ${clerkPublishableKey ? `<script>
+  ${
+    clerkPublishableKey
+      ? `<script>
     // Initialize Clerk
     window.addEventListener('load', async () => {
       try {
@@ -373,7 +399,9 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
         document.body.classList.add('clerk-signed-out');
       }
     });
-  </script>` : ''}
+  </script>`
+      : ''
+  }
 </body>
 </html>`;
 }
@@ -382,7 +410,8 @@ export function baseLayout(content: string, title: string = "Elysia Notes - HTMX
  * Notes table page - full page with table of all notes (admin view, requires Admin API Key)
  */
 export function notesTablePage(clerkPublishableKey?: string): string {
-  return baseLayout(`
+  return baseLayout(
+    `
     <div class="space-y-6">
       <div id="modal-container"></div>
       <section class="bg-white rounded-lg shadow-sm p-6">
@@ -422,18 +451,90 @@ export function notesTablePage(clerkPublishableKey?: string): string {
         }
       })();
     </script>
-  `, "Notes – Table view", clerkPublishableKey);
+  `,
+    'Notes – Table view',
+    clerkPublishableKey,
+  );
+}
+
+/**
+ * Escape HTML entities for safe embedding inside <pre><code> blocks
+ */
+function escapeCode(code: string): string {
+  return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Code expander toggle widget — shows HTMX-specific code for each section
+ */
+function codeExpander(code: string, id: string): string {
+  return `
+    <div class="border-t border-gray-100 mt-4">
+      <button type="button" class="htmx-code-toggle w-full flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors"
+        aria-controls="${id}-panel" aria-expanded="false">
+        <span class="text-gray-400 font-mono">&lt;/&gt;</span> HTMX code
+        <span class="htmx-chevron ml-1">▼</span>
+      </button>
+      <div id="${id}-panel" class="htmx-code-panel" style="display:none">
+        <pre class="rounded-lg bg-gray-900 text-gray-100 p-4 overflow-x-auto text-xs mt-1 !m-0"><code class="language-markup">${escapeCode(code)}</code></pre>
+      </div>
+    </div>`;
 }
 
 /**
  * Main notes page content
  */
 export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
-  return baseLayout(`
+  const adminCode = `<!-- Admin notes loaded via HTMX -->
+<div
+  id="admin-notes-container"
+  hx-get="/htmx/admin/notes"
+  hx-trigger="refreshAdminNotes from:body"
+  hx-swap="innerHTML"
+></div>
+
+// X-API-Key injected via htmx:configRequest:
+document.body.addEventListener('htmx:configRequest', (evt) => {
+  const url = evt.detail.pathInfo?.requestPath ?? '';
+  if (url.includes('/htmx/admin/notes')) {
+    evt.detail.headers['X-API-Key'] = localStorage.getItem('adminApiKey');
+  }
+});`;
+
+  const publicCode = `<!-- Public notes server-rendered by Elysia on page load -->
+<div id="notes-grid">
+  <!-- noteCard() renders each note server-side -->
+</div>
+
+<!-- HTMX loads the create-note form into a modal container -->
+<button
+  hx-get="/htmx/notes/new"
+  hx-target="#modal-container"
+  hx-swap="innerHTML"
+>+ Create Public Note</button>`;
+
+  const privateCode = `<!-- Private notes lazy-loaded after Clerk auth resolves -->
+<div
+  id="private-notes-container"
+  hx-get="/htmx/private-notes"
+  hx-trigger="load, refreshPrivateNotes from:body"
+  hx-swap="innerHTML"
+></div>
+
+// Authorization header injected via htmx:configRequest:
+document.body.addEventListener('htmx:configRequest', (evt) => {
+  const url = evt.detail.pathInfo?.requestPath ?? '';
+  if (url.includes('/htmx/private-notes')) {
+    evt.detail.headers['Authorization'] = 'Bearer ' + window.__clerkToken;
+  }
+});`;
+
+  return baseLayout(
+    `
     <div class="space-y-8">
       <!-- Modal container -->
       <div id="modal-container"></div>
-      
+
       <!-- Admin: All Notes (visible when admin is logged in) -->
       <div id="admin-section" class="hidden" data-testid="section-admin-table">
         <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
@@ -457,9 +558,10 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
           >
             <div class="text-center py-8 text-gray-500">Loading admin notes...</div>
           </div>
+          ${codeExpander(adminCode, 'htmx-admin-code')}
         </div>
       </div>
-      
+
       <!-- Public Notes Section -->
       <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200" data-testid="section-public-notes">
         <div class="flex justify-between items-center mb-4">
@@ -467,8 +569,8 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
             <h2 class="text-2xl font-bold text-gray-800">Public Notes</h2>
             <p class="text-gray-600 text-sm">Visible to everyone</p>
           </div>
-          <button 
-            hx-get="/htmx/notes/new" 
+          <button
+            hx-get="/htmx/notes/new"
             hx-target="#modal-container"
             hx-swap="innerHTML"
             class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
@@ -476,15 +578,13 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
             <span class="text-xl">+</span> Create Public Note
           </button>
         </div>
-        
+
         <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          ${notes.length === 0 
-            ? emptyState() 
-            : notes.map(note => noteCard(note)).join('')
-          }
+          ${notes.length === 0 ? emptyState() : notes.map((note) => noteCard(note)).join('')}
         </div>
+        ${codeExpander(publicCode, 'htmx-public-code')}
       </div>
-      
+
       <!-- Your Notes Section (only visible when signed in) -->
       <div class="show-when-signed-in show-when-loaded" data-testid="section-your-notes">
         <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
@@ -493,8 +593,8 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
               <h2 class="text-2xl font-bold text-gray-800">Your Notes</h2>
               <p class="text-gray-600 text-sm">Only you can see these notes</p>
             </div>
-            <button 
-              hx-get="/htmx/private-notes/new" 
+            <button
+              hx-get="/htmx/private-notes/new"
               hx-target="#modal-container"
               hx-swap="innerHTML"
               class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2 font-medium"
@@ -502,10 +602,10 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
               <span class="text-xl">+</span> Create Private Note
             </button>
           </div>
-          
-          <div 
+
+          <div
             id="private-notes-container"
-            hx-get="/htmx/private-notes" 
+            hx-get="/htmx/private-notes"
             hx-trigger="load, refreshPrivateNotes from:body"
             hx-swap="innerHTML"
             class="min-h-[100px]"
@@ -514,6 +614,7 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
               <div class="animate-pulse">Loading your notes...</div>
             </div>
           </div>
+          ${codeExpander(privateCode, 'htmx-private-code')}
         </div>
       </div>
       
@@ -532,7 +633,10 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
         </div>
       </div>
     </div>
-  `, "Elysia Notes - HTMX", clerkPublishableKey);
+  `,
+    'Elysia Notes - HTMX',
+    clerkPublishableKey,
+  );
 }
 
 /**
@@ -552,14 +656,14 @@ export function emptyState(): string {
  * Individual note card component
  */
 export function noteCard(note: Note): string {
-  const authorName = note.user 
+  const authorName = note.user
     ? `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email
     : 'Anonymous';
-  
+
   const createdDate = new Date(note.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   });
 
   return `
@@ -766,10 +870,10 @@ export function privateNotesGrid(notes: Note[]): string {
       </div>
     `;
   }
-  
+
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      ${notes.map(note => privateNoteCard(note)).join('')}
+      ${notes.map((note) => privateNoteCard(note)).join('')}
     </div>
   `;
 }
@@ -781,7 +885,7 @@ export function privateNoteCard(note: Note): string {
   const createdDate = new Date(note.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   });
 
   return `
@@ -924,25 +1028,24 @@ export function adminNotesGrid(notes: Note[]): string {
     `;
   }
   const formatDate = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
-    ", " +
-    d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) +
+    ', ' +
+    d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
   const contentPreview = (c: string) =>
-    !c ? "(No content)" : c.length > 50 ? escapeHtml(c.slice(0, 50)) + "..." : escapeHtml(c);
+    !c ? '(No content)' : c.length > 50 ? escapeHtml(c.slice(0, 50)) + '...' : escapeHtml(c);
   const rows = notes
-    .map(
-      (note) => {
-        const authorName = note.user
-          ? `${note.user.firstName || ""} ${note.user.lastName || ""}`.trim() || note.user.email
-          : "Anonymous";
-        const createdDate = formatDate(new Date(note.createdAt));
-        const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : "N/A";
-        return `
+    .map((note) => {
+      const authorName = note.user
+        ? `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email
+        : 'Anonymous';
+      const createdDate = formatDate(new Date(note.createdAt));
+      const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : 'N/A';
+      return `
     <tr id="admin-note-row-${note.id}" class="border-b border-gray-200 hover:bg-gray-50">
-      <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title || "Untitled")}</td>
-      <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">${contentPreview(note.content || "")}</td>
-      <td class="px-4 py-3 text-sm">${note.isPublic === "true" ? '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700">Public</span>' : '<span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700">Private</span>'}</td>
-      <td class="px-4 py-3 text-sm text-gray-500">${escapeHtml(authorName ?? "")}</td>
+      <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title || 'Untitled')}</td>
+      <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">${contentPreview(note.content || '')}</td>
+      <td class="px-4 py-3 text-sm">${note.isPublic === 'true' ? '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700">Public</span>' : '<span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700">Private</span>'}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${escapeHtml(authorName ?? '')}</td>
       <td class="px-4 py-3 text-sm text-gray-500">${createdDate}</td>
       <td class="px-4 py-3 text-sm text-gray-500">${updatedDate}</td>
       <td class="px-4 py-3">
@@ -967,9 +1070,8 @@ export function adminNotesGrid(notes: Note[]): string {
         </div>
       </td>
     </tr>`;
-      }
-    )
-    .join("");
+    })
+    .join('');
   return `
     <div class="overflow-x-auto rounded-lg border border-gray-200" data-testid="admin-notes-table">
       <table class="min-w-full divide-y divide-gray-200">
@@ -997,21 +1099,25 @@ export function adminNotesGrid(notes: Note[]): string {
  */
 export function adminNoteCard(note: Note): string {
   const authorName = note.user
-    ? `${note.user.firstName || ""} ${note.user.lastName || ""}`.trim() || note.user.email
-    : "Anonymous";
+    ? `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email
+    : 'Anonymous';
   const formatDate = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
-    ", " +
-    d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) +
+    ', ' +
+    d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
   const createdDate = formatDate(new Date(note.createdAt));
-  const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : "N/A";
-  const contentPreview = !note.content ? "(No content)" : note.content.length > 50 ? escapeHtml(note.content.slice(0, 50)) + "..." : escapeHtml(note.content);
+  const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : 'N/A';
+  const contentPreview = !note.content
+    ? '(No content)'
+    : note.content.length > 50
+      ? escapeHtml(note.content.slice(0, 50)) + '...'
+      : escapeHtml(note.content);
   return `
     <tr id="admin-note-row-${note.id}" class="border-b border-gray-200 hover:bg-gray-50">
-      <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title || "Untitled")}</td>
+      <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title || 'Untitled')}</td>
       <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">${contentPreview}</td>
-      <td class="px-4 py-3 text-sm">${note.isPublic === "true" ? '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700">Public</span>' : '<span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700">Private</span>'}</td>
-      <td class="px-4 py-3 text-sm text-gray-500">${escapeHtml(authorName ?? "")}</td>
+      <td class="px-4 py-3 text-sm">${note.isPublic === 'true' ? '<span class="px-2 py-0.5 rounded bg-green-100 text-green-700">Public</span>' : '<span class="px-2 py-0.5 rounded bg-gray-100 text-gray-700">Private</span>'}</td>
+      <td class="px-4 py-3 text-sm text-gray-500">${escapeHtml(authorName ?? '')}</td>
       <td class="px-4 py-3 text-sm text-gray-500">${createdDate}</td>
       <td class="px-4 py-3 text-sm text-gray-500">${updatedDate}</td>
       <td class="px-4 py-3">
@@ -1123,7 +1229,7 @@ function escapeHtml(text: string): string {
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    "'": '&#39;'
+    "'": '&#39;',
   };
-  return text.replace(/[&<>"']/g, char => htmlEscapes[char]);
+  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
 }

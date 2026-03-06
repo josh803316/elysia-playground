@@ -10,6 +10,47 @@ import { usePublicNotes } from '../composables/usePublicNotes';
 import { usePrivateNotes } from '../composables/usePrivateNotes';
 import { useAdmin } from '../composables/useAdmin';
 import { useSearchNotes } from '../composables/useSearchNotes';
+import CodeExpander from '../components/CodeExpander.vue';
+
+const VUE_ADMIN_CODE = `// composables/useAdmin.ts
+const fetchAllNotes = async () => {
+  const res = await fetch('/api/notes/all', {
+    headers: { 'X-API-Key': adminApiKey.value },
+  });
+  allNotes.value = await res.json();
+};
+watch(isAdminLoggedIn, (val) => { if (val) fetchAllNotes(); });`;
+
+const VUE_PUBLIC_CODE = `// composables/usePublicNotes.ts
+const fetchPublicNotes = async () => {
+  const res = await fetch('/api/public-notes');
+  notes.value = await res.json();
+};
+onMounted(() => fetchPublicNotes());
+
+// Create a public note
+const createNote = async (title, content) => {
+  await fetch('/api/public-notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content, isPublic: true }),
+  });
+  await fetchPublicNotes();
+};`;
+
+const VUE_PRIVATE_CODE = `// composables/usePrivateNotes.ts
+const fetchPrivateNotes = async (token) => {
+  const res = await fetch('/api/private-notes', {
+    headers: { Authorization: \`Bearer \${token}\` },
+  });
+  notes.value = await res.json();
+};
+watch(isSignedIn, async (val) => {
+  if (val) {
+    const token = await getToken.value();
+    if (token) fetchPrivateNotes(token);
+  }
+});`;
 
 const { isSignedIn } = useUser();
 const { getToken } = useAuth();
@@ -98,6 +139,7 @@ async function handleNoteSubmitted() {
         :admin-api-key="adminApiKey"
         @refetch="fetchAllNotes()"
         />
+        <CodeExpander :code="VUE_ADMIN_CODE" id="vue-admin-code" label="Vue code" />
       </div>
 
       <!-- Public Notes Section -->
@@ -125,6 +167,7 @@ async function handleNoteSubmitted() {
           @deleted="refresh()"
           @updated="refresh()"
         />
+        <CodeExpander :code="VUE_PUBLIC_CODE" id="vue-public-code" label="Vue code" />
       </section>
 
       <!-- Sign in prompt -->
@@ -159,6 +202,7 @@ async function handleNoteSubmitted() {
           @deleted="refresh()"
           @updated="refresh()"
         />
+        <CodeExpander :code="VUE_PRIVATE_CODE" id="vue-private-code" label="Vue code" />
       </section>
     </div>
 

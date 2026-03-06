@@ -8,6 +8,54 @@ import {NoteForm} from '../components/NoteForm';
 import {AdminNotesTable} from '../components/AdminNotesTable';
 import {useNoteContext} from '../context/NoteContext';
 import {getApiBase} from '../api/client';
+import {CodeExpander} from '../components/CodeExpander';
+
+const REACT_ADMIN_CODE = `// Fetch all notes with admin API key
+const fetchAllNotes = useCallback(async () => {
+  if (!adminApiKey) return;
+  const res = await fetch('/api/notes/all', {
+    headers: { 'X-API-Key': adminApiKey },
+  });
+  const data = await res.json();
+  setAllNotes(Array.isArray(data) ? data : []);
+}, [adminApiKey]);
+
+useEffect(() => {
+  if (isAdminLoggedIn) fetchAllNotes();
+}, [isAdminLoggedIn, fetchAllNotes]);`;
+
+const REACT_PUBLIC_CODE = `// Fetch public notes on mount
+const fetchPublicNotes = useCallback(async () => {
+  const res = await fetch('/api/public-notes');
+  const data = await res.json();
+  setPublicNotes(Array.isArray(data) ? data : []);
+}, []);
+
+useEffect(() => { fetchPublicNotes(); }, [fetchPublicNotes]);
+
+// Create a public note
+const handleSubmit = async ({ title, content }) => {
+  await fetch('/api/public-notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content, isPublic: true }),
+  });
+  fetchPublicNotes();
+};`;
+
+const REACT_PRIVATE_CODE = `// Fetch private notes with Clerk token
+const fetchPrivateNotes = useCallback(async () => {
+  const token = await getToken();
+  const res = await fetch('/api/private-notes', {
+    headers: { Authorization: \`Bearer \${token}\` },
+  });
+  const data = await res.json();
+  setPrivateNotes(Array.isArray(data) ? data : []);
+}, [getToken]);
+
+useEffect(() => {
+  if (isSignedIn) fetchPrivateNotes();
+}, [isSignedIn, fetchPrivateNotes]);`;
 
 interface Note {
   id: string;
@@ -296,6 +344,7 @@ const HomePage = () => {
             onRefetch={() => fetchAllNotes()}
             showCreateButton={false}
           />
+          <CodeExpander code={REACT_ADMIN_CODE} id='react-admin-code' label='React code' />
         </Grid.Col>
       )}
 
@@ -350,6 +399,7 @@ const HomePage = () => {
               isSignedIn ? privateNotes.filter((n) => n.isPublic === 'true').map((n) => n.id) : undefined
             }
           />
+          <CodeExpander code={REACT_PUBLIC_CODE} id='react-public-code' label='React code' />
         </Paper>
       </Grid.Col>
 
@@ -421,6 +471,7 @@ const HomePage = () => {
               onNoteDeleted={handleNoteCreated}
               onNoteUpdated={handleNoteCreated}
             />
+            <CodeExpander code={REACT_PRIVATE_CODE} id='react-private-code' label='React code' />
           </Paper>
         </Grid.Col>
       )}
