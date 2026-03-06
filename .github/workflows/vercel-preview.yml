@@ -25,6 +25,10 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
+        env:
+          # Auth for @josh803316 from GitHub Packages (.npmrc uses GITHUB_TOKEN).
+          # Use BUN_AUTH_TOKEN (PAT with read:packages) if the default token cannot read the package.
+          GITHUB_TOKEN: ${{ secrets.BUN_AUTH_TOKEN || github.token }}
         run: bun run install:all
 
       - name: Chromatic - React
