@@ -151,14 +151,15 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
         ? ((note.user.firstName || '') + ' ' + (note.user.lastName || '')).trim() || note.user.email
         : 'Anonymous';
       return '<div id="note-' + note.id + '" class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden note-card-enter">'
-        + '<div class="p-5">'
+        + '<div id="notes-grid" class="h-full flex flex-col">'
+        + '<div class="p-5 flex-1 flex flex-col">'
         + '<div class="flex justify-between items-start mb-3">'
         + '<h3 class="text-lg font-semibold text-gray-800 line-clamp-1">' + escHtml(note.title) + '</h3>'
         + '<span class="text-xs px-2 py-1 rounded-full ' + (note.isPublic === 'true' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600') + '">'
         + (note.isPublic === 'true' ? 'Public' : 'Private') + '</span>'
         + '</div>'
         + '<p class="text-gray-600 text-sm mb-4 line-clamp-3">' + escHtml(note.content) + '</p>'
-        + '<div class="flex justify-between items-center text-xs text-gray-500">'
+        + '<div class="flex justify-between items-center text-xs text-gray-500 mt-auto">'
         + '<span>By ' + escHtml(author) + '</span>'
         + '<span>' + formatDate(note.createdAt) + '</span>'
         + '</div>'
@@ -166,6 +167,7 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
         + '<div class="border-t bg-gray-50 px-5 py-3 flex justify-end gap-2">'
         + '<button class="edit-note-btn text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors" data-id="' + note.id + '" data-title="' + escHtml(note.title) + '" data-content="' + escHtml(note.content) + '" data-public="' + note.isPublic + '">Edit</button>'
         + '<button class="delete-note-btn text-red-600 hover:text-red-800 text-sm font-medium transition-colors" data-id="' + note.id + '">Delete</button>'
+        + '</div>'
         + '</div>'
         + '</div>';
     }
@@ -222,7 +224,7 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
 
     // ─── Load public notes ────────────────────────────────────────────────────
     function loadPublicNotes() {
-      var $grid = $('#notes-grid');
+      var $grid = $('#public-notes-grid');
       $grid.html('<div class="col-span-full text-center py-8 text-gray-400">Loading…</div>');
       $.get('/api/public-notes', function(notes) {
         if (!notes || notes.length === 0) {
@@ -329,7 +331,7 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
           data: JSON.stringify({ title: title, content: content }),
           success: function(note) {
             closeModal();
-            $('#notes-grid').prepend(buildNoteCard(note));
+            $('#public-notes-grid').prepend(buildNoteCard(note));
             updateNavCounts();
           },
           error: function() { alert('Failed to create note.'); },
@@ -691,10 +693,10 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
 const CODE_LOAD_PUBLIC = `// Load all public notes on page init
 $.get('/api/public-notes', function(notes) {
   if (!notes.length) {
-    $('#notes-grid').html('<p>No notes yet.</p>');
+    $('#public-notes-grid').html('<p>No notes yet.</p>');
     return;
   }
-  $('#notes-grid').html(notes.map(buildNoteCard).join(''));
+  $('#public-notes-grid').html(notes.map(buildNoteCard).join(''));
 });`;
 
 const CODE_CREATE_PUBLIC = `// POST new public note (no auth required)
@@ -706,7 +708,7 @@ $('#create-public-note-form').on('submit', function(e) {
     contentType: 'application/json',
     data: JSON.stringify({ title: title, content: content }),
     success: function(note) {
-      $('#notes-grid').prepend(buildNoteCard(note));
+      $('#public-notes-grid').prepend(buildNoteCard(note));
     }
   });
 });`;
@@ -802,31 +804,6 @@ export function jqueryPage(clerkPublishableKey?: string): string {
     `
     <div class="space-y-8">
 
-      <!-- Admin Section (hidden until logged in) -->
-      <div id="admin-section" class="hidden" data-testid="section-admin-table">
-        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
-          <div class="flex justify-between items-center mb-4">
-            <div>
-              <h2 class="text-2xl font-bold text-gray-800">All Notes (Admin View)</h2>
-              <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
-            </div>
-          </div>
-          <div class="flex items-end gap-2 mb-4">
-            <input type="text" id="admin-regex-input" placeholder="e.g. e2e- or ^test"
-              class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-sm" />
-            <button type="button" id="btn-delete-by-regex"
-              class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed">
-              Delete matching notes
-            </button>
-          </div>
-          <p class="text-gray-500 text-sm mb-4">Delete notes whose content or title matches the regex</p>
-          <div id="admin-notes-container" class="min-h-[100px]">
-            <div class="text-center py-8 text-gray-500">Loading admin notes…</div>
-          </div>
-          ${codeExpander(CODE_ADMIN, 'admin-code')}
-        </div>
-      </div>
-
       <!-- Public Notes Section -->
       <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200" data-testid="section-public-notes">
         <div class="flex justify-between items-center mb-4">
@@ -839,7 +816,7 @@ export function jqueryPage(clerkPublishableKey?: string): string {
             <span class="text-xl">+</span> Create Public Note
           </button>
         </div>
-        <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="public-notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div class="col-span-full text-center py-8 text-gray-400">Loading…</div>
         </div>
         ${codeExpander(CODE_LOAD_PUBLIC + '\n\n' + CODE_CREATE_PUBLIC + '\n\n' + CODE_EDIT_DELETE_PUBLIC, 'public-code')}
@@ -863,9 +840,10 @@ export function jqueryPage(clerkPublishableKey?: string): string {
               <div class="animate-pulse">Loading your notes…</div>
             </div>
           </div>
-          ${codeExpander(CODE_LOAD_PRIVATE + '\n\n' + CODE_CREATE_PRIVATE, 'private-code')}
         </div>
       </div>
+
+      ${codeExpander(CODE_LOAD_PRIVATE + '\n\n' + CODE_CREATE_PRIVATE, 'private-code')}
 
       <!-- Sign-in prompt (signed-out only) -->
       <div class="show-when-signed-out show-when-loaded">
@@ -878,6 +856,32 @@ export function jqueryPage(clerkPublishableKey?: string): string {
           </button>
         </div>
       </div>
+
+      <!-- Admin Section (hidden until logged in) -->
+      <div id="admin-section" class="hidden" data-testid="section-admin-table">
+        <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">All Notes (Admin View)</h2>
+              <p class="text-gray-600 text-sm">View and manage all notes in the system</p>
+            </div>
+          </div>
+          <div class="flex items-end gap-2 mb-4">
+            <input type="text" id="admin-regex-input" placeholder="e.g. e2e- or ^test"
+              class="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-sm" />
+            <button type="button" id="btn-delete-by-regex"
+              class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed">
+              Delete matching notes
+            </button>
+          </div>
+          <p class="text-gray-500 text-sm mb-4">Delete notes whose content or title matches the regex</p>
+          <div id="admin-notes-container" class="min-h-[100px]">
+            <div class="text-center py-8 text-gray-500">Loading admin notes…</div>
+          </div>
+        </div>
+      </div>
+
+      ${codeExpander(CODE_ADMIN, 'admin-code')}
 
     </div>
   `,
