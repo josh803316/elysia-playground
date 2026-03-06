@@ -9,7 +9,10 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "storybook": "bunx storybook@latest dev -p 6006",
+    "storybook:build": "bunx storybook@latest build",
+    "chromatic": "chromatic --project-token=$CHROMATIC_TOKEN_REACT --exit-zero-on-changes --storybook-build-dir=storybook-static"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.3",
@@ -30,12 +33,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@github-ui/storybook-addon-performance-panel": "^1.1.4",
+    "@storybook/addon-docs": "10.2.15",
+    "@storybook/react-vite": "10.2.15",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^10.0.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "eslint-plugin-storybook": "10.2.15",
     "globals": "^17.3.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",

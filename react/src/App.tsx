@@ -2,26 +2,27 @@
  * Root: route tree and global loading. We gate on useUser().isLoaded so we don't
  * render protected routes before Clerk has restored session (avoids flash of wrong UI).
  */
-import { useUser } from "@clerk/clerk-react";
-import { Routes, Route } from "react-router-dom";
-import { SignIn, SignUp } from "@clerk/clerk-react";
-import "./App.css";
-import HomePage from "./pages/HomePage";
-import { NotesPage } from "./pages/NotesPage";
-import { NoteForm } from "./components/NoteForm";
-import { Layout } from "./components/Layout";
+import {useUser} from '@clerk/clerk-react';
+import {Routes, Route} from 'react-router-dom';
+import {SignIn, SignUp} from '@clerk/clerk-react';
+import './App.css';
+import HomePage from './pages/HomePage';
+import {NotesPage} from './pages/NotesPage';
+import {NoteForm} from './components/NoteForm';
+import {Layout} from './components/Layout';
+import {StorybookFrame} from './components/StorybookFrame';
 
 function App() {
-  const { isLoaded } = useUser();
+  const {isLoaded} = useUser();
 
   if (!isLoaded) {
-    return <div className="loading">Loading...</div>;
+    return <div className='loading'>Loading...</div>;
   }
 
   return (
     <Routes>
       <Route
-        path="/"
+        path='/'
         element={
           <Layout>
             <HomePage />
@@ -29,7 +30,7 @@ function App() {
         }
       />
       <Route
-        path="/notes"
+        path='/notes'
         element={
           <Layout>
             <NotesPage />
@@ -37,7 +38,7 @@ function App() {
         }
       />
       <Route
-        path="/notes/new"
+        path='/notes/new'
         element={
           <Layout>
             <NoteForm />
@@ -45,7 +46,7 @@ function App() {
         }
       />
       <Route
-        path="/notes/:id/edit"
+        path='/notes/:id/edit'
         element={
           <Layout>
             <NoteForm />
@@ -53,18 +54,26 @@ function App() {
         }
       />
       <Route
-        path="/sign-in/*"
+        path='/storybook/react'
         element={
           <Layout>
-            <SignIn routing="path" path="/sign-in" />
+            <StorybookFrame />
           </Layout>
         }
       />
       <Route
-        path="/sign-up/*"
+        path='/sign-in/*'
         element={
           <Layout>
-            <SignUp routing="path" path="/sign-up" />
+            <SignIn routing='path' path='/sign-in' />
+          </Layout>
+        }
+      />
+      <Route
+        path='/sign-up/*'
+        element={
+          <Layout>
+            <SignUp routing='path' path='/sign-up' />
           </Layout>
         }
       />

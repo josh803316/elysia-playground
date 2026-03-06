@@ -1,0 +1,21 @@
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+import type { StorybookConfig } from '@storybook/vue3-vite';
+
+function getAbsolutePath(value: string) {
+  return dirname(fileURLToPath(import.meta.resolve(`${value}/package.json`)));
+}
+
+const config: StorybookConfig = {
+  stories: ['../src/components/**/*.stories.@(ts|vue|mdx)'],
+  addons: [
+    getAbsolutePath('@storybook/addon-docs'),
+    '@github-ui/storybook-addon-performance-panel/universal',
+  ],
+  framework: {
+    name: getAbsolutePath('@storybook/vue3-vite'),
+    options: {},
+  },
+};
+
+export default config;

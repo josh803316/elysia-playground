@@ -12,11 +12,16 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "pretest": "svelte-kit sync",
-    "test": "vitest run"
+    "test": "vitest run",
+    "storybook": "bunx storybook@latest dev -p 6008",
+    "storybook:build": "bunx storybook@latest build",
+    "chromatic": "chromatic --project-token=$CHROMATIC_TOKEN_SVELTE --exit-zero-on-changes --storybook-build-dir=storybook-static"
   },
   "devDependencies": {
     "@fontsource/fira-mono": "^5.2.7",
+    "@github-ui/storybook-addon-performance-panel": "^1.1.4",
     "@neoconfetti/svelte": "^2.2.2",
+    "@storybook/sveltekit": "10.2.15",
     "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.53.3",

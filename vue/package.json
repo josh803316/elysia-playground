@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "storybook": "bunx storybook@latest dev -p 6007",
+    "storybook:build": "bunx storybook@latest build",
+    "chromatic": "chromatic --project-token=$CHROMATIC_TOKEN_VUE --exit-zero-on-changes --storybook-build-dir=storybook-static"
   },
   "prettier": {
     "printWidth": 100,
@@ -23,6 +26,8 @@
     "vue-router": "^5.0.3"
   },
   "devDependencies": {
+    "@github-ui/storybook-addon-performance-panel": "^1.1.4",
+    "@storybook/vue3-vite": "10.2.15",
     "@vitejs/plugin-vue": "^6.0.4",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",

@@ -13,7 +13,8 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    "types": []
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
@@ -22,6 +23,7 @@
     "strictTemplates": true
   },
   "files": [],
+  "include": ["src/**/*.ts", ".storybook/preview.ts", "src/app/components/**/*.stories.ts"],
   "references": [
     {
       "path": "./tsconfig.app.json"
