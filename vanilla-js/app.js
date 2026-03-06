@@ -6,9 +6,9 @@
  * Auth and API are in separate modules for testability and clarity.
  */
 
-import { $ } from "./utils.js";
-import { initAuth, onChange, signIn, signOut, getToken, refreshToken } from "./auth.js";
-import * as api from "./api.js";
+import {$} from './utils.js';
+import {initAuth, onChange, signIn, signOut, getToken, refreshToken} from './auth.js';
+import * as api from './api.js';
 import {
   noteCard,
   privateNoteCard,
@@ -18,13 +18,13 @@ import {
   createPrivateNoteModal,
   editNoteModal,
   adminLoginModal,
-} from "./components.js";
+} from './components.js';
 
 // ── State ────────────────────────────────────────────────────
 
 let isSignedIn = false;
-let userName = "";
-let adminApiKey = localStorage.getItem("adminApiKey") || "";
+let userName = '';
+let adminApiKey = localStorage.getItem('adminApiKey') || '';
 let publicNotes = [];
 let privateNotes = [];
 let adminNotes = [];
@@ -32,20 +32,20 @@ let adminNotes = [];
 // ── DOM refs ─────────────────────────────────────────────────
 
 const body = document.body;
-const modalContainer = $("#modal-container");
-const publicGrid = $("#public-notes-grid");
-const privateGrid = $("#private-notes-grid");
-const adminTableContainer = $("#admin-table-container");
-const publicCountBadge = $("#public-count");
-const privateCountBadge = $("#private-count");
-const userNameEl = $("#user-name");
+const modalContainer = $('#modal-container');
+const publicGrid = $('#public-notes-grid');
+const privateGrid = $('#private-notes-grid');
+const adminTableContainer = $('#admin-table-container');
+const publicCountBadge = $('#public-count');
+const privateCountBadge = $('#private-count');
+const userNameEl = $('#user-name');
 
 // ── Render helpers ───────────────────────────────────────────
 
 function renderPublicNotes() {
-  publicGrid.innerHTML = "";
+  publicGrid.innerHTML = '';
   if (publicNotes.length === 0) {
-    publicGrid.appendChild(emptyState("No public notes yet. Create one!"));
+    publicGrid.appendChild(emptyState('No public notes yet. Create one!'));
   } else {
     for (const note of publicNotes) {
       publicGrid.appendChild(
@@ -53,37 +53,33 @@ function renderPublicNotes() {
           canEdit: true,
           onEdit: (n) => openEditModal(n),
           onDelete: (id) => handleDeletePublic(id),
-        })
+        }),
       );
     }
   }
   publicCountBadge.textContent = publicNotes.length;
-  const publicCountSignedIn = $("#public-count-signed-in");
+  const publicCountSignedIn = $('#public-count-signed-in');
   if (publicCountSignedIn) publicCountSignedIn.textContent = publicNotes.length;
 }
 
 function renderPrivateNotes() {
-  privateGrid.innerHTML = "";
+  privateGrid.innerHTML = '';
   if (privateNotes.length === 0) {
-    privateGrid.appendChild(emptyState("No private notes yet."));
+    privateGrid.appendChild(emptyState('No private notes yet.'));
   } else {
     for (const note of privateNotes) {
-      privateGrid.appendChild(
-        privateNoteCard(note, { onDelete: (id) => handleDeletePrivate(id) })
-      );
+      privateGrid.appendChild(privateNoteCard(note, {onDelete: (id) => handleDeletePrivate(id)}));
     }
   }
   privateCountBadge.textContent = privateNotes.length;
 }
 
 function renderAdminNotes() {
-  adminTableContainer.innerHTML = "";
+  adminTableContainer.innerHTML = '';
   if (adminNotes.length === 0) {
-    adminTableContainer.appendChild(emptyState("No notes found."));
+    adminTableContainer.appendChild(emptyState('No notes found.'));
   } else {
-    adminTableContainer.appendChild(
-      adminNotesTable(adminNotes, { onDelete: (id) => handleAdminDelete(id) })
-    );
+    adminTableContainer.appendChild(adminNotesTable(adminNotes, {onDelete: (id) => handleAdminDelete(id)}));
   }
 }
 
@@ -95,8 +91,8 @@ async function loadPublicNotes() {
     renderPublicNotes();
   } catch (err) {
     console.error(err);
-    publicGrid.innerHTML = "";
-    publicGrid.appendChild(emptyState("Error loading public notes."));
+    publicGrid.innerHTML = '';
+    publicGrid.appendChild(emptyState('Error loading public notes.'));
   }
 }
 
@@ -108,8 +104,8 @@ async function loadPrivateNotes() {
     renderPrivateNotes();
   } catch (err) {
     console.error(err);
-    privateGrid.innerHTML = "";
-    privateGrid.appendChild(emptyState("Error loading private notes."));
+    privateGrid.innerHTML = '';
+    privateGrid.appendChild(emptyState('Error loading private notes.'));
   }
 }
 
@@ -120,25 +116,25 @@ async function loadAdminNotes() {
     renderAdminNotes();
   } catch (err) {
     console.error(err);
-    adminApiKey = "";
-    localStorage.removeItem("adminApiKey");
-    body.classList.remove("admin-active");
-    adminTableContainer.innerHTML = "";
-    adminTableContainer.appendChild(emptyState("Invalid or missing admin key. Use Admin Login and try again."));
+    adminApiKey = '';
+    localStorage.removeItem('adminApiKey');
+    body.classList.remove('admin-active');
+    adminTableContainer.innerHTML = '';
+    adminTableContainer.appendChild(emptyState('Invalid or missing admin key. Use Admin Login and try again.'));
   }
 }
 
 // ── Modal helpers ────────────────────────────────────────────
 
 function openModal(modalEl) {
-  modalContainer.innerHTML = "";
+  modalContainer.innerHTML = '';
   modalContainer.appendChild(modalEl);
-  modalContainer.classList.add("open");
+  modalContainer.classList.add('open');
 }
 
 function closeModal() {
-  modalContainer.classList.remove("open");
-  modalContainer.innerHTML = "";
+  modalContainer.classList.remove('open');
+  modalContainer.innerHTML = '';
 }
 
 // ── Action handlers ──────────────────────────────────────────
@@ -150,7 +146,7 @@ async function handleCreatePublic(data) {
     await loadPublicNotes();
   } catch (err) {
     console.error(err);
-    alert("Failed to create note.");
+    alert('Failed to create note.');
   }
 }
 
@@ -162,30 +158,30 @@ async function handleCreatePrivate(data) {
     await loadPrivateNotes();
   } catch (err) {
     console.error(err);
-    alert("Failed to create private note.");
+    alert('Failed to create private note.');
   }
 }
 
 async function handleDeletePublic(id) {
-  if (!confirm("Delete this public note?")) return;
+  if (!confirm('Delete this public note?')) return;
   try {
     await api.deletePublicNote(id);
     await loadPublicNotes();
   } catch (err) {
     console.error(err);
-    alert("Failed to delete note.");
+    alert('Failed to delete note.');
   }
 }
 
 async function handleDeletePrivate(id) {
-  if (!confirm("Delete this private note?")) return;
+  if (!confirm('Delete this private note?')) return;
   try {
     const token = await refreshToken();
     await api.deletePrivateNote(token, id);
     await loadPrivateNotes();
   } catch (err) {
     console.error(err);
-    alert("Failed to delete note.");
+    alert('Failed to delete note.');
   }
 }
 
@@ -196,12 +192,12 @@ async function handleEditPublic(id, data) {
     await loadPublicNotes();
   } catch (err) {
     console.error(err);
-    alert("Failed to update note.");
+    alert('Failed to update note.');
   }
 }
 
 async function handleAdminDelete(id) {
-  if (!confirm("Admin delete this note?")) return;
+  if (!confirm('Admin delete this note?')) return;
   try {
     await api.deleteNoteAdmin(adminApiKey, id);
     await loadAdminNotes();
@@ -209,7 +205,7 @@ async function handleAdminDelete(id) {
     if (isSignedIn) await loadPrivateNotes();
   } catch (err) {
     console.error(err);
-    alert("Failed to delete note.");
+    alert('Failed to delete note.');
   }
 }
 
@@ -218,63 +214,63 @@ function openEditModal(note) {
     editNoteModal(note, {
       onSubmit: (data) => handleEditPublic(note.id, data),
       onClose: closeModal,
-    })
+    }),
   );
 }
 
 // ── Event bindings ───────────────────────────────────────────
 
 function bindNavButtons() {
-  $("#btn-sign-in").addEventListener("click", signIn);
-  $("#btn-sign-out").addEventListener("click", signOut);
+  $('#btn-sign-in').addEventListener('click', signIn);
+  $('#btn-sign-out').addEventListener('click', signOut);
 
-  $("#btn-create-public").addEventListener("click", () => {
-    openModal(createPublicNoteModal({ onSubmit: handleCreatePublic, onClose: closeModal }));
+  $('#btn-create-public').addEventListener('click', () => {
+    openModal(createPublicNoteModal({onSubmit: handleCreatePublic, onClose: closeModal}));
   });
 
-  $("#btn-create-private").addEventListener("click", () => {
-    openModal(createPrivateNoteModal({ onSubmit: handleCreatePrivate, onClose: closeModal }));
+  $('#btn-create-private').addEventListener('click', () => {
+    openModal(createPrivateNoteModal({onSubmit: handleCreatePrivate, onClose: closeModal}));
   });
 
-  $("#btn-admin-login").addEventListener("click", () => {
+  $('#btn-admin-login').addEventListener('click', () => {
     openModal(
       adminLoginModal({
         onSubmit: (key) => {
           adminApiKey = key;
-          localStorage.setItem("adminApiKey", key);
-          body.classList.add("admin-active");
+          localStorage.setItem('adminApiKey', key);
+          body.classList.add('admin-active');
           closeModal();
           loadAdminNotes();
         },
         onClose: closeModal,
-      })
+      }),
     );
   });
 
-  $("#btn-admin-logout").addEventListener("click", () => {
-    adminApiKey = "";
-    localStorage.removeItem("adminApiKey");
-    body.classList.remove("admin-active");
+  $('#btn-admin-logout').addEventListener('click', () => {
+    adminApiKey = '';
+    localStorage.removeItem('adminApiKey');
+    body.classList.remove('admin-active');
     adminNotes = [];
-    adminTableContainer.innerHTML = "";
+    adminTableContainer.innerHTML = '';
   });
 
-  const regexInput = $("#admin-regex-input");
-  const btnDeleteByRegex = $("#btn-delete-by-regex");
+  const regexInput = $('#admin-regex-input');
+  const btnDeleteByRegex = $('#btn-delete-by-regex');
   if (btnDeleteByRegex && regexInput) {
-    btnDeleteByRegex.addEventListener("click", async () => {
+    btnDeleteByRegex.addEventListener('click', async () => {
       const regex = regexInput.value.trim();
       if (!regex || !adminApiKey) return;
       btnDeleteByRegex.disabled = true;
       try {
         await api.deleteNotesByRegexAdmin(adminApiKey, regex);
-        regexInput.value = "";
+        regexInput.value = '';
         await loadAdminNotes();
         await loadPublicNotes();
         if (isSignedIn) await loadPrivateNotes();
       } catch (err) {
         console.error(err);
-        alert(err.message || "Failed to delete by regex.");
+        alert(err.message || 'Failed to delete by regex.');
       } finally {
         btnDeleteByRegex.disabled = false;
       }
@@ -284,23 +280,23 @@ function bindNavButtons() {
 
 // ── Auth state changes ───────────────────────────────────────
 
-onChange(({ user, token }) => {
+onChange(({user, token}) => {
   isSignedIn = !!user;
 
   if (isSignedIn) {
-    userName = user.firstName || user.emailAddresses?.[0]?.emailAddress || "User";
-    body.classList.add("signed-in");
-    body.classList.remove("signed-out");
+    userName = user.firstName || user.emailAddresses?.[0]?.emailAddress || 'User';
+    body.classList.add('signed-in');
+    body.classList.remove('signed-out');
     userNameEl.textContent = userName;
     loadPrivateNotes();
   } else {
-    userName = "";
-    body.classList.remove("signed-in");
-    body.classList.add("signed-out");
-    userNameEl.textContent = "";
+    userName = '';
+    body.classList.remove('signed-in');
+    body.classList.add('signed-out');
+    userNameEl.textContent = '';
     privateNotes = [];
-    privateCountBadge.textContent = "0";
-    privateGrid.innerHTML = "";
+    privateCountBadge.textContent = '0';
+    privateGrid.innerHTML = '';
   }
 });
 
@@ -312,58 +308,61 @@ let versionsData = null;
 let versionsError = null;
 
 function renderVersionsPanel() {
-  const panel = $("#versions-panel");
+  const panel = $('#versions-panel');
   if (!panel) return;
   if (versionsError) {
     panel.innerHTML = `<p class="versions-error">${versionsError}</p>`;
     return;
   }
   if (!versionsData) {
-    panel.innerHTML = "<p class=\"versions-loading\">Loading…</p>";
+    panel.innerHTML = '<p class="versions-loading">Loading…</p>';
     return;
   }
   const d = versionsData;
-  let html = '<div class="versions-panel-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem"><span style="font-weight:600;color:#1f2937">Versions</span><button type="button" id="versions-close" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280">×</button></div>';
-  html += "<dl>";
-  html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">App</dt><dd style="font-weight:500;margin:0">${d.name || ""} @ ${d.version || ""}</dd></div>`;
-  if (d.elysia) html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Elysia</dt><dd style="font-weight:500;margin:0">${d.elysia}</dd></div>`;
-  if (d.commitSha) html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Commit</dt><dd style="font-family:monospace;font-size:0.75rem;word-break:break-all;margin:0">${d.commitSha}</dd></div>`;
-  html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Environment</dt><dd style="margin:0">${d.environment || ""}</dd></div>`;
+  let html =
+    '<div class="versions-panel-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem"><span style="font-weight:600;color:#1f2937">Versions</span><button type="button" id="versions-close" style="background:none;border:none;font-size:1.25rem;cursor:pointer;color:#6b7280">×</button></div>';
+  html += '<dl>';
+  html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">App</dt><dd style="font-weight:500;margin:0">${d.name || ''} @ ${d.version || ''}</dd></div>`;
+  if (d.elysia)
+    html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Elysia</dt><dd style="font-weight:500;margin:0">${d.elysia}</dd></div>`;
+  if (d.commitSha)
+    html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Commit</dt><dd style="font-family:monospace;font-size:0.75rem;word-break:break-all;margin:0">${d.commitSha}</dd></div>`;
+  html += `<div style="margin-bottom:0.5rem"><dt style="color:#6b7280">Environment</dt><dd style="margin:0">${d.environment || ''}</dd></div>`;
   if (d.frameworks && Object.keys(d.frameworks).length) {
     html += '<div style="margin-top:0.75rem"><dt style="color:#6b7280;margin-bottom:0.25rem">Frameworks</dt><dd>';
     for (const name of Object.keys(d.frameworks)) {
       const info = d.frameworks[name];
-      html += `<div style="margin-bottom:0.5rem;padding-left:0.5rem;border-left:2px solid #e5e7eb"><span style="font-weight:500">${info.name || name}</span> <span style="color:#4b5563">${info.version || ""}</span>`;
+      html += `<div style="margin-bottom:0.5rem;padding-left:0.5rem;border-left:2px solid #e5e7eb"><span style="font-weight:500">${info.name || name}</span> <span style="color:#4b5563">${info.version || ''}</span>`;
       if (info.dependencies && Object.keys(info.dependencies).length) {
         html += '<ul style="font-size:0.75rem;color:#6b7280;margin:0.25rem 0 0 0;padding-left:1rem">';
         for (const dep of Object.keys(info.dependencies)) html += `<li>${dep}: ${info.dependencies[dep]}</li>`;
-        html += "</ul>";
+        html += '</ul>';
       }
-      html += "</div>";
+      html += '</div>';
     }
-    html += "</dd></div>";
+    html += '</dd></div>';
   }
-  html += "</dl>";
+  html += '</dl>';
   panel.innerHTML = html;
-  $("#versions-close")?.addEventListener("click", () => {
-    panel.setAttribute("aria-hidden", "true");
+  $('#versions-close')?.addEventListener('click', () => {
+    panel.setAttribute('aria-hidden', 'true');
   });
 }
 
 function initVersions() {
-  fetch("/versions")
+  fetch('/versions')
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
     .then((d) => {
       versionsData = d;
     })
     .catch((e) => {
-      versionsError = e?.message ?? "Failed to load versions";
+      versionsError = e?.message ?? 'Failed to load versions';
     });
-  const panel = $("#versions-panel");
-  const btn = $("#versions-btn");
-  btn?.addEventListener("click", () => {
-    const hidden = panel.getAttribute("aria-hidden") !== "false";
-    panel.setAttribute("aria-hidden", String(!hidden));
+  const panel = $('#versions-panel');
+  const btn = $('#versions-btn');
+  btn?.addEventListener('click', () => {
+    const hidden = panel.getAttribute('aria-hidden') !== 'false';
+    panel.setAttribute('aria-hidden', String(!hidden));
     if (!hidden) return;
     renderVersionsPanel();
   });
@@ -372,13 +371,13 @@ function initVersions() {
 // ── Init ─────────────────────────────────────────────────────
 
 async function init() {
-  body.classList.add("signed-out");
+  body.classList.add('signed-out');
   bindNavButtons();
   initVersions();
 
   // Restore admin session if key exists
   if (adminApiKey) {
-    body.classList.add("admin-active");
+    body.classList.add('admin-active');
   }
 
   await loadPublicNotes();
@@ -391,3 +390,19 @@ async function init() {
 }
 
 init();
+
+// ── Code expander toggle ──────────────────────────────────────
+
+document.addEventListener('click', function (evt) {
+  const btn = evt.target.closest('.vjs-code-toggle');
+  if (!btn) return;
+  const panelId = btn.getAttribute('aria-controls');
+  const panel = panelId ? document.getElementById(panelId) : null;
+  if (!panel) return;
+  const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+  panel.style.display = isExpanded ? 'none' : '';
+  btn.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+  const chevron = btn.querySelector('.vjs-chevron');
+  if (chevron) chevron.style.transform = isExpanded ? '' : 'rotate(180deg)';
+  if (!isExpanded && window.Prism) window.Prism.highlightAllUnder(panel);
+});
