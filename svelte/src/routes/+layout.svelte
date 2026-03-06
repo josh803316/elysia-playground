@@ -6,7 +6,7 @@
 	import { versionStore } from '$lib/stores/version';
 	
 	// Import Flowbite components
-	import { 
+import { 
 		Navbar, 
 		NavBrand, 
 		NavLi, 
@@ -28,6 +28,7 @@
 	} from 'flowbite-svelte';
 	import NoteModal from '$lib/components/NoteModal.svelte';
 	import GlobalSearch from '$lib/components/GlobalSearch.svelte';
+	import CodeExpander from '$lib/components/CodeExpander.svelte';
 
     let { children } = $props();
 	let versionsOpen = $state(false);
@@ -51,6 +52,92 @@
 	let editingNote = $state<any>(null);
 	let userToken = $state<string | null>(null);
 	const toBasePath = (path: string) => `${base}${path}`;
+
+	const SVELTE_NAV_CODE = `// +layout.svelte – SvelteKit top nav, auth, and admin wiring
+let publicNotesCount = $state(0);
+let privateNotesCount = $state(0);
+let isAdminLoggedIn = $state(false);
+let adminApiKey = $state<string | null>(null);
+let adminKeyInput = $state("");
+let clerkLoaded = $state(false);
+let userName = $state<string | null>(null);
+let userToken = $state<string | null>(null);
+
+// Fetch public + private note counts
+async function fetchNoteCounts() {
+  const publicResponse = await fetch('/api/public-notes');
+  if (publicResponse.ok) {
+    const publicData = await publicResponse.json();
+    publicNotesCount = Array.isArray(publicData) ? publicData.length : 0;
+  }
+
+  // Admin: use /api/notes/all with X-API-Key
+  if (isAdminLoggedIn && adminApiKey) {
+    const adminResponse = await fetch('/api/notes/all', {
+      headers: { 'X-API-Key': adminApiKey },
+    });
+    if (adminResponse.ok) {
+      const allNotes = await adminResponse.json();
+      if (Array.isArray(allNotes)) {
+        const publicCount = allNotes.filter((note) => note.isPublic === 'true').length;
+        privateNotesCount = allNotes.length - publicCount;
+        publicNotesCount = publicCount;
+      }
+    }
+    return;
+  }
+
+  // Signed-in user: count private notes via Clerk token
+  if (typeof window !== 'undefined' && clerkLoaded) {
+    const clerk = (window as any).Clerk;
+    if (clerk?.session) {
+      const token = await clerk.session.getToken();
+      if (token) {
+        const privateResponse = await fetch('/api/private-notes', {
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        if (privateResponse.ok) {
+          const privateData = await privateResponse.json();
+          const trulyPrivate = Array.isArray(privateData)
+            ? privateData.filter((note) => note.isPublic !== 'true')
+            : [];
+          privateNotesCount = trulyPrivate.length;
+        }
+      }
+    }
+  }
+}
+
+// Restore admin key and Clerk context on mount, then keep counts fresh
+onMount(() => {
+  const storedApiKey = localStorage.getItem('adminApiKey');
+  if (storedApiKey) {
+    adminApiKey = storedApiKey;
+    isAdminLoggedIn = true;
+  }
+
+  versionStore.fetchVersion();
+  clerkLoaded = true;
+  fetchNoteCounts();
+});
+
+function handleAdminLogin() {
+  const apiKey = adminKeyInput;
+  adminApiKey = apiKey || null;
+  isAdminLoggedIn = true;
+  localStorage.setItem('adminApiKey', apiKey || '');
+  adminModalOpen = false;
+  fetchNoteCounts();
+  window.location.reload();
+}
+
+function handleAdminLogout() {
+  adminApiKey = null;
+  isAdminLoggedIn = false;
+  localStorage.removeItem('adminApiKey');
+  fetchNoteCounts();
+  window.location.reload();
+}`;
 
 	// Fetch note counts
 	async function fetchNoteCounts() {
@@ -319,6 +406,11 @@
 				</div>
 			</div>
 		</header>
+
+		<!-- Top nav / auth / admin code sample (full width of content area, left-aligned) -->
+		<div class="w-full max-w-[1320px] mx-auto px-4 mt-3 box-border">
+			<CodeExpander code={SVELTE_NAV_CODE} id="svelte-nav-code" label="Svelte nav & auth code" />
+		</div>
 
 		<!-- Main Content - match HTMX/React: 1320px container, 2rem vertical / 1rem horizontal padding -->
 		<main class="flex-grow">

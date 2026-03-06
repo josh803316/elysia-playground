@@ -5,6 +5,7 @@ import { PrivateNotesComponent } from './components/private-notes/private-notes'
 import { AdminComponent } from './components/admin/admin';
 import { GlobalSearchComponent } from './components/global-search/global-search';
 import { AuthService } from './services/auth.service';
+import { CodeExpanderComponent } from './components/code-expander/code-expander';
 
 interface VersionsPayload {
   version: string;
@@ -13,8 +14,82 @@ interface VersionsPayload {
   commitSha: string | null;
   timestamp: string;
   elysia: string | null;
-  frameworks: Record<string, { name: string; version: string; dependencies: Record<string, string> }>;
+  frameworks: Record<
+    string,
+    { name: string; version: string; dependencies: Record<string, string> }
+  >;
 }
+
+const ANGULAR_NAV_CODE_SRC = `// app.ts – Angular top nav, auth, and admin wiring
+const auth = inject(AuthService);
+
+// Signals for counts and admin state
+publicCount = signal(0);
+privateCount = signal(0);
+isAdminLoggedIn = signal(false);
+adminApiKey = signal<string | null>(null);
+
+// Restore admin API key on init
+ngOnInit() {
+  const storedKey = localStorage.getItem('adminApiKey');
+  if (storedKey) {
+    this.adminApiKey.set(storedKey);
+    this.isAdminLoggedIn.set(true);
+  }
+  this.refreshCounts();
+}
+
+// Fetch counts for nav badges
+async refreshCounts() {
+  // Always fetch public notes count
+  const pubRes = await fetch('/api/public-notes');
+  const pubData = await pubRes.json();
+  this.publicCount.set(Array.isArray(pubData) ? pubData.length : 0);
+
+  // When admin, use /api/notes/all with X-API-Key
+  if (this.isAdminLoggedIn() && this.adminApiKey()) {
+    const res = await fetch('/api/notes/all', {
+      headers: { 'X-API-Key': this.adminApiKey()! },
+    });
+    const allNotes = await res.json();
+    if (Array.isArray(allNotes)) {
+      const publicOnly = allNotes.filter((n) => n.isPublic === 'true').length;
+      this.publicCount.set(publicOnly);
+      this.privateCount.set(allNotes.length - publicOnly);
+    }
+    return;
+  }
+
+  // Regular signed-in flow: fetch private notes via AuthService token
+  if (this.auth.isSignedIn()) {
+    const token = await this.auth.getToken();
+    if (token) {
+      const privRes = await fetch('/api/private-notes', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      const privData = await privRes.json();
+      const trulyPrivate = Array.isArray(privData)
+        ? privData.filter((n) => n.isPublic !== 'true')
+        : [];
+      this.privateCount.set(trulyPrivate.length);
+    }
+  }
+}
+
+// Admin login/logout handlers used by nav buttons
+adminLogin(apiKey: string) {
+  this.adminApiKey.set(apiKey);
+  this.isAdminLoggedIn.set(true);
+  localStorage.setItem('adminApiKey', apiKey);
+  this.refreshCounts();
+}
+
+adminLogout() {
+  this.adminApiKey.set(null);
+  this.isAdminLoggedIn.set(false);
+  localStorage.removeItem('adminApiKey');
+  this.refreshCounts();
+}`;
 
 @Component({
   selector: 'app-root',
@@ -25,6 +100,7 @@ interface VersionsPayload {
     PrivateNotesComponent,
     AdminComponent,
     GlobalSearchComponent,
+    CodeExpanderComponent,
   ],
   template: `
     <!-- Navigation - matches HTMX exactly -->
@@ -80,6 +156,15 @@ interface VersionsPayload {
       </div>
     </nav>
 
+    <!-- Top nav / auth / admin code sample -->
+    <div class="nav-code-row">
+      <app-code-expander
+        [code]="ANGULAR_NAV_CODE"
+        id="angular-nav-code"
+        label="Angular nav &amp; auth code"
+      />
+    </div>
+
     <!-- Main content -->
     <main class="container">
       <!-- Admin section (only when admin logged in) -->
@@ -122,26 +207,53 @@ interface VersionsPayload {
         <div class="versions-panel versions-panel--above-footer">
           <div class="versions-panel-header">
             <span>Versions</span>
-            <button type="button" class="versions-close" (click)="versionsOpen.set(false)" aria-label="Close">×</button>
+            <button
+              type="button"
+              class="versions-close"
+              (click)="versionsOpen.set(false)"
+              aria-label="Close"
+            >
+              ×
+            </button>
           </div>
           @if (versionsError()) {
             <p class="versions-error">{{ versionsError() }}</p>
           } @else if (versionsData(); as d) {
             <dl class="versions-dl">
-              <div><dt>App</dt><dd>{{ d.name }} @ {{ d.version }}</dd></div>
-              @if (d.elysia) { <div><dt>Elysia</dt><dd>{{ d.elysia }}</dd></div> }
-              @if (d.commitSha) { <div><dt>Commit</dt><dd class="versions-commit">{{ d.commitSha }}</dd></div> }
-              <div><dt>Environment</dt><dd>{{ d.environment }}</dd></div>
+              <div>
+                <dt>App</dt>
+                <dd>{{ d.name }} @ {{ d.version }}</dd>
+              </div>
+              @if (d.elysia) {
+                <div>
+                  <dt>Elysia</dt>
+                  <dd>{{ d.elysia }}</dd>
+                </div>
+              }
+              @if (d.commitSha) {
+                <div>
+                  <dt>Commit</dt>
+                  <dd class="versions-commit">{{ d.commitSha }}</dd>
+                </div>
+              }
+              <div>
+                <dt>Environment</dt>
+                <dd>{{ d.environment }}</dd>
+              </div>
               @if (Object.keys(d.frameworks).length) {
                 <div>
                   <dt class="versions-frameworks-dt">Frameworks</dt>
                   <dd>
                     @for (entry of frameworkEntries(d.frameworks); track entry.key) {
                       <div class="versions-framework">
-                        <span class="versions-fw-name">{{ entry.info.name }}</span> <span class="versions-fw-ver">{{ entry.info.version }}</span>
+                        <span class="versions-fw-name">{{ entry.info.name }}</span>
+                        <span class="versions-fw-ver">{{ entry.info.version }}</span>
                         @if (Object.keys(entry.info.dependencies).length) {
                           <ul class="versions-deps">
-                            @for (dep of dependencyEntries(entry.info.dependencies); track dep.key) {
+                            @for (
+                              dep of dependencyEntries(entry.info.dependencies);
+                              track dep.key
+                            ) {
                               <li>{{ dep.key }}: {{ dep.value }}</li>
                             }
                           </ul>
@@ -163,7 +275,13 @@ interface VersionsPayload {
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>
           <a href="#">Contact Us</a>
-          <button type="button" class="dark-footer-link-btn" (click)="versionsOpen.set(!versionsOpen())">Versions</button>
+          <button
+            type="button"
+            class="dark-footer-link-btn"
+            (click)="versionsOpen.set(!versionsOpen())"
+          >
+            Versions
+          </button>
         </div>
       </div>
     </footer>
@@ -190,7 +308,9 @@ interface VersionsPayload {
                 />
               </div>
               <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" (click)="showAdminModal = false">Cancel</button>
+                <button type="button" class="btn btn-secondary" (click)="showAdminModal = false">
+                  Cancel
+                </button>
                 <button type="submit" class="btn btn-amber">Log in as Admin</button>
               </div>
             </form>
@@ -198,7 +318,6 @@ interface VersionsPayload {
         </div>
       </div>
     }
-
   `,
   styles: `
     .navbar-brand-link {
@@ -211,7 +330,9 @@ interface VersionsPayload {
       color: var(--text);
       transition: color 0.15s;
     }
-    .navbar-brand-link:hover .navbar-brand-text { color: #0d9488; }
+    .navbar-brand-link:hover .navbar-brand-text {
+      color: #0d9488;
+    }
 
     /* Nav right wrapper: single flex container for all right-side nav items */
     .nav-right {
@@ -228,7 +349,9 @@ interface VersionsPayload {
       text-decoration: none;
       transition: color 0.15s;
     }
-    .nav-home-link:hover { color: #111827; }
+    .nav-home-link:hover {
+      color: #111827;
+    }
 
     .nav-notes-link {
       display: flex;
@@ -240,7 +363,9 @@ interface VersionsPayload {
       text-decoration: none;
       transition: color 0.15s;
     }
-    .nav-notes-link:hover { color: #111827; }
+    .nav-notes-link:hover {
+      color: #111827;
+    }
 
     .nav-count-badges {
       display: flex;
@@ -264,7 +389,10 @@ interface VersionsPayload {
       font-weight: 600;
     }
 
-    .nav-loading { font-size: 0.85rem; color: var(--text-muted); }
+    .nav-loading {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
 
     .btn-text-link {
       background: none;
@@ -276,7 +404,9 @@ interface VersionsPayload {
       padding: 0;
       transition: color 0.15s;
     }
-    .btn-text-link:hover { color: #111827; }
+    .btn-text-link:hover {
+      color: #111827;
+    }
 
     /* Sign In button (larger, rounded-lg, match HTMX) */
     .btn-sign-in {
@@ -290,7 +420,9 @@ interface VersionsPayload {
       font-weight: 500;
       transition: background 0.15s;
     }
-    .btn-sign-in:hover { background: #0f766e; }
+    .btn-sign-in:hover {
+      background: #0f766e;
+    }
 
     /* Admin buttons (smaller, match HTMX px-3 py-1.5 rounded) */
     .btn-admin-teal {
@@ -304,7 +436,9 @@ interface VersionsPayload {
       font-weight: 500;
       transition: background 0.15s;
     }
-    .btn-admin-teal:hover { background: #0f766e; }
+    .btn-admin-teal:hover {
+      background: #0f766e;
+    }
 
     .btn-admin-red {
       background: #dc2626;
@@ -317,7 +451,9 @@ interface VersionsPayload {
       font-weight: 500;
       transition: background 0.15s;
     }
-    .btn-admin-red:hover { background: #b91c1c; }
+    .btn-admin-red:hover {
+      background: #b91c1c;
+    }
 
     .btn-amber {
       background: #d97706;
@@ -330,9 +466,13 @@ interface VersionsPayload {
       font-weight: 500;
       transition: background 0.15s;
     }
-    .btn-amber:hover { background: #b45309; }
+    .btn-amber:hover {
+      background: #b45309;
+    }
 
-    .mt-4 { margin-top: 1rem; }
+    .mt-4 {
+      margin-top: 1rem;
+    }
 
     .sign-in-prompt {
       text-align: center;
@@ -344,7 +484,16 @@ interface VersionsPayload {
       color: var(--text);
       margin-bottom: 0.5rem;
     }
-    .sign-in-prompt p { color: var(--text-secondary); }
+    .sign-in-prompt p {
+      color: var(--text-secondary);
+    }
+
+    .nav-code-row {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      margin-top: 0.75rem;
+    }
 
     /* Dark footer - matches HTMX */
     .dark-footer {
@@ -353,7 +502,9 @@ interface VersionsPayload {
       padding: 1.5rem 0;
       margin-top: 3rem;
     }
-    .dark-footer--with-versions { position: relative; }
+    .dark-footer--with-versions {
+      position: relative;
+    }
     .dark-footer-inner {
       max-width: 1320px;
       margin: 0 auto;
@@ -362,7 +513,9 @@ interface VersionsPayload {
       justify-content: space-between;
       align-items: center;
     }
-    .dark-footer span { font-size: 0.875rem; }
+    .dark-footer span {
+      font-size: 0.875rem;
+    }
     .dark-footer-links {
       display: flex;
       gap: 1rem;
@@ -374,7 +527,9 @@ interface VersionsPayload {
       text-decoration: none;
       transition: color 0.15s;
     }
-    .dark-footer-links a:hover { color: white; }
+    .dark-footer-links a:hover {
+      color: white;
+    }
     .dark-footer-link-btn {
       font-size: 0.875rem;
       color: #9ca3af;
@@ -384,7 +539,9 @@ interface VersionsPayload {
       padding: 0;
       transition: color 0.15s;
     }
-    .dark-footer-link-btn:hover { color: white; }
+    .dark-footer-link-btn:hover {
+      color: white;
+    }
     .versions-panel--above-footer {
       position: absolute;
       bottom: 100%;
@@ -397,7 +554,7 @@ interface VersionsPayload {
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -407,7 +564,7 @@ interface VersionsPayload {
     .modal {
       background: white;
       border-radius: 0.75rem;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 28rem;
     }
@@ -434,9 +591,15 @@ interface VersionsPayload {
       padding: 0.25rem;
       line-height: 1;
     }
-    .modal-close:hover { color: #111827; }
-    .modal-body { padding: 1.5rem; }
-    .form-group { margin-bottom: 1rem; }
+    .modal-close:hover {
+      color: #111827;
+    }
+    .modal-body {
+      padding: 1.5rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
     .modal-actions {
       display: flex;
       justify-content: flex-end;
@@ -457,7 +620,7 @@ interface VersionsPayload {
     .versions-panel {
       background: white;
       border-radius: 0.5rem;
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       border: 1px solid #e5e7eb;
       padding: 1rem;
       max-width: 360px;
@@ -471,7 +634,10 @@ interface VersionsPayload {
       align-items: center;
       margin-bottom: 0.75rem;
     }
-    .versions-panel-header span { font-weight: 600; color: #1f2937; }
+    .versions-panel-header span {
+      font-weight: 600;
+      color: #1f2937;
+    }
     .versions-close {
       background: none;
       border: none;
@@ -479,37 +645,72 @@ interface VersionsPayload {
       color: #6b7280;
       cursor: pointer;
     }
-    .versions-error { font-size: 0.875rem; color: #dc2626; margin: 0; }
-    .versions-loading { font-size: 0.875rem; color: #6b7280; margin: 0; }
-    .versions-dl { font-size: 0.875rem; margin: 0; }
-    .versions-dl div { margin-bottom: 0.5rem; }
-    .versions-dl dt { color: #6b7280; }
-    .versions-dl dd { font-weight: 500; margin: 0; }
-    .versions-commit { font-family: monospace; font-size: 0.75rem; word-break: break-all; }
-    .versions-frameworks-dt { margin-top: 0.75rem; margin-bottom: 0.25rem; }
+    .versions-error {
+      font-size: 0.875rem;
+      color: #dc2626;
+      margin: 0;
+    }
+    .versions-loading {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin: 0;
+    }
+    .versions-dl {
+      font-size: 0.875rem;
+      margin: 0;
+    }
+    .versions-dl div {
+      margin-bottom: 0.5rem;
+    }
+    .versions-dl dt {
+      color: #6b7280;
+    }
+    .versions-dl dd {
+      font-weight: 500;
+      margin: 0;
+    }
+    .versions-commit {
+      font-family: monospace;
+      font-size: 0.75rem;
+      word-break: break-all;
+    }
+    .versions-frameworks-dt {
+      margin-top: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
     .versions-framework {
       margin-bottom: 0.5rem;
       padding-left: 0.5rem;
       border-left: 2px solid #e5e7eb;
     }
-    .versions-fw-name { font-weight: 500; }
-    .versions-fw-ver { color: #4b5563; }
-    .versions-deps { font-size: 0.75rem; color: #6b7280; margin: 0.25rem 0 0 0; padding-left: 1rem; }
+    .versions-fw-name {
+      font-weight: 500;
+    }
+    .versions-fw-ver {
+      color: #4b5563;
+    }
+    .versions-deps {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin: 0.25rem 0 0 0;
+      padding-left: 1rem;
+    }
     .versions-btn {
       font-size: 0.75rem;
       font-weight: 500;
       color: #4b5563;
-      background: rgba(255,255,255,0.9);
+      background: rgba(255, 255, 255, 0.9);
       border: 1px solid #d1d5db;
       border-radius: 4px;
       padding: 6px 12px;
       cursor: pointer;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
   `,
 })
 export class App implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
+  readonly ANGULAR_NAV_CODE = ANGULAR_NAV_CODE_SRC;
   /** Expose global Object for template (Object.keys, etc.) */
   readonly Object = Object;
 
@@ -535,7 +736,9 @@ export class App implements OnInit, OnDestroy {
     this.refreshCounts();
   });
 
-  frameworkEntries(frameworks: VersionsPayload['frameworks']): { key: string; info: VersionsPayload['frameworks'][string] }[] {
+  frameworkEntries(
+    frameworks: VersionsPayload['frameworks'],
+  ): { key: string; info: VersionsPayload['frameworks'][string] }[] {
     return Object.entries(frameworks).map(([key, info]) => ({ key, info }));
   }
 
@@ -611,11 +814,18 @@ export class App implements OnInit, OnDestroy {
     } catch (_) {}
     // Only fetch private count when signed in
     const token = this.auth.token();
-    if (!token) { this.privateCount.set(0); return; }
+    if (!token) {
+      this.privateCount.set(0);
+      return;
+    }
     try {
-      const privRes = await fetch('/api/private-notes', { headers: { Authorization: `Bearer ${token}` } });
+      const privRes = await fetch('/api/private-notes', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const priv = privRes.ok ? await privRes.json() : [];
-      this.privateCount.set(Array.isArray(priv) ? priv.filter((n: any) => n.isPublic !== 'true').length : 0);
+      this.privateCount.set(
+        Array.isArray(priv) ? priv.filter((n: any) => n.isPublic !== 'true').length : 0,
+      );
     } catch (_) {}
   }
 }

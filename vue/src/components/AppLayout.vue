@@ -7,6 +7,7 @@ import Divider from 'primevue/divider';
 import Badge from 'primevue/badge';
 import AdminLoginModal from './AdminLoginModal.vue';
 import GlobalSearch from './GlobalSearch.vue';
+import CodeExpander from './CodeExpander.vue';
 
 interface VersionsPayload {
   version: string;
@@ -31,6 +32,72 @@ const privateNotesCount = ref(0);
 const versionsData = ref<VersionsPayload | null>(null);
 const versionsOpen = ref(false);
 const versionsError = ref<string | null>(null);
+
+const VUE_NAV_CODE = `// AppLayout.vue – Vue top nav, auth, and admin wiring
+const { user, isSignedIn } = useUser();
+const { getToken } = useAuth();
+const clerk = useClerk();
+
+const showAdminModal = ref(false);
+const isAdminLoggedIn = ref(false);
+const adminApiKey = ref<string | null>(null);
+const publicNotesCount = ref(0);
+const privateNotesCount = ref(0);
+
+// Restore admin key and load versions once
+onMounted(() => {
+  const stored = localStorage.getItem('adminApiKey');
+  if (stored) {
+    adminApiKey.value = stored;
+    isAdminLoggedIn.value = true;
+  }
+  fetch('/versions')
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    .then((data: VersionsPayload) => { versionsData.value = data; })
+    .catch((err) => { versionsError.value = err?.message ?? 'Failed to load versions'; });
+});
+
+// Keep badge counts in sync with auth state
+watch(isSignedIn, async (val) => {
+  if (val) await fetchCounts();
+  else {
+    publicNotesCount.value = 0;
+    privateNotesCount.value = 0;
+  }
+});
+
+// Fetch public + private note counts
+async function fetchCounts() {
+  if (!isSignedIn.value) return;
+  const pubRes = await fetch('/api/public-notes');
+  const pubData: unknown = await pubRes.json();
+  publicNotesCount.value = Array.isArray(pubData) ? pubData.length : 0;
+
+  const token = await getToken.value();
+  if (token) {
+    const privRes = await fetch('/api/private-notes', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const privData: unknown = await privRes.json();
+    privateNotesCount.value = Array.isArray(privData)
+      ? (privData as { isPublic?: string }[]).filter((n) => n.isPublic !== 'true').length
+      : 0;
+  }
+}
+
+function handleAdminLogin(key: string) {
+  adminApiKey.value = key;
+  isAdminLoggedIn.value = true;
+  localStorage.setItem('adminApiKey', key);
+  showAdminModal.value = false;
+}
+
+function handleAdminLogout() {
+  adminApiKey.value = null;
+  isAdminLoggedIn.value = false;
+  localStorage.removeItem('adminApiKey');
+  window.location.reload();
+}`;
 
 onMounted(() => {
   const stored = localStorage.getItem('adminApiKey');
@@ -152,6 +219,13 @@ function handleAdminLogout() {
       </div>
     </header>
 
+    <!-- Top nav / auth / admin code sample (directly below title bar, same row as other frameworks) -->
+    <div class="nav-code-row">
+      <div class="app-container">
+        <CodeExpander :code="VUE_NAV_CODE" id="vue-nav-code" label="Vue nav &amp; auth code" />
+      </div>
+    </div>
+
     <!-- Main -->
     <main class="app-main">
       <div class="app-container">
@@ -215,6 +289,12 @@ function handleAdminLogout() {
   display: flex;
   flex-direction: column;
   background: #f3f4f6;
+}
+
+.nav-code-row {
+  margin-top: 60px; /* below fixed header */
+  padding-top: 0.75rem;
+  padding-bottom: 0;
 }
 
 .app-header {
@@ -281,7 +361,6 @@ function handleAdminLogout() {
 
 .app-main {
   flex: 1;
-  margin-top: 60px;
   padding: 2rem 1rem;
 }
 

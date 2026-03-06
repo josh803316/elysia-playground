@@ -5,6 +5,7 @@ import {SignInButton, SignedIn, SignedOut, useUser, useAuth, useClerk} from '@cl
 import AdminLoginForm from './AdminLoginForm';
 import {GlobalSearch} from './GlobalSearch';
 import {useNoteContext} from '../context/NoteContext';
+import {CodeExpander} from './CodeExpander';
 
 interface VersionsPayload {
   version: string;
@@ -19,6 +20,69 @@ interface VersionsPayload {
 interface LayoutProps {
   children: React.ReactNode;
 }
+
+const REACT_NAV_CODE = `// Layout.tsx — top nav, auth, and admin wiring
+const { user, isSignedIn } = useUser();
+const { getToken } = useAuth();
+const { signOut } = useClerk();
+
+const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+const [adminApiKey, setAdminApiKey] = useState<string | null>(null);
+const [publicNotesCount, setPublicNotesCount] = useState(0);
+const [privateNotesCount, setPrivateNotesCount] = useState(0);
+
+// Fetch note counts based on auth + admin state
+const fetchNoteCounts = useCallback(async () => {
+  if (!isSignedIn) {
+    const res = await fetch('/api/public-notes');
+    const data = await res.json();
+    setPublicNotesCount(Array.isArray(data) ? data.length : 0);
+    setPrivateNotesCount(0);
+    return;
+  }
+
+  if (isAdminLoggedIn && adminApiKey) {
+    const res = await fetch('/api/notes/all', {
+      headers: { 'X-API-Key': adminApiKey },
+    });
+    const allNotes = await res.json();
+    const publicCount = allNotes.filter((n) => n.isPublic === 'true').length;
+    setPublicNotesCount(publicCount);
+    setPrivateNotesCount(allNotes.length - publicCount);
+    return;
+  }
+
+  // Regular signed-in flow: fetch public + private notes
+  const publicRes = await fetch('/api/public-notes');
+  const publicData = await publicRes.json();
+  setPublicNotesCount(Array.isArray(publicData) ? publicData.length : 0);
+
+  const token = await getToken();
+  if (token) {
+    const privateRes = await fetch('/api/private-notes', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const privateData = await privateRes.json();
+    const trulyPrivate = Array.isArray(privateData)
+      ? privateData.filter((n) => n.isPublic !== 'true')
+      : [];
+    setPrivateNotesCount(trulyPrivate.length);
+  }
+}, [isSignedIn, isAdminLoggedIn, adminApiKey, getToken]);
+
+// Restore admin key on mount
+useEffect(() => {
+  const stored = localStorage.getItem('adminApiKey');
+  if (stored) {
+    setAdminApiKey(stored);
+    setIsAdminLoggedIn(true);
+  }
+}, []);
+
+// Keep counts in sync with auth / admin state
+useEffect(() => {
+  fetchNoteCounts();
+}, [fetchNoteCounts]);`;
 
 export const Layout = ({children}: LayoutProps) => {
   const navigate = useNavigate();
@@ -366,6 +430,11 @@ export const Layout = ({children}: LayoutProps) => {
       </AppShell.Header>
 
       <AppShell.Main>
+        {/* Top nav / auth / admin code sample (within main, below fixed header) */}
+        <div style={{maxWidth: 1320, margin: '0 auto', padding: '0 1rem', marginTop: '0.75rem'}}>
+          <CodeExpander code={REACT_NAV_CODE} id='react-nav-code' label='React nav & auth code' />
+        </div>
+
         <Container size='xl' py='xl' style={{maxWidth: 1320}}>
           <Grid>
             <Grid.Col span={12}>{children}</Grid.Col>

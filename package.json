@@ -76,7 +76,7 @@
     "@types/eslint__js": "^9.14.0",
     "bun-types": "latest",
     "chromatic": "^15.2.0",
-    "turbo": "^2.8.13"
+    "turbo": "^2.8.14"
   },
   "trustedDependencies": [
     "@josh803316/shared-config"

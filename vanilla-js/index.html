@@ -56,6 +56,57 @@
       </div>
     </nav>
 
+    <!-- Top bar / auth wiring code sample (separate row under nav, aligned with main container) -->
+    <div class="container" style="padding-top: 0.75rem; padding-bottom: 0">
+      <div class="vjs-code-expander vjs-code-expander--nav">
+        <button type="button" class="vjs-code-toggle" aria-controls="vjs-nav-code-panel" aria-expanded="false">
+          <span class="vjs-code-icon">&lt;/&gt;</span> Vanilla JS nav &amp; auth code <span class="vjs-chevron">▼</span>
+        </button>
+        <div id="vjs-nav-code-panel" class="vjs-code-panel" style="display: none">
+          <pre class="language-javascript"><code class="language-javascript">// Wire up nav + auth buttons
+function bindNavButtons() {
+  document.getElementById('btn-sign-in').addEventListener('click', signIn);
+  document.getElementById('btn-sign-out').addEventListener('click', signOut);
+
+  document.getElementById('btn-admin-login').addEventListener('click', () => {
+    // Open modal, store admin key in localStorage, mark body as admin-active, then load admin notes
+    openAdminLoginModal();
+  });
+
+  document.getElementById('btn-admin-logout').addEventListener('click', () => {
+    localStorage.removeItem('adminApiKey');
+    document.body.classList.remove('admin-active');
+    // Clear admin table UI
+    document.getElementById('admin-table-container').innerHTML = '';
+  });
+}
+
+// React to Clerk auth changes and keep the top bar in sync
+onChange(({ user }) => {
+  const body = document.body;
+  const userNameEl = document.getElementById('user-name');
+
+  if (user) {
+    body.classList.add('signed-in');
+    body.classList.remove('signed-out');
+    userNameEl.textContent =
+      user.firstName || user.emailAddresses?.[0]?.emailAddress || 'User';
+    // Load private notes after sign-in
+    loadPrivateNotes();
+  } else {
+    body.classList.remove('signed-in');
+    body.classList.add('signed-out');
+    userNameEl.textContent = '';
+    // Clear private notes UI and counts when signed out
+    privateNotes = [];
+    document.getElementById('private-count').textContent = '0';
+    document.getElementById('private-notes-grid').innerHTML = '';
+  }
+});</code></pre>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <main class="container">
       <!-- Admin Section (visible when admin; match HTMX order) -->
@@ -123,16 +174,40 @@ async function deleteNote(id) {
               <span class="vjs-code-icon">&lt;/&gt;</span> Vanilla JS code <span class="vjs-chevron">▼</span>
             </button>
             <div id="vjs-public-code-panel" class="vjs-code-panel" style="display: none">
-              <pre
-                class="language-javascript"
-              ><code class="language-javascript">// Fetch public notes (no auth required)
+              <pre class="language-javascript"><code class="language-javascript">// In-memory state for this page
+let publicNotes = [];
+
+// Fetch public notes (no auth required)
 async function loadPublicNotes() {
   const res = await fetch('/api/public-notes');
   publicNotes = await res.json();
   renderPublicNotes();
 }
 
-// Create a public note
+// Render cards + update nav badges
+function renderPublicNotes() {
+  const grid = document.getElementById('public-notes-grid');
+  grid.innerHTML = '';
+
+  if (!publicNotes.length) {
+    grid.innerHTML = '&lt;div class="empty-state"&gt;No public notes yet. Create one!&lt;/div&gt;';
+    document.getElementById('public-count').textContent = '0';
+    const signedInBadge = document.getElementById('public-count-signed-in');
+    if (signedInBadge) signedInBadge.textContent = '0';
+    return;
+  }
+
+  for (const note of publicNotes) {
+    // noteCard(...) returns a DOM element for a single note
+    grid.appendChild(noteCard(note));
+  }
+
+  document.getElementById('public-count').textContent = String(publicNotes.length);
+  const signedInBadge = document.getElementById('public-count-signed-in');
+  if (signedInBadge) signedInBadge.textContent = String(publicNotes.length);
+}
+
+// Create a public note then refresh the grid
 async function createPublicNote(title, content) {
   await fetch('/api/public-notes', {
     method: 'POST',
@@ -167,9 +242,10 @@ async function createPublicNote(title, content) {
               <span class="vjs-code-icon">&lt;/&gt;</span> Vanilla JS code <span class="vjs-chevron">▼</span>
             </button>
             <div id="vjs-private-code-panel" class="vjs-code-panel" style="display: none">
-              <pre
-                class="language-javascript"
-              ><code class="language-javascript">// Fetch private notes with Bearer token from Clerk
+              <pre class="language-javascript"><code class="language-javascript">// In-memory state for this page
+let privateNotes = [];
+
+// Fetch private notes with Bearer token from Clerk
 async function loadPrivateNotes(token) {
   const res = await fetch('/api/private-notes', {
     headers: { Authorization: `Bearer ${token}` },
@@ -178,7 +254,25 @@ async function loadPrivateNotes(token) {
   renderPrivateNotes();
 }
 
-// Create a private note
+// Render private note cards and update count badge
+function renderPrivateNotes() {
+  const grid = document.getElementById('private-notes-grid');
+  grid.innerHTML = '';
+
+  if (!privateNotes.length) {
+    grid.innerHTML = '&lt;div class="empty-state"&gt;No private notes yet.&lt;/div&gt;';
+    document.getElementById('private-count').textContent = '0';
+    return;
+  }
+
+  for (const note of privateNotes) {
+    grid.appendChild(privateNoteCard(note));
+  }
+
+  document.getElementById('private-count').textContent = String(privateNotes.length);
+}
+
+// Create a private note then refresh the grid
 async function createPrivateNote(title, content, token) {
   await fetch('/api/private-notes', {
     method: 'PUT',

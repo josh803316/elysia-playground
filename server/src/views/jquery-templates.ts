@@ -110,6 +110,114 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
     </div>
   </nav>
 
+  <!-- Top nav / auth / admin code sample (separate row under nav) -->
+  <div class="max-w-[1320px] mx-auto px-4 mt-3">
+    <div class="border-t border-gray-100">
+      <button
+        type="button"
+        class="jq-nav-code-toggle w-full flex items-center gap-1.5 px-0 py-2.5 text-xs font-mono text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer text-left"
+        aria-controls="jq-nav-code-panel"
+        aria-expanded="false"
+      >
+        <span class="text-gray-300">&lt;/&gt;</span> jQuery nav &amp; auth code
+        <span class="jq-chevron ml-1 inline-block transition-transform duration-200">▼</span>
+      </button>
+      <div id="jq-nav-code-panel" class="jq-nav-code-panel" style="display:none">
+        <pre class="language-javascript rounded-lg text-xs overflow-x-auto m-0"><code class="language-javascript">// jQuery layout: nav counts, auth, and admin wiring
+// Helper: read Admin API key from localStorage
+window.getAdminApiKey = function() { return localStorage.getItem('adminApiKey'); };
+
+// Update the "Public: N" badges in the nav
+function updateNavCounts() {
+  var adminKey = window.getAdminApiKey();
+  if (adminKey) {
+    $.ajax({
+      url: '/api/notes/all',
+      headers: { 'X-API-Key': adminKey },
+      success: function(data) {
+        var pub = Array.isArray(data) ? data.filter(function(n) { return n.isPublic === 'true'; }).length : 0;
+        var priv = Array.isArray(data) ? data.length - pub : 0;
+        $('#nav-public-standalone').text('Public: ' + pub);
+        $('#nav-note-counts').html(
+          '&lt;span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium"&gt;Public: ' + pub + '&lt;/span&gt;' +
+          '&lt;span class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium"&gt;Private: ' + priv + '&lt;/span&gt;'
+        );
+      }
+    });
+    return;
+  }
+
+  $.get('/api/public-notes', function(pub) {
+    var pubCount = Array.isArray(pub) ? pub.length : 0;
+    $('#nav-public-standalone').text('Public: ' + pubCount);
+  });
+}
+
+// Admin nav: swap between Login and Logout buttons
+function updateAdminNav() {
+  var $area = $('#admin-nav-area');
+  var $label = $('#nav-notes-label');
+  if (window.getAdminApiKey()) {
+    if ($label.length) $label.text('All Notes');
+    $area.html('&lt;button type="button" id="admin-logout-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded font-medium"&gt;Admin Logout&lt;/button&gt;');
+    $('#admin-logout-btn').on('click', function() {
+      localStorage.removeItem('adminApiKey');
+      $('#admin-section').addClass('hidden');
+      updateAdminNav();
+      updateNavCounts();
+    });
+  } else {
+    if ($label.length) $label.text('My Notes');
+    $area.html('&lt;button type="button" id="admin-login-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium"&gt;Admin Login&lt;/button&gt;');
+    $('#admin-login-btn').on('click', showAdminLoginModal);
+  }
+}
+
+// Clerk auth: toggle body classes and load private notes
+window.addEventListener('load', async function() {
+  try {
+    await window.Clerk.load();
+    async function updateAuthState() {
+      document.body.classList.remove('clerk-loading');
+      if (window.Clerk.user) {
+        document.body.classList.remove('clerk-signed-out');
+        document.body.classList.add('clerk-signed-in');
+        var user = window.Clerk.user;
+        var nameEl = document.getElementById('user-name');
+        if (nameEl) nameEl.textContent =
+          user.firstName ||
+          (user.emailAddresses &amp;&amp; user.emailAddresses[0] &amp;&amp; user.emailAddresses[0].emailAddress) ||
+          'User';
+        var token = await window.Clerk.session.getToken();
+        window.__jqClerkToken = token || null;
+        loadPrivateNotes();
+        updateNavCounts();
+      } else {
+        window.__jqClerkToken = null;
+        document.body.classList.remove('clerk-signed-in');
+        document.body.classList.add('clerk-signed-out');
+        updateNavCounts();
+      }
+    }
+    await updateAuthState();
+    document.getElementById('sign-in-btn').addEventListener('click', function() {
+      window.Clerk.openSignIn({ afterSignInUrl: window.location.href, afterSignUpUrl: window.location.href });
+    });
+    document.getElementById('sign-out-btn').addEventListener('click', async function() {
+      await window.Clerk.signOut();
+      window.location.reload();
+    });
+    window.Clerk.addListener(function() { updateAuthState(); });
+  } catch (e) {
+    console.error('Clerk init error:', e);
+    document.body.classList.remove('clerk-loading');
+    document.body.classList.add('clerk-signed-out');
+  }
+});</code></pre>
+      </div>
+    </div>
+  </div>
+
   <main class="max-w-[1320px] mx-auto px-4 py-8">
     ${content}
   </main>
@@ -588,6 +696,16 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
       $('#' + panelId).slideToggle(200);
       $btn.find('.jq-chevron').toggleClass('rotated');
       $btn.attr('aria-expanded', $btn.attr('aria-expanded') === 'true' ? 'false' : 'true');
+    });
+    $(document).on('click', '.jq-nav-code-toggle', function() {
+      var $btn = $(this);
+      var panelId = $btn.attr('aria-controls');
+      $('#' + panelId).slideToggle(200);
+      $btn.find('.jq-chevron').toggleClass('rotated');
+      $btn.attr('aria-expanded', $btn.attr('aria-expanded') === 'true' ? 'false' : 'true');
+      if (window.Prism) {
+        window.Prism.highlightAllUnder(document.getElementById(panelId));
+      }
     });
 
     // ─── Versions panel ───────────────────────────────────────────────────────

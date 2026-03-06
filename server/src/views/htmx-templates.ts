@@ -132,6 +132,70 @@ export function baseLayout(
       </div>
     </div>
   </nav>
+
+  <!-- Top nav / auth / admin code sample -->
+  <div class="max-w-[1320px] mx-auto px-4 mt-3">
+    ${codeExpander(
+      `<!-- HTMX nav: badges, auth, and admin links -->
+<nav class="bg-white border-b border-gray-200 shadow-sm h-[60px] flex items-center">
+  <div class="max-w-[1320px] w-full mx-auto px-4">
+    <div class="flex justify-between items-center">
+      <a href="/htmx" class="text-xl font-bold text-gray-900 hover:text-teal-700 transition-colors">
+        Elysia Notes - HTMX
+      </a>
+      <div class="flex gap-4 items-center">
+        <a href="/htmx" class="text-sm text-gray-700 hover:text-gray-900 font-medium">Home</a>
+        <span id="nav-public-standalone"
+          class="show-when-signed-out text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium">
+          Public: 0
+        </span>
+        <span class="show-when-signed-in nav-notes-row flex items-center gap-2 flex-nowrap">
+          <a id="nav-notes-label" href="/htmx/notes"
+            class="text-sm text-gray-700 hover:text-gray-900 font-medium whitespace-nowrap">
+            My Notes
+          </a>
+          <span id="nav-note-counts" class="flex gap-1.5 items-center flex-shrink-0"></span>
+        </span>
+        <!-- Auth buttons wired up via Clerk + htmx -->
+        <div id="auth-container" class="flex items-center gap-3 show-when-loaded">
+          <button id="sign-in-btn"
+            class="show-when-signed-out text-sm bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            Sign In
+          </button>
+          <div class="show-when-signed-in flex items-center gap-3">
+            <span id="user-name" class="text-sm text-gray-700"></span>
+            <button id="sign-out-btn" class="text-sm text-gray-600 hover:text-gray-900 font-medium">
+              Sign Out
+            </button>
+          </div>
+        </div>
+        <!-- Admin login opens HTMX modal; key stored in localStorage -->
+        <span id="admin-nav-area">
+          <button type="button" id="admin-login-btn"
+            hx-get="/htmx/admin/login-modal"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            class="text-sm bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded font-medium">
+            Admin Login
+          </button>
+        </span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Nav counts and auth are kept in sync by layout script -->
+document.body.addEventListener('htmx:configRequest', (evt) => {
+  const url = evt.detail.pathInfo?.requestPath ?? '';
+  // Inject X-API-Key for /htmx/admin/notes when admin key is present
+  if (url.includes('/htmx/admin/notes')) {
+    const key = localStorage.getItem('adminApiKey');
+    if (key) evt.detail.headers['X-API-Key'] = key;
+  }
+});`,
+      'htmx-nav-code',
+    )}
+  </div>
   
   <main class="max-w-[1320px] mx-auto px-4 py-8">
     ${content}
