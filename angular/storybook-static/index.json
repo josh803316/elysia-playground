@@ -1,0 +1,16 @@
+{
+  "v": 5,
+  "entries": {
+    "notes-publicnotes--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "notes-publicnotes--default",
+      "name": "Default",
+      "title": "Notes/PublicNotes",
+      "importPath": "./src/app/components/public-notes/public-notes.stories.ts",
+      "componentPath": "./src/app/components/public-notes/public-notes.ts",
+      "tags": ["dev", "test", "manifest"],
+      "exportName": "Default"
+    }
+  }
+}

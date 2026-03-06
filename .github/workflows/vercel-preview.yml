@@ -14,6 +14,67 @@ jobs:
       build-command: 'bun run build'
     secrets: inherit
 
+  chromatic:
+    needs: preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun run install:all
+
+      - name: Chromatic - React
+        working-directory: react
+        env:
+          CHROMATIC_TOKEN_REACT: ${{ secrets.CHROMATIC_TOKEN_REACT }}
+        run: |
+          if [ -n "$CHROMATIC_TOKEN_REACT" ]; then
+            bun run storybook:build
+            bun run chromatic
+          else
+            echo "CHROMATIC_TOKEN_REACT not set; skipping React Chromatic run."
+          fi
+
+      - name: Chromatic - Vue
+        working-directory: vue
+        env:
+          CHROMATIC_TOKEN_VUE: ${{ secrets.CHROMATIC_TOKEN_VUE }}
+        run: |
+          if [ -n "$CHROMATIC_TOKEN_VUE" ]; then
+            bun run storybook:build
+            bun run chromatic
+          else
+            echo "CHROMATIC_TOKEN_VUE not set; skipping Vue Chromatic run."
+          fi
+
+      - name: Chromatic - Svelte
+        working-directory: svelte
+        env:
+          CHROMATIC_TOKEN_SVELTE: ${{ secrets.CHROMATIC_TOKEN_SVELTE }}
+        run: |
+          if [ -n "$CHROMATIC_TOKEN_SVELTE" ]; then
+            bun run storybook:build
+            bun run chromatic
+          else
+            echo "CHROMATIC_TOKEN_SVELTE not set; skipping Svelte Chromatic run."
+          fi
+
+      - name: Chromatic - Angular
+        working-directory: angular
+        env:
+          CHROMATIC_TOKEN_ANGULAR: ${{ secrets.CHROMATIC_TOKEN_ANGULAR }}
+        run: |
+          if [ -n "$CHROMATIC_TOKEN_ANGULAR" ]; then
+            bun run storybook:build
+            bun run chromatic
+          else
+            echo "CHROMATIC_TOKEN_ANGULAR not set; skipping Angular Chromatic run."
+          fi
+
   # Move the referenced Linear ticket to "In Progress" and post the preview URL.
   # Ticket refs (e.g. [ELY-5]) in the PR title or branch name are optional —
   # the step is a no-op when none are found.

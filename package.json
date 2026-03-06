@@ -58,7 +58,10 @@
     "e2e": "cd e2e-tests && bun run e2e",
     "e2e:ui": "cd e2e-tests && bun run e2e:ui",
     "format": "prettier -wu .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "chromatic:react": "cd react && bun run chromatic",
+    "chromatic:vue": "cd vue && bun run chromatic",
+    "chromatic:svelte": "cd svelte && bun run chromatic"
   },
   "overrides": {
     "esbuild": "^0.25.0",
@@ -72,6 +75,7 @@
     "@josh803316/shared-config": "^1.2.0",
     "@types/eslint__js": "^9.14.0",
     "bun-types": "latest",
+    "chromatic": "^15.2.0",
     "turbo": "^2.8.13"
   },
   "trustedDependencies": [

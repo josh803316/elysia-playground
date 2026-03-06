@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/storybook",
+    "types": []
+  },
+  "include": [
+    ".storybook/**/*.ts",
+    "src/main.ts",
+    "src/app/app.config.ts",
+    "src/app/app.routes.ts",
+    "src/app/app.ts",
+    "src/app/components/**/*.ts",
+    "src/app/services/**/*.ts"
+  ],
+  "exclude": ["src/**/*.spec.ts"]
+}

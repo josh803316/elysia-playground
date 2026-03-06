@@ -82,6 +82,80 @@ At a glance:
 - `vanilla-js/` - Vanilla JS frontend (static HTML/CSS/ES modules, served by server)
 - `e2e-tests/` - Playwright e2e tests that treat the deployed app as a black box
 
+## Storybook + Chromatic + Performance Panel
+
+Each SPA client has its own Storybook, wired to Chromatic and the
+[`@github-ui/storybook-addon-performance-panel`](https://github.com/github/storybook-addon-performance-panel):
+
+- React: `react/.storybook/*` using `@storybook/react-vite`
+- Vue: `vue/.storybook/*` using `@storybook/vue3-vite`
+- Svelte: `svelte/.storybook/*` using `@storybook/sveltekit`
+- Angular: **disabled** (Angular 21 / Storybook compiler incompatibility; config remains in `angular/.storybook/*`)
+
+### Running Storybook locally
+
+From the repo root (after `bun run install:all`):
+
+```bash
+# React
+cd react && bun run storybook
+
+# Vue
+cd ../vue && bun run storybook
+
+# Svelte
+cd ../svelte && bun run storybook
+
+# Angular — disabled (see above)
+# cd ../angular && bun run storybook
+```
+
+Each Storybook includes the **⚡ Performance** panel via
+`@github-ui/storybook-addon-performance-panel` (React) or the `/universal`
+entry for the other frameworks.
+
+### Chromatic integration
+
+For each framework, create a Chromatic project and configure the tokens as:
+
+- `CHROMATIC_TOKEN_REACT`
+- `CHROMATIC_TOKEN_VUE`
+- `CHROMATIC_TOKEN_SVELTE`
+- `CHROMATIC_TOKEN_ANGULAR`
+
+These are consumed:
+
+- Locally via app scripts (e.g. `react/package.json` → `bun run chromatic`)
+- In CI via `.github/workflows/vercel-preview.yml`, which runs Chromatic
+  for any app whose token is present after the Vercel preview build.
+
+Root helpers:
+
+```bash
+bun run chromatic:react
+bun run chromatic:vue
+bun run chromatic:svelte
+# chromatic:angular — disabled
+```
+
+### In-app Storybook routes
+
+Each frontend exposes a route that embeds the Chromatic-hosted Storybook in
+an iframe:
+
+- React app: `/storybook/react` (uses `VITE_STORYBOOK_REACT_URL`)
+- Vue app: `/storybook/vue` (uses `VITE_STORYBOOK_VUE_URL`)
+- Svelte app:
+  - `/storybook/react`
+  - `/storybook/vue`
+  - `/storybook/svelte`
+  - `/storybook/angular`
+    (uses the corresponding `VITE_STORYBOOK_*_URL` vars)
+- Angular app: `/storybook` (expects `window.ANGULAR_STORYBOOK_URL`; Angular Storybook is currently disabled)
+
+When the environment value or global URL is missing, the route renders a
+hint explaining which variable to set.
+
 ## Shared Libraries and Workflows
 
 ### `@josh803316/shared-config`

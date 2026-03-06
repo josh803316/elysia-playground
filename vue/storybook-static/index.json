@@ -1,0 +1,27 @@
+{
+  "v": 5,
+  "entries": {
+    "search-globalsearch--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "search-globalsearch--default",
+      "name": "Default",
+      "title": "Search/GlobalSearch",
+      "importPath": "./src/components/GlobalSearch.stories.ts",
+      "componentPath": "./src/components/GlobalSearch.vue",
+      "tags": ["dev", "test", "manifest"],
+      "exportName": "Default"
+    },
+    "notes-notesgrid--empty": {
+      "type": "story",
+      "subtype": "story",
+      "id": "notes-notesgrid--empty",
+      "name": "Empty",
+      "title": "Notes/NotesGrid",
+      "importPath": "./src/components/NotesGrid.stories.ts",
+      "componentPath": "./src/components/NotesGrid.vue",
+      "tags": ["dev", "test", "manifest"],
+      "exportName": "Empty"
+    }
+  }
+}

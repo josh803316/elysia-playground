@@ -6,7 +6,10 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test --no-watch"
+    "test": "ng test --no-watch",
+    "storybook": "echo 'Angular Storybook is disabled (Angular 21 / Storybook compiler incompatibility).' && exit 0",
+    "storybook:build": "echo 'Angular Storybook is disabled.' && exit 0",
+    "chromatic": "echo 'Angular Chromatic is disabled.' && exit 0"
   },
   "prettier": {
     "printWidth": 100,
@@ -36,8 +39,11 @@
     "@angular/build": "^21.2.0",
     "@angular/cli": "^21.2.0",
     "@angular/compiler-cli": "^21.2.0",
+    "@github-ui/storybook-addon-performance-panel": "^1.1.4",
+    "@storybook/angular": "10.2.15",
     "jsdom": "^28.1.0",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "eslint-plugin-storybook": "10.2.15"
   }
 }
