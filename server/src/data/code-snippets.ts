@@ -399,4 +399,57 @@ $.ajax({
   success: function() { loadPrivateNotes(); }
 });`,
   },
+  {
+    id: 'html5',
+    name: 'HTML5',
+    path: '/html5',
+    badge: 'Showcase',
+    admin: `<!-- HTML5 showcase has no admin view -->
+<!-- It demonstrates native browser features instead of CRUD -->
+<!-- See the 9 interactive demos at /html5 -->`,
+    public: `<!-- Native form validation — no JS needed -->
+<form>
+  <input type="number" min="1" max="100" required />
+  <input type="password" minlength="8" required />
+  <input type="email" required />
+  <button type="submit">Submit</button>
+</form>
+
+<!-- Dialog replaces modal libraries -->
+<dialog id="confirmDialog">
+  <p>Are you sure?</p>
+  <button onclick="confirmDialog.close()">Cancel</button>
+  <button onclick="submitDelete()">Confirm</button>
+</dialog>
+<button onclick="confirmDialog.showModal()">Delete</button>
+
+<!-- Details/Summary for toggle UI -->
+<details>
+  <summary>Advanced Filters</summary>
+  <label><input type="checkbox" /> Show archived</label>
+</details>`,
+    private: `<!-- Template for dynamic content -->
+<template id="cardTemplate">
+  <article class="card">
+    <h3></h3><p></p>
+  </article>
+</template>
+
+<script>
+const tpl = document.getElementById("cardTemplate");
+const clone = tpl.content.cloneNode(true);
+clone.querySelector("h3").textContent = "Status";
+clone.querySelector("p").textContent = "All systems go.";
+document.body.appendChild(clone);
+</script>
+
+<!-- Native drag and drop -->
+<div draggable="true"
+     ondragstart="event.dataTransfer.setData('text', this.id)">
+  Task A
+</div>
+
+<!-- Progress bar -->
+<progress id="job" value="30" max="100"></progress>`,
+  },
 ];

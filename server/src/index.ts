@@ -17,6 +17,7 @@ import {publicNotesController} from './controllers/public-notes.controller.js';
 import {versionsController} from './controllers/versions.controller.js';
 import {htmxController} from './controllers/htmx.controller.js';
 import {jqueryController} from './controllers/jquery.controller.js';
+import {html5Controller} from './controllers/html5.controller.js';
 import {getDB, initDB} from './db/index.js';
 import {apiKeyGuard} from './guards/api-key-guard.js';
 import {authGuard} from './guards/auth-guard.js';
@@ -625,7 +626,7 @@ app
           '          </span>',
           '          <h1>Frontend playground</h1>',
           "          <p class='summary'>",
-          '            Compare five different UI approaches that all talk to the same Elysia/Bun',
+          '            Compare six different UI approaches that all talk to the same Elysia/Bun',
           '            API – great for learning and architectural discussions.',
           '          </p>',
           '        </div>',
@@ -771,6 +772,31 @@ app
           "        <article class='card'>",
           "          <div class='card-header'>",
           "            <div class='card-main'>",
+          "              <div class='logo' aria-hidden='true' style='background:radial-gradient(circle at 30% 0,#c2410c,#0b1120);'>",
+          "                <span style='font-size:0.58rem;font-weight:800;color:#fdba74;letter-spacing:0.06em;'>HTML5</span>",
+          '              </div>',
+          '              <div>',
+          "                <div class='title'>HTML5 <span>· native browser power</span></div>",
+          "                <p class='desc'>Nine interactive demos of native HTML5 features that replace common JS libraries and patterns.</p>",
+          '              </div>',
+          '            </div>',
+          "            <div class='badge'>",
+          "              <span class='badge-dot'></span>",
+          '              Showcase',
+          '            </div>',
+          '          </div>',
+          "          <div class='meta'>",
+          "            <span class='pill'><strong>Stack</strong> Pure HTML5 · zero dependencies</span>",
+          "            <span class='pill'><strong>Features</strong> dialog, validation, drag &amp; drop</span>",
+          '          </div>',
+          "          <a href='/html5' class='link-btn'>",
+          '            <span>Open HTML5 showcase</span>',
+          "            <span class='icon'>↗</span>",
+          '          </a>',
+          '        </article>',
+          "        <article class='card'>",
+          "          <div class='card-header'>",
+          "            <div class='card-main'>",
           "              <div class='logo logo-angular' aria-hidden='true'>",
           "                <svg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'>",
           "                  <path d='M128 0L0 45.2l19.5 169.4L128 256l108.5-41.4L256 45.2z' fill='#dd3333'/>",
@@ -847,7 +873,7 @@ app
           '            </div>',
           '          </div>',
           "          <div class='meta'>",
-          "            <span class='pill'><strong>View</strong> All 7 frameworks in iframes</span>",
+          "            <span class='pill'><strong>View</strong> All 8 frameworks in iframes</span>",
           "            <span class='pill'><strong>Feature</strong> Code comparison mode</span>",
           '          </div>',
           "          <a href='/all' class='link-btn'>",
@@ -859,7 +885,7 @@ app
           "      <aside class='notes'>",
           '        <h2>How this is wired</h2>',
           '        <ul>',
-          '          <li>All five UIs talk to the same Elysia API under <code>/api</code>.</li>',
+          '          <li>All UIs talk to the same Elysia API under <code>/api</code>.</li>',
           '          <li>The React, Svelte, Angular, and Vue apps are pre‑built assets served by Bun/Elysia.</li>',
           '          <li>The HTMX views are rendered directly from the Bun server.</li>',
           '          <li>The Vanilla JS app uses plain ES modules – zero build step.</li>',
@@ -889,6 +915,7 @@ app
   .use(versionsController) // Add versions controller at the app level
   .use(htmxController) // Add HTMX controller
   .use(jqueryController) // Add jQuery showcase controller
+  .use(html5Controller) // Add HTML5 showcase controller
   .use(api) // Use the API router with prefix
   // Serve built React app at /react
   .use(serveSPA(reactAssetsPath, '/react'))
