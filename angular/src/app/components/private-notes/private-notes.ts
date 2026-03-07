@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
 import { SearchNotesService } from '../../services/search-notes.service';
 import { CodeExpanderComponent } from '../code-expander/code-expander';
+import { PRIVATE_NOTES_TEST_SNIPPET } from '../../lib/e2e-snippets';
 
 const PRIVATE_CODE = `// private-notes.ts — Token passed from parent (AuthService)
 @Component({ selector: 'app-private-notes', ... })
@@ -98,7 +99,13 @@ export class PrivateNotesComponent implements OnChanges {
       </div>
     }
 
-    <app-code-expander [code]="PRIVATE_CODE" id="angular-private-code" label="Angular code" />
+    <app-code-expander
+      [code]="PRIVATE_CODE"
+      id="angular-private-code"
+      label="Angular code"
+      [testCode]="PRIVATE_NOTES_TEST_SNIPPET"
+      testLabel="E2E test (Playwright)"
+    />
 
     <!-- Create Private Note Modal -->
     @if (showModal()) {
@@ -395,6 +402,7 @@ export class PrivateNotesComponent implements OnChanges {
 })
 export class PrivateNotesComponent implements OnChanges {
   readonly PRIVATE_CODE = PRIVATE_CODE;
+  readonly PRIVATE_NOTES_TEST_SNIPPET = PRIVATE_NOTES_TEST_SNIPPET;
   private api = inject(NotesApiService);
   private searchService = inject(SearchNotesService);
 

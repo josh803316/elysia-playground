@@ -9,6 +9,7 @@ import {AdminNotesTable} from '../components/AdminNotesTable';
 import {useNoteContext} from '../context/NoteContext';
 import {getApiBase} from '../api/client';
 import {CodeExpander} from '../components/CodeExpander';
+import {ADMIN_TEST_SNIPPET, PUBLIC_NOTES_TEST_SNIPPET, PRIVATE_NOTES_TEST_SNIPPET} from '../lib/e2e-snippets';
 
 const REACT_ADMIN_CODE = `// Fetch all notes with admin API key
 const fetchAllNotes = useCallback(async () => {
@@ -344,7 +345,13 @@ const HomePage = () => {
             onRefetch={() => fetchAllNotes()}
             showCreateButton={false}
           />
-          <CodeExpander code={REACT_ADMIN_CODE} id='react-admin-code' label='React code' />
+          <CodeExpander
+            code={REACT_ADMIN_CODE}
+            id='react-admin-code'
+            label='React code'
+            testCode={ADMIN_TEST_SNIPPET}
+            testLabel='E2E test (Playwright)'
+          />
         </Grid.Col>
       )}
 
@@ -399,7 +406,13 @@ const HomePage = () => {
               isSignedIn ? privateNotes.filter((n) => n.isPublic === 'true').map((n) => n.id) : undefined
             }
           />
-          <CodeExpander code={REACT_PUBLIC_CODE} id='react-public-code' label='React code' />
+          <CodeExpander
+            code={REACT_PUBLIC_CODE}
+            id='react-public-code'
+            label='React code'
+            testCode={PUBLIC_NOTES_TEST_SNIPPET}
+            testLabel='E2E test (Playwright)'
+          />
         </Paper>
       </Grid.Col>
 
@@ -471,7 +484,13 @@ const HomePage = () => {
               onNoteDeleted={handleNoteCreated}
               onNoteUpdated={handleNoteCreated}
             />
-            <CodeExpander code={REACT_PRIVATE_CODE} id='react-private-code' label='React code' />
+            <CodeExpander
+              code={REACT_PRIVATE_CODE}
+              id='react-private-code'
+              label='React code'
+              testCode={PRIVATE_NOTES_TEST_SNIPPET}
+              testLabel='E2E test (Playwright)'
+            />
           </Paper>
         </Grid.Col>
       )}

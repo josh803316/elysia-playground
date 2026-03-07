@@ -1,17 +1,41 @@
 <script lang="ts">
   import { tick } from 'svelte';
 
-  let { code, id, label = 'Svelte code' }: { code: string; id: string; label?: string } = $props();
+  let {
+    code,
+    id,
+    label = 'Svelte code',
+    testCode,
+    testLabel = 'E2E test (Playwright)',
+  }: {
+    code: string;
+    id: string;
+    label?: string;
+    testCode?: string;
+    testLabel?: string;
+  } = $props();
 
   let open = $state(false);
+  let testOpen = $state(false);
   let panelEl = $state<HTMLDivElement | undefined>(undefined);
+  let testPanelEl = $state<HTMLDivElement | undefined>(undefined);
 
-  async function toggle() {
-    open = !open;
-    if (open) {
-      await tick();
-      if (panelEl && (window as any).Prism) {
-        (window as any).Prism.highlightAllUnder(panelEl);
+  async function toggle(isTest: boolean) {
+    if (isTest) {
+      testOpen = !testOpen;
+      if (testOpen) {
+        await tick();
+        if (testPanelEl && (window as any).Prism) {
+          (window as any).Prism.highlightAllUnder(testPanelEl);
+        }
+      }
+    } else {
+      open = !open;
+      if (open) {
+        await tick();
+        if (panelEl && (window as any).Prism) {
+          (window as any).Prism.highlightAllUnder(panelEl);
+        }
       }
     }
   }
@@ -21,7 +45,7 @@
   <button
     type="button"
     class="code-toggle"
-    onclick={toggle}
+    onclick={() => toggle(false)}
     aria-controls="{id}-panel"
     aria-expanded={open}
   >
@@ -35,6 +59,26 @@
     </div>
   {/if}
 </div>
+{#if testCode != null && testCode !== ''}
+  <div class="code-expander">
+    <button
+      type="button"
+      class="code-toggle"
+      onclick={() => toggle(true)}
+      aria-controls="{id}-test-panel"
+      aria-expanded={testOpen}
+    >
+      <span class="code-icon">🧪</span>
+      {testLabel}
+      <span class="chevron" class:rotated={testOpen}>▼</span>
+    </button>
+    {#if testOpen}
+      <div id="{id}-test-panel" bind:this={testPanelEl}>
+        <pre class="language-javascript" style="margin:0;border-radius:0.5rem;font-size:0.75rem"><code class="language-javascript">{testCode}</code></pre>
+      </div>
+    {/if}
+  </div>
+{/if}
 
 <style>
   .code-expander {

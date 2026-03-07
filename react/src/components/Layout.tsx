@@ -6,6 +6,7 @@ import AdminLoginForm from './AdminLoginForm';
 import {GlobalSearch} from './GlobalSearch';
 import {useNoteContext} from '../context/NoteContext';
 import {CodeExpander} from './CodeExpander';
+import {NAV_AUTH_TEST_SNIPPET} from '../lib/e2e-snippets';
 
 interface VersionsPayload {
   version: string;
@@ -15,6 +16,12 @@ interface VersionsPayload {
   timestamp: string;
   elysia: string | null;
   frameworks: {[k: string]: {name: string; version: string; dependencies: {[key: string]: string}}};
+  config?: {packageManager?: string; engines?: Record<string, string>; overrides?: Record<string, string>};
+  rootDependencies?: {dependencies: Record<string, string>; devDependencies: Record<string, string>};
+  workspaces?: Record<
+    string,
+    {name: string; version: string; dependencies: Record<string, string>; devDependencies: Record<string, string>}
+  >;
 }
 
 interface LayoutProps {
@@ -432,7 +439,13 @@ export const Layout = ({children}: LayoutProps) => {
       <AppShell.Main>
         {/* Top nav / auth / admin code sample (within main, below fixed header) */}
         <div style={{maxWidth: 1320, margin: '0 auto', padding: '0 1rem', marginTop: '0.75rem'}}>
-          <CodeExpander code={REACT_NAV_CODE} id='react-nav-code' label='React nav & auth code' />
+          <CodeExpander
+            code={REACT_NAV_CODE}
+            id='react-nav-code'
+            label='React nav & auth code'
+            testCode={NAV_AUTH_TEST_SNIPPET}
+            testLabel='E2E test (Playwright)'
+          />
         </div>
 
         <Container size='xl' py='xl' style={{maxWidth: 1320}}>
@@ -527,6 +540,93 @@ export const Layout = ({children}: LayoutProps) => {
                             )}
                           </div>
                         ))}
+                      </dd>
+                    </div>
+                  )}
+                  {(versionsData.config ||
+                    versionsData.rootDependencies ||
+                    (versionsData.workspaces && Object.keys(versionsData.workspaces).length > 0)) && (
+                    <div style={{marginTop: 12, paddingTop: 12, borderTop: '1px solid #e5e7eb'}}>
+                      <dt style={{color: '#6b7280', marginBottom: 4, fontWeight: 600}}>
+                        Configuration &amp; dependencies
+                      </dt>
+                      <dd style={{margin: 0}}>
+                        {versionsData.config?.packageManager && (
+                          <div style={{marginBottom: 6}}>
+                            <span style={{color: '#6b7280'}}>packageManager</span>{' '}
+                            <span style={{fontFamily: 'monospace', fontSize: '0.75rem'}}>
+                              {versionsData.config.packageManager}
+                            </span>
+                          </div>
+                        )}
+                        {versionsData.config?.engines && Object.keys(versionsData.config.engines).length > 0 && (
+                          <div style={{marginBottom: 6}}>
+                            <span style={{color: '#6b7280'}}>engines</span>
+                            <ul style={{fontSize: '0.75rem', margin: '2px 0 0 12px', paddingLeft: 0}}>
+                              {Object.entries(versionsData.config.engines).map(([k, v]) => (
+                                <li key={k}>
+                                  {k}: {v}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {versionsData.config?.overrides && Object.keys(versionsData.config.overrides).length > 0 && (
+                          <div style={{marginBottom: 6}}>
+                            <span style={{color: '#6b7280'}}>overrides</span>
+                            <ul style={{fontSize: '0.75rem', margin: '2px 0 0 12px', paddingLeft: 0}}>
+                              {Object.entries(versionsData.config.overrides).map(([k, v]) => (
+                                <li key={k}>
+                                  {k}: {v}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {versionsData.rootDependencies &&
+                          (Object.keys(versionsData.rootDependencies.dependencies).length > 0 ||
+                            Object.keys(versionsData.rootDependencies.devDependencies).length > 0) && (
+                            <div style={{marginBottom: 6}}>
+                              <span style={{color: '#6b7280'}}>Root deps</span>
+                              <ul style={{fontSize: '0.75rem', margin: '2px 0 0 12px', paddingLeft: 0}}>
+                                {Object.entries(versionsData.rootDependencies.dependencies).map(([k, v]) => (
+                                  <li key={k}>
+                                    {k}: {v}
+                                  </li>
+                                ))}
+                                {Object.entries(versionsData.rootDependencies.devDependencies).map(([k, v]) => (
+                                  <li key={`dev-${k}`}>
+                                    {k}: {v} <span style={{color: '#9ca3af'}}>(dev)</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        {versionsData.workspaces && Object.keys(versionsData.workspaces).length > 0 && (
+                          <div style={{marginTop: 8}}>
+                            <span style={{color: '#6b7280', display: 'block', marginBottom: 4}}>Workspaces</span>
+                            {Object.entries(versionsData.workspaces).map(([key, ws]) => (
+                              <div key={key} style={{marginBottom: 8, paddingLeft: 8, borderLeft: '2px solid #e5e7eb'}}>
+                                <span style={{fontWeight: 500}}>{ws.name}</span>{' '}
+                                <span style={{color: '#4b5563'}}>{ws.version}</span>
+                                <ul
+                                  style={{fontSize: '0.75rem', color: '#6b7280', margin: '2px 0 0 0', paddingLeft: 16}}
+                                >
+                                  {Object.entries(ws.dependencies).map(([dep, ver]) => (
+                                    <li key={dep}>
+                                      {dep}: {ver}
+                                    </li>
+                                  ))}
+                                  {Object.entries(ws.devDependencies).map(([dep, ver]) => (
+                                    <li key={dep}>
+                                      {dep}: {ver} <span style={{color: '#9ca3af'}}>(dev)</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </dd>
                     </div>
                   )}

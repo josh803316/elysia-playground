@@ -3,6 +3,13 @@
  * These functions generate HTML strings that are returned by the server
  */
 
+import {
+  NAV_AUTH_TEST_SNIPPET,
+  PUBLIC_NOTES_TEST_SNIPPET,
+  PRIVATE_NOTES_TEST_SNIPPET,
+  ADMIN_TEST_SNIPPET,
+} from '../snippets/e2e-snippets.js';
+
 export interface Note {
   id: number;
   title: string;
@@ -194,6 +201,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
   }
 });`,
       'htmx-nav-code',
+      NAV_AUTH_TEST_SNIPPET,
     )}
   </div>
   
@@ -316,6 +324,38 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
               html += '<ul class="text-xs text-gray-500 mt-0.5 pl-4">';
               for (var dep in info.dependencies) html += '<li>' + dep + ': ' + info.dependencies[dep] + '</li>';
               html += '</ul>';
+            }
+            html += '</div>';
+          }
+          html += '</dd></div>';
+        }
+        if (d.config || d.rootDependencies || (d.workspaces && Object.keys(d.workspaces).length > 0)) {
+          html += '<div class="mt-3 pt-3 border-t border-gray-200"><dt class="text-gray-500 font-semibold mb-1">Configuration &amp; dependencies</dt><dd>';
+          if (d.config && d.config.packageManager) html += '<div class="mb-2"><span class="text-gray-500">packageManager</span> <span class="font-mono text-xs">' + d.config.packageManager + '</span></div>';
+          if (d.config && d.config.engines && Object.keys(d.config.engines).length) {
+            html += '<div class="mb-2"><span class="text-gray-500">engines</span><ul class="text-xs text-gray-500 mt-0.5 pl-3">';
+            for (var k in d.config.engines) html += '<li>' + k + ': ' + d.config.engines[k] + '</li>';
+            html += '</ul></div>';
+          }
+          if (d.config && d.config.overrides && Object.keys(d.config.overrides).length) {
+            html += '<div class="mb-2"><span class="text-gray-500">overrides</span><ul class="text-xs text-gray-500 mt-0.5 pl-3">';
+            for (var k in d.config.overrides) html += '<li>' + k + ': ' + d.config.overrides[k] + '</li>';
+            html += '</ul></div>';
+          }
+          if (d.rootDependencies && (Object.keys(d.rootDependencies.dependencies || {}).length > 0 || Object.keys(d.rootDependencies.devDependencies || {}).length > 0)) {
+            html += '<div class="mb-2"><span class="text-gray-500">Root deps</span><ul class="text-xs text-gray-500 mt-0.5 pl-3">';
+            for (var k in (d.rootDependencies.dependencies || {})) html += '<li>' + k + ': ' + d.rootDependencies.dependencies[k] + '</li>';
+            for (var k in (d.rootDependencies.devDependencies || {})) html += '<li>' + k + ': ' + d.rootDependencies.devDependencies[k] + ' <span class="text-gray-400">(dev)</span></li>';
+            html += '</ul></div>';
+          }
+          if (d.workspaces && Object.keys(d.workspaces).length > 0) {
+            html += '<div class="mt-2"><span class="text-gray-500 block mb-1">Workspaces</span>';
+            for (var key in d.workspaces) {
+              var ws = d.workspaces[key];
+              html += '<div class="mb-2 pl-2 border-l-2 border-gray-200"><span class="font-medium">' + (ws.name || key) + '</span> <span class="text-gray-600">' + (ws.version || '') + '</span><ul class="text-xs text-gray-500 mt-0.5 pl-4">';
+              for (var dep in (ws.dependencies || {})) html += '<li>' + dep + ': ' + ws.dependencies[dep] + '</li>';
+              for (var dep in (ws.devDependencies || {})) html += '<li>' + dep + ': ' + ws.devDependencies[dep] + ' <span class="text-gray-400">(dev)</span></li>';
+              html += '</ul></div>';
             }
             html += '</div>';
           }
@@ -529,10 +569,11 @@ function escapeCode(code: string): string {
 }
 
 /**
- * Code expander toggle widget — shows HTMX-specific code for each section
+ * Code expander toggle widget — shows HTMX-specific code for each section.
+ * Optional testCode renders a second expander "E2E test (Playwright)" below.
  */
-function codeExpander(code: string, id: string): string {
-  return `
+function codeExpander(code: string, id: string, testCode?: string): string {
+  let out = `
     <div class="border-t border-gray-100 mt-4">
       <button type="button" class="htmx-code-toggle w-full flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors"
         aria-controls="${id}-panel" aria-expanded="false">
@@ -543,6 +584,20 @@ function codeExpander(code: string, id: string): string {
         <pre class="rounded-lg bg-gray-900 text-gray-100 p-4 overflow-x-auto text-xs mt-1 !m-0"><code class="language-markup">${escapeCode(code)}</code></pre>
       </div>
     </div>`;
+  if (testCode != null && testCode !== '') {
+    out += `
+    <div class="border-t border-gray-100 mt-4">
+      <button type="button" class="htmx-code-toggle w-full flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors"
+        aria-controls="${id}-test-panel" aria-expanded="false">
+        <span class="text-gray-400">🧪</span> E2E test (Playwright)
+        <span class="htmx-chevron ml-1">▼</span>
+      </button>
+      <div id="${id}-test-panel" class="htmx-code-panel" style="display:none">
+        <pre class="rounded-lg bg-gray-900 text-gray-100 p-4 overflow-x-auto text-xs mt-1 !m-0"><code class="language-javascript">${escapeCode(testCode)}</code></pre>
+      </div>
+    </div>`;
+  }
+  return out;
 }
 
 /**
@@ -622,7 +677,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
           >
             <div class="text-center py-8 text-gray-500">Loading admin notes...</div>
           </div>
-          ${codeExpander(adminCode, 'htmx-admin-code')}
+          ${codeExpander(adminCode, 'htmx-admin-code', ADMIN_TEST_SNIPPET)}
         </div>
       </div>
 
@@ -646,7 +701,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
         <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           ${notes.length === 0 ? emptyState() : notes.map((note) => noteCard(note)).join('')}
         </div>
-        ${codeExpander(publicCode, 'htmx-public-code')}
+        ${codeExpander(publicCode, 'htmx-public-code', PUBLIC_NOTES_TEST_SNIPPET)}
       </div>
 
       <!-- Your Notes Section (only visible when signed in) -->
@@ -678,7 +733,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
               <div class="animate-pulse">Loading your notes...</div>
             </div>
           </div>
-          ${codeExpander(privateCode, 'htmx-private-code')}
+          ${codeExpander(privateCode, 'htmx-private-code', PRIVATE_NOTES_TEST_SNIPPET)}
         </div>
       </div>
       

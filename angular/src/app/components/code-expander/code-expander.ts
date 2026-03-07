@@ -27,6 +27,29 @@ declare const Prism: { highlightAllUnder: (el: Element) => void } | undefined;
         </div>
       }
     </div>
+    @if (testCode) {
+      <div class="code-expander">
+        <button
+          type="button"
+          class="code-toggle"
+          [attr.aria-controls]="id + '-test-panel'"
+          [attr.aria-expanded]="testOpen()"
+          (click)="toggleTest()"
+        >
+          <span class="code-icon">🧪</span>
+          {{ testLabel }}
+          <span class="chevron" [class.rotated]="testOpen()">▼</span>
+        </button>
+        @if (testOpen()) {
+          <div [id]="id + '-test-panel'" #testPanelEl>
+            <pre
+              class="language-javascript"
+              style="margin:0;border-radius:0.5rem;font-size:0.75rem"
+            ><code class="language-javascript">{{ testCode }}</code></pre>
+          </div>
+        }
+      </div>
+    }
   `,
   styles: `
     .code-expander {
@@ -72,14 +95,24 @@ export class CodeExpanderComponent implements AfterViewChecked {
   @Input() code = '';
   @Input() id = '';
   @Input() label = 'Angular code';
+  @Input() testCode = '';
+  @Input() testLabel = 'E2E test (Playwright)';
   @ViewChild('panelEl') panelEl?: ElementRef<HTMLDivElement>;
+  @ViewChild('testPanelEl') testPanelEl?: ElementRef<HTMLDivElement>;
 
   open = signal(false);
+  testOpen = signal(false);
   private needsHighlight = false;
+  private needsTestHighlight = false;
 
   toggle() {
     this.open.update((v) => !v);
     if (this.open()) this.needsHighlight = true;
+  }
+
+  toggleTest() {
+    this.testOpen.update((v) => !v);
+    if (this.testOpen()) this.needsTestHighlight = true;
   }
 
   ngAfterViewChecked() {
@@ -88,6 +121,14 @@ export class CodeExpanderComponent implements AfterViewChecked {
       try {
         if (typeof Prism !== 'undefined') {
           Prism.highlightAllUnder(this.panelEl.nativeElement);
+        }
+      } catch {}
+    }
+    if (this.needsTestHighlight && this.testPanelEl?.nativeElement) {
+      this.needsTestHighlight = false;
+      try {
+        if (typeof Prism !== 'undefined') {
+          Prism.highlightAllUnder(this.testPanelEl.nativeElement);
         }
       } catch {}
     }

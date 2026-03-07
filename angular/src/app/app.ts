@@ -6,6 +6,7 @@ import { AdminComponent } from './components/admin/admin';
 import { GlobalSearchComponent } from './components/global-search/global-search';
 import { AuthService } from './services/auth.service';
 import { CodeExpanderComponent } from './components/code-expander/code-expander';
+import { NAV_AUTH_TEST_SNIPPET } from './lib/e2e-snippets';
 
 interface VersionsPayload {
   version: string;
@@ -17,6 +18,24 @@ interface VersionsPayload {
   frameworks: Record<
     string,
     { name: string; version: string; dependencies: Record<string, string> }
+  >;
+  config?: {
+    packageManager?: string;
+    engines?: Record<string, string>;
+    overrides?: Record<string, string>;
+  };
+  rootDependencies?: {
+    dependencies: Record<string, string>;
+    devDependencies: Record<string, string>;
+  };
+  workspaces?: Record<
+    string,
+    {
+      name: string;
+      version: string;
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+    }
   >;
 }
 
@@ -162,6 +181,8 @@ adminLogout() {
         [code]="ANGULAR_NAV_CODE"
         id="angular-nav-code"
         label="Angular nav &amp; auth code"
+        [testCode]="NAV_AUTH_TEST_SNIPPET"
+        testLabel="E2E test (Playwright)"
       />
     </div>
 
@@ -257,6 +278,98 @@ adminLogout() {
                               <li>{{ dep.key }}: {{ dep.value }}</li>
                             }
                           </ul>
+                        }
+                      </div>
+                    }
+                  </dd>
+                </div>
+              }
+              @if (
+                d.config || d.rootDependencies || (d.workspaces && Object.keys(d.workspaces).length)
+              ) {
+                <div class="versions-config-section">
+                  <dt class="versions-frameworks-dt">Configuration &amp; dependencies</dt>
+                  <dd>
+                    @if (d.config?.packageManager; as pkgManager) {
+                      <div class="versions-config-item">
+                        <span class="versions-dt-muted">packageManager</span>
+                        <span class="versions-mono">{{ pkgManager }}</span>
+                      </div>
+                    }
+                    @if (d.config?.engines; as engines) {
+                      @if (Object.keys(engines).length) {
+                        <div class="versions-config-item">
+                          <span class="versions-dt-muted">engines</span>
+                          <ul class="versions-deps">
+                            @for (e of dependencyEntries(engines); track e.key) {
+                              <li>{{ e.key }}: {{ e.value }}</li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    }
+                    @if (d.config?.overrides; as overrides) {
+                      @if (Object.keys(overrides).length) {
+                        <div class="versions-config-item">
+                          <span class="versions-dt-muted">overrides</span>
+                          <ul class="versions-deps">
+                            @for (o of dependencyEntries(overrides); track o.key) {
+                              <li>{{ o.key }}: {{ o.value }}</li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    }
+                    @if (
+                      d.rootDependencies &&
+                      (Object.keys(d.rootDependencies.dependencies || {}).length ||
+                        Object.keys(d.rootDependencies.devDependencies || {}).length)
+                    ) {
+                      <div class="versions-config-item">
+                        <span class="versions-dt-muted">Root deps</span>
+                        <ul class="versions-deps">
+                          @for (
+                            r of dependencyEntries(d.rootDependencies.dependencies || {});
+                            track r.key
+                          ) {
+                            <li>{{ r.key }}: {{ r.value }}</li>
+                          }
+                          @for (
+                            r of dependencyEntries(d.rootDependencies.devDependencies || {});
+                            track r.key
+                          ) {
+                            <li>
+                              {{ r.key }}: {{ r.value }} <span class="versions-dev">(dev)</span>
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                    @if (d.workspaces && Object.keys(d.workspaces).length) {
+                      <div class="versions-config-item">
+                        <span class="versions-dt-muted">Workspaces</span>
+                        @for (entry of workspaceEntries(d.workspaces); track entry.key) {
+                          <div class="versions-framework">
+                            <span class="versions-fw-name">{{ entry.ws.name }}</span>
+                            <span class="versions-fw-ver">{{ entry.ws.version }}</span>
+                            <ul class="versions-deps">
+                              @for (
+                                dep of dependencyEntries(entry.ws.dependencies || {});
+                                track dep.key
+                              ) {
+                                <li>{{ dep.key }}: {{ dep.value }}</li>
+                              }
+                              @for (
+                                dep of dependencyEntries(entry.ws.devDependencies || {});
+                                track dep.key
+                              ) {
+                                <li>
+                                  {{ dep.key }}: {{ dep.value }}
+                                  <span class="versions-dev">(dev)</span>
+                                </li>
+                              }
+                            </ul>
+                          </div>
                         }
                       </div>
                     }
@@ -695,6 +808,27 @@ adminLogout() {
       margin: 0.25rem 0 0 0;
       padding-left: 1rem;
     }
+    .versions-config-section {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #e5e7eb;
+    }
+    .versions-config-section .versions-frameworks-dt {
+      font-weight: 600;
+    }
+    .versions-config-item {
+      margin-bottom: 0.5rem;
+    }
+    .versions-dt-muted {
+      color: #6b7280;
+    }
+    .versions-mono {
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+    .versions-dev {
+      color: #9ca3af;
+    }
     .versions-btn {
       font-size: 0.75rem;
       font-weight: 500;
@@ -711,6 +845,7 @@ adminLogout() {
 export class App implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly ANGULAR_NAV_CODE = ANGULAR_NAV_CODE_SRC;
+  readonly NAV_AUTH_TEST_SNIPPET = NAV_AUTH_TEST_SNIPPET;
   /** Expose global Object for template (Object.keys, etc.) */
   readonly Object = Object;
 
@@ -744,6 +879,12 @@ export class App implements OnInit, OnDestroy {
 
   dependencyEntries(deps: Record<string, string>): { key: string; value: string }[] {
     return Object.entries(deps).map(([key, value]) => ({ key, value }));
+  }
+
+  workspaceEntries(
+    workspaces: NonNullable<VersionsPayload['workspaces']>,
+  ): { key: string; ws: (typeof workspaces)[string] }[] {
+    return Object.entries(workspaces).map(([key, ws]) => ({ key, ws }));
   }
 
   ngOnInit() {

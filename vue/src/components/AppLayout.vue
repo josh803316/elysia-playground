@@ -8,6 +8,7 @@ import Badge from 'primevue/badge';
 import AdminLoginModal from './AdminLoginModal.vue';
 import GlobalSearch from './GlobalSearch.vue';
 import CodeExpander from './CodeExpander.vue';
+import { NAV_AUTH_TEST_SNIPPET } from '../lib/e2e-snippets';
 
 interface VersionsPayload {
   version: string;
@@ -17,6 +18,9 @@ interface VersionsPayload {
   timestamp: string;
   elysia: string | null;
   frameworks: Record<string, { name: string; version: string; dependencies: Record<string, string> }>;
+  config?: { packageManager?: string; engines?: Record<string, string>; overrides?: Record<string, string> };
+  rootDependencies?: { dependencies: Record<string, string>; devDependencies: Record<string, string> };
+  workspaces?: Record<string, { name: string; version: string; dependencies: Record<string, string>; devDependencies: Record<string, string> }>;
 }
 
 const { user, isSignedIn } = useUser();
@@ -222,7 +226,7 @@ function handleAdminLogout() {
     <!-- Top nav / auth / admin code sample (directly below title bar, same row as other frameworks) -->
     <div class="nav-code-row">
       <div class="app-container">
-        <CodeExpander :code="VUE_NAV_CODE" id="vue-nav-code" label="Vue nav &amp; auth code" />
+        <CodeExpander :code="VUE_NAV_CODE" id="vue-nav-code" label="Vue nav &amp; auth code" :test-code="NAV_AUTH_TEST_SNIPPET" test-label="E2E test (Playwright)" />
       </div>
     </div>
 
@@ -255,6 +259,43 @@ function handleAdminLogout() {
                   <ul v-if="Object.keys(info.dependencies).length" class="versions-deps">
                     <li v-for="(ver, dep) in info.dependencies" :key="dep">{{ dep }}: {{ ver }}</li>
                   </ul>
+                </div>
+              </dd>
+            </div>
+            <div v-if="versionsData.config || versionsData.rootDependencies || (versionsData.workspaces && Object.keys(versionsData.workspaces).length)" class="versions-config-section">
+              <dt class="versions-frameworks-dt">Configuration &amp; dependencies</dt>
+              <dd>
+                <div v-if="versionsData.config?.packageManager" class="versions-config-item">
+                  <span class="versions-dt-muted">packageManager</span> <span class="versions-mono">{{ versionsData.config.packageManager }}</span>
+                </div>
+                <div v-if="versionsData.config?.engines && Object.keys(versionsData.config.engines).length" class="versions-config-item">
+                  <span class="versions-dt-muted">engines</span>
+                  <ul class="versions-deps">
+                    <li v-for="(v, k) in versionsData.config.engines" :key="k">{{ k }}: {{ v }}</li>
+                  </ul>
+                </div>
+                <div v-if="versionsData.config?.overrides && Object.keys(versionsData.config.overrides).length" class="versions-config-item">
+                  <span class="versions-dt-muted">overrides</span>
+                  <ul class="versions-deps">
+                    <li v-for="(v, k) in versionsData.config.overrides" :key="k">{{ k }}: {{ v }}</li>
+                  </ul>
+                </div>
+                <div v-if="versionsData.rootDependencies && (Object.keys(versionsData.rootDependencies.dependencies || {}).length || Object.keys(versionsData.rootDependencies.devDependencies || {}).length)" class="versions-config-item">
+                  <span class="versions-dt-muted">Root deps</span>
+                  <ul class="versions-deps">
+                    <li v-for="(v, k) in versionsData.rootDependencies.dependencies" :key="k">{{ k }}: {{ v }}</li>
+                    <li v-for="(v, k) in versionsData.rootDependencies.devDependencies" :key="'dev-' + k">{{ k }}: {{ v }} <span class="versions-dev">(dev)</span></li>
+                  </ul>
+                </div>
+                <div v-if="versionsData.workspaces && Object.keys(versionsData.workspaces).length" class="versions-config-item">
+                  <span class="versions-dt-muted">Workspaces</span>
+                  <div v-for="(ws, key) in versionsData.workspaces" :key="key" class="versions-framework">
+                    <span class="versions-fw-name">{{ ws.name }}</span> <span class="versions-fw-ver">{{ ws.version }}</span>
+                    <ul class="versions-deps">
+                      <li v-for="(ver, dep) in ws.dependencies" :key="dep">{{ dep }}: {{ ver }}</li>
+                      <li v-for="(ver, dep) in ws.devDependencies" :key="'dev-' + dep">{{ dep }}: {{ ver }} <span class="versions-dev">(dev)</span></li>
+                    </ul>
+                  </div>
                 </div>
               </dd>
             </div>
@@ -454,4 +495,10 @@ function handleAdminLogout() {
 .versions-fw-name { font-weight: 500; }
 .versions-fw-ver { color: #4b5563; }
 .versions-deps { font-size: 0.75rem; color: #6b7280; margin: 0.25rem 0 0 0; padding-left: 1rem; }
+.versions-config-section { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; }
+.versions-config-section .versions-frameworks-dt { font-weight: 600; }
+.versions-config-item { margin-bottom: 0.5rem; }
+.versions-dt-muted { color: #6b7280; }
+.versions-mono { font-family: monospace; font-size: 0.75rem; }
+.versions-dev { color: #9ca3af; }
 </style>

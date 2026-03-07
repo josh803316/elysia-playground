@@ -11,6 +11,7 @@ import { usePrivateNotes } from '../composables/usePrivateNotes';
 import { useAdmin } from '../composables/useAdmin';
 import { useSearchNotes } from '../composables/useSearchNotes';
 import CodeExpander from '../components/CodeExpander.vue';
+import { ADMIN_TEST_SNIPPET, PUBLIC_NOTES_TEST_SNIPPET, PRIVATE_NOTES_TEST_SNIPPET } from '../lib/e2e-snippets';
 
 const VUE_ADMIN_CODE = `// composables/useAdmin.ts
 const fetchAllNotes = async () => {
@@ -139,7 +140,7 @@ async function handleNoteSubmitted() {
         :admin-api-key="adminApiKey"
         @refetch="fetchAllNotes()"
         />
-        <CodeExpander :code="VUE_ADMIN_CODE" id="vue-admin-code" label="Vue code" />
+        <CodeExpander :code="VUE_ADMIN_CODE" id="vue-admin-code" label="Vue code" :test-code="ADMIN_TEST_SNIPPET" test-label="E2E test (Playwright)" />
       </div>
 
       <!-- Public Notes Section -->
@@ -167,7 +168,7 @@ async function handleNoteSubmitted() {
           @deleted="refresh()"
           @updated="refresh()"
         />
-        <CodeExpander :code="VUE_PUBLIC_CODE" id="vue-public-code" label="Vue code" />
+        <CodeExpander :code="VUE_PUBLIC_CODE" id="vue-public-code" label="Vue code" :test-code="PUBLIC_NOTES_TEST_SNIPPET" test-label="E2E test (Playwright)" />
       </section>
 
       <!-- Sign in prompt -->
@@ -202,7 +203,7 @@ async function handleNoteSubmitted() {
           @deleted="refresh()"
           @updated="refresh()"
         />
-        <CodeExpander :code="VUE_PRIVATE_CODE" id="vue-private-code" label="Vue code" />
+        <CodeExpander :code="VUE_PRIVATE_CODE" id="vue-private-code" label="Vue code" :test-code="PRIVATE_NOTES_TEST_SNIPPET" test-label="E2E test (Playwright)" />
       </section>
     </div>
 

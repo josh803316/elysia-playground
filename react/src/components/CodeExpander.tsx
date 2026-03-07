@@ -4,6 +4,9 @@ interface CodeExpanderProps {
   code: string;
   id: string;
   label?: string;
+  /** Optional E2E/Playwright test snippet to show in a second expander */
+  testCode?: string;
+  testLabel?: string;
 }
 
 declare global {
@@ -12,21 +15,32 @@ declare global {
   }
 }
 
-export function CodeExpander({code, id, label = 'React code'}: CodeExpanderProps) {
-  const [open, setOpen] = useState(false);
+function ExpanderPanel({
+  open,
+  onToggle,
+  id,
+  label,
+  code,
+  iconLabel = '</>',
+}: {
+  open: boolean;
+  onToggle: () => void;
+  id: string;
+  label: string;
+  code: string;
+  iconLabel?: string;
+}) {
   const panelRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (open && panelRef.current && window.Prism) {
       window.Prism.highlightAllUnder(panelRef.current);
     }
   }, [open]);
-
   return (
     <div style={{borderTop: '1px solid #e5e7eb', marginTop: '1rem'}}>
       <button
         type='button'
-        onClick={() => setOpen((v) => !v)}
+        onClick={onToggle}
         aria-controls={`${id}-panel`}
         aria-expanded={open}
         style={{
@@ -53,7 +67,7 @@ export function CodeExpander({code, id, label = 'React code'}: CodeExpanderProps
           (e.currentTarget as HTMLButtonElement).style.color = '#6b7280';
         }}
       >
-        <span style={{fontFamily: 'monospace', color: '#9ca3af'}}>&lt;/&gt;</span>
+        <span style={{fontFamily: 'monospace', color: '#9ca3af'}}>{iconLabel}</span>
         {label}
         <span
           style={{
@@ -74,5 +88,31 @@ export function CodeExpander({code, id, label = 'React code'}: CodeExpanderProps
         </div>
       )}
     </div>
+  );
+}
+
+export function CodeExpander({
+  code,
+  id,
+  label = 'React code',
+  testCode,
+  testLabel = 'E2E test (Playwright)',
+}: CodeExpanderProps) {
+  const [open, setOpen] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
+  return (
+    <>
+      <ExpanderPanel open={open} onToggle={() => setOpen((v) => !v)} id={id} label={label} code={code} />
+      {testCode != null && testCode !== '' && (
+        <ExpanderPanel
+          open={testOpen}
+          onToggle={() => setTestOpen((v) => !v)}
+          id={`${id}-test`}
+          label={testLabel}
+          code={testCode}
+          iconLabel='🧪'
+        />
+      )}
+    </>
   );
 }
