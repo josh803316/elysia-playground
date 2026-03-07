@@ -342,6 +342,51 @@ function renderVersionsPanel() {
     }
     html += '</dd></div>';
   }
+  if (d.config || d.rootDependencies || (d.workspaces && Object.keys(d.workspaces).length > 0)) {
+    html +=
+      '<div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #e5e7eb"><dt style="color:#6b7280;font-weight:600;margin-bottom:0.25rem">Configuration &amp; dependencies</dt><dd>';
+    if (d.config?.packageManager)
+      html += `<div style="margin-bottom:0.25rem"><span style="color:#6b7280">packageManager</span> <span style="font-family:monospace;font-size:0.75rem">${d.config.packageManager}</span></div>`;
+    if (d.config?.engines && Object.keys(d.config.engines).length) {
+      html +=
+        '<div style="margin-bottom:0.25rem"><span style="color:#6b7280">engines</span><ul style="font-size:0.75rem;margin:2px 0 0 12px;padding-left:0">';
+      for (const k of Object.keys(d.config.engines)) html += `<li>${k}: ${d.config.engines[k]}</li>`;
+      html += '</ul></div>';
+    }
+    if (d.config?.overrides && Object.keys(d.config.overrides).length) {
+      html +=
+        '<div style="margin-bottom:0.25rem"><span style="color:#6b7280">overrides</span><ul style="font-size:0.75rem;margin:2px 0 0 12px;padding-left:0">';
+      for (const k of Object.keys(d.config.overrides)) html += `<li>${k}: ${d.config.overrides[k]}</li>`;
+      html += '</ul></div>';
+    }
+    if (
+      d.rootDependencies &&
+      (Object.keys(d.rootDependencies.dependencies || {}).length > 0 ||
+        Object.keys(d.rootDependencies.devDependencies || {}).length > 0)
+    ) {
+      html +=
+        '<div style="margin-bottom:0.25rem"><span style="color:#6b7280">Root deps</span><ul style="font-size:0.75rem;margin:2px 0 0 12px;padding-left:0">';
+      for (const k of Object.keys(d.rootDependencies.dependencies || {}))
+        html += `<li>${k}: ${d.rootDependencies.dependencies[k]}</li>`;
+      for (const k of Object.keys(d.rootDependencies.devDependencies || {}))
+        html += `<li>${k}: ${d.rootDependencies.devDependencies[k]} <span style="color:#9ca3af">(dev)</span></li>`;
+      html += '</ul></div>';
+    }
+    if (d.workspaces && Object.keys(d.workspaces).length > 0) {
+      html +=
+        '<div style="margin-top:0.5rem"><span style="color:#6b7280;display:block;margin-bottom:0.25rem">Workspaces</span>';
+      for (const key of Object.keys(d.workspaces)) {
+        const ws = d.workspaces[key];
+        html += `<div style="margin-bottom:0.5rem;padding-left:0.5rem;border-left:2px solid #e5e7eb"><span style="font-weight:500">${ws.name}</span> <span style="color:#4b5563">${ws.version}</span><ul style="font-size:0.75rem;color:#6b7280;margin:2px 0 0 0;padding-left:1rem">`;
+        for (const dep of Object.keys(ws.dependencies || {})) html += `<li>${dep}: ${ws.dependencies[dep]}</li>`;
+        for (const dep of Object.keys(ws.devDependencies || {}))
+          html += `<li>${dep}: ${ws.devDependencies[dep]} <span style="color:#9ca3af">(dev)</span></li>`;
+        html += '</ul></div>';
+      }
+      html += '</div>';
+    }
+    html += '</dd></div>';
+  }
   html += '</dl>';
   panel.innerHTML = html;
   $('#versions-close')?.addEventListener('click', () => {

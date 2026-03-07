@@ -446,6 +446,63 @@ function handleAdminLogout() {
 									</dd>
 								</div>
 							{/if}
+							{#if d.config || d.rootDependencies || (d.workspaces && Object.keys(d.workspaces).length > 0)}
+								<div class="mt-3 pt-3 border-t border-gray-200">
+									<dt class="text-gray-500 font-semibold mb-1">Configuration &amp; dependencies</dt>
+									<dd class="space-y-2">
+										{#if d.config?.packageManager}
+											<div><span class="text-gray-500">packageManager</span> <span class="font-mono text-xs">{d.config.packageManager}</span></div>
+										{/if}
+										{#if d.config?.engines && Object.keys(d.config.engines).length > 0}
+											<div><span class="text-gray-500">engines</span>
+												<ul class="text-xs text-gray-500 mt-0.5 pl-3">
+													{#each Object.entries(d.config.engines) as [k, v]}
+														<li>{k}: {v}</li>
+													{/each}
+												</ul>
+											</div>
+										{/if}
+										{#if d.config?.overrides && Object.keys(d.config.overrides).length > 0}
+											<div><span class="text-gray-500">overrides</span>
+												<ul class="text-xs text-gray-500 mt-0.5 pl-3">
+													{#each Object.entries(d.config.overrides) as [k, v]}
+														<li>{k}: {v}</li>
+													{/each}
+												</ul>
+											</div>
+										{/if}
+										{#if d.rootDependencies && (Object.keys(d.rootDependencies.dependencies || {}).length > 0 || Object.keys(d.rootDependencies.devDependencies || {}).length > 0)}
+											<div><span class="text-gray-500">Root deps</span>
+												<ul class="text-xs text-gray-500 mt-0.5 pl-3">
+													{#each Object.entries(d.rootDependencies.dependencies || {}) as [k, v]}
+														<li>{k}: {v}</li>
+													{/each}
+													{#each Object.entries(d.rootDependencies.devDependencies || {}) as [k, v]}
+														<li>{k}: {v} <span class="text-gray-400">(dev)</span></li>
+													{/each}
+												</ul>
+											</div>
+										{/if}
+										{#if d.workspaces && Object.keys(d.workspaces).length > 0}
+											<div class="mt-2"><span class="text-gray-500 block mb-1">Workspaces</span>
+												{#each Object.entries(d.workspaces) as [key, ws]}
+													<div class="pl-2 border-l-2 border-gray-200 mb-2">
+														<span class="font-medium">{ws.name}</span> <span class="text-gray-600">{ws.version}</span>
+														<ul class="text-xs text-gray-500 mt-0.5 pl-4">
+															{#each Object.entries(ws.dependencies || {}) as [dep, ver]}
+																<li>{dep}: {ver}</li>
+															{/each}
+															{#each Object.entries(ws.devDependencies || {}) as [dep, ver]}
+																<li>{dep}: {ver} <span class="text-gray-400">(dev)</span></li>
+															{/each}
+														</ul>
+													</div>
+												{/each}
+											</div>
+										{/if}
+									</dd>
+								</div>
+							{/if}
 						</dl>
 					{:else}
 						<p class="text-sm text-gray-500">No version data</p>

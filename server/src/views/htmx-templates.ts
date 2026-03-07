@@ -321,6 +321,38 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
           }
           html += '</dd></div>';
         }
+        if (d.config || d.rootDependencies || (d.workspaces && Object.keys(d.workspaces).length > 0)) {
+          html += '<div class="mt-3 pt-3 border-t border-gray-200"><dt class="text-gray-500 font-semibold mb-1">Configuration &amp; dependencies</dt><dd>';
+          if (d.config && d.config.packageManager) html += '<div class="mb-2"><span class="text-gray-500">packageManager</span> <span class="font-mono text-xs">' + d.config.packageManager + '</span></div>';
+          if (d.config && d.config.engines && Object.keys(d.config.engines).length) {
+            html += '<div class="mb-2"><span class="text-gray-500">engines</span><ul class="text-xs text-gray-500 mt-0.5 pl-3">';
+            for (var k in d.config.engines) html += '<li>' + k + ': ' + d.config.engines[k] + '</li>';
+            html += '</ul></div>';
+          }
+          if (d.config && d.config.overrides && Object.keys(d.config.overrides).length) {
+            html += '<div class="mb-2"><span class="text-gray-500">overrides</span><ul class="text-xs text-gray-500 mt-0.5 pl-3">';
+            for (var k in d.config.overrides) html += '<li>' + k + ': ' + d.config.overrides[k] + '</li>';
+            html += '</ul></div>';
+          }
+          if (d.rootDependencies && (Object.keys(d.rootDependencies.dependencies || {}).length > 0 || Object.keys(d.rootDependencies.devDependencies || {}).length > 0)) {
+            html += '<div class="mb-2"><span class="text-gray-500">Root deps</span><ul class="text-xs text-gray-500 mt-0.5 pl-3">';
+            for (var k in (d.rootDependencies.dependencies || {})) html += '<li>' + k + ': ' + d.rootDependencies.dependencies[k] + '</li>';
+            for (var k in (d.rootDependencies.devDependencies || {})) html += '<li>' + k + ': ' + d.rootDependencies.devDependencies[k] + ' <span class="text-gray-400">(dev)</span></li>';
+            html += '</ul></div>';
+          }
+          if (d.workspaces && Object.keys(d.workspaces).length > 0) {
+            html += '<div class="mt-2"><span class="text-gray-500 block mb-1">Workspaces</span>';
+            for (var key in d.workspaces) {
+              var ws = d.workspaces[key];
+              html += '<div class="mb-2 pl-2 border-l-2 border-gray-200"><span class="font-medium">' + (ws.name || key) + '</span> <span class="text-gray-600">' + (ws.version || '') + '</span><ul class="text-xs text-gray-500 mt-0.5 pl-4">';
+              for (var dep in (ws.dependencies || {})) html += '<li>' + dep + ': ' + ws.dependencies[dep] + '</li>';
+              for (var dep in (ws.devDependencies || {})) html += '<li>' + dep + ': ' + ws.devDependencies[dep] + ' <span class="text-gray-400">(dev)</span></li>';
+              html += '</ul></div>';
+            }
+            html += '</div>';
+          }
+          html += '</dd></div>';
+        }
         html += '</dl>';
         versionsPanel.innerHTML = html;
         versionsPanel.querySelector('#versions-close')?.addEventListener('click', function() {
