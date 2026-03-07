@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { notesStore } from '$lib/stores/notes';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
@@ -26,26 +25,27 @@
     }
   }
 
-  onMount(async () => {
-    // Setup auth after component is mounted
-    if (typeof window !== 'undefined' && clerkContext) {
-      try {
-        if (clerkContext?.auth?.userId) {
-          isSignedIn = true;
-          userToken = await clerkContext.session?.getToken() || null;
+  let newNoteInitDone = false;
+  $effect(() => {
+    if (newNoteInitDone) return;
+    newNoteInitDone = true;
+    (async () => {
+      if (typeof window !== 'undefined' && clerkContext) {
+        try {
+          if (clerkContext?.auth?.userId) {
+            isSignedIn = true;
+            userToken = await clerkContext.session?.getToken() || null;
+          }
+        } catch (err) {
+          console.error('Error setting up Clerk auth:', err);
+          error = err instanceof Error ? err : new Error('Authentication error');
         }
-        // We no longer redirect non-authenticated users
-      } catch (err) {
-        console.error('Error setting up Clerk auth:', err);
-        error = err instanceof Error ? err : new Error('Authentication error');
       }
-    }
-    
-    // Check if public parameter is set in URL
-    const publicParam = new URLSearchParams(window.location.search).get('public');
-    if (publicParam === 'true') {
-      isPublic = true;
-    }
+      const publicParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('public') : null;
+      if (publicParam === 'true') {
+        isPublic = true;
+      }
+    })();
   });
 
   async function handleSubmit() {

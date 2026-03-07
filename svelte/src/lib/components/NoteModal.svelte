@@ -28,43 +28,43 @@
     };
   }
   
-  // Props (use export let; avoid $bindable() unless inside $props())
-  export let open = false;
-  export let onClose = () => {};
-  export let onSuccess = () => {};
-  export let userToken: string | null = null;
-  export let initialNote: NoteData | null = null;
-  export let isEditing = false;
-  export let initialPublic = false;
+  let {
+    open = $bindable(false),
+    onClose = () => {},
+    onSuccess = () => {},
+    userToken = null,
+    initialNote = null,
+    isEditing = false,
+    initialPublic = false
+  }: {
+    open?: boolean;
+    onClose?: () => void;
+    onSuccess?: () => void;
+    userToken?: string | null;
+    initialNote?: NoteData | null;
+    isEditing?: boolean;
+    initialPublic?: boolean;
+  } = $props();
 
-  // Form state
-  let title = '';
-  let content = '';
-  let isPublic = false; // This represents the checkbox state
-  let loading = false;
-  let error: Error | null = null;
-  let noteId: string | undefined = undefined;
-  
-  // Track if we want to toggle from the initial state
-  $: toggleState = isPublic; 
-  
-  // The actual final state of the note (public or private)
-  $: finalPublicState = isEditing && initialNote 
-    ? (toggleState 
-      ? !(typeof initialNote.isPublic === 'string' 
-          ? initialNote.isPublic === 'true' 
-          : !!initialNote.isPublic)
-      : (typeof initialNote.isPublic === 'string' 
-          ? initialNote.isPublic === 'true' 
-          : !!initialNote.isPublic))
-    : toggleState ? !initialPublic : initialPublic;
-  
-  // UI-related derived state
-  $: modalButtonColor = finalPublicState ? "bg-green-600 hover:bg-green-700" : "bg-purple-600 hover:bg-purple-700";
-  $: modalColor = finalPublicState ? "green" : "purple";
+  // Form state (Svelte 5: $state for reactivity)
+  let title = $state('');
+  let content = $state('');
+  let isPublic = $state(false);
+  let loading = $state(false);
+  let error = $state<Error | null>(null);
+  let noteId = $state<string | undefined>(undefined);
 
-  // Derived state for form validation - title and content required for all notes
-  $: isFormValid = title.trim() !== '' && content.trim() !== '';
+  const finalPublicState = $derived(
+    isEditing && initialNote
+      ? (isPublic
+          ? !(typeof initialNote.isPublic === 'string' ? initialNote.isPublic === 'true' : !!initialNote.isPublic)
+          : typeof initialNote.isPublic === 'string' ? initialNote.isPublic === 'true' : !!initialNote.isPublic)
+      : isPublic ? !initialPublic : initialPublic
+  );
+
+  const modalButtonColor = $derived(finalPublicState ? 'bg-green-600 hover:bg-green-700' : 'bg-purple-600 hover:bg-purple-700');
+  const modalColor = $derived(finalPublicState ? 'green' : 'purple');
+  const isFormValid = $derived(title.trim() !== '' && content.trim() !== '');
 
   function resetForm() {
     title = '';
@@ -263,27 +263,22 @@
     onClose();
   }
 
-  // Reset or initialize form when modal state changes
-  $: if (open) {
+  $effect(() => {
+    if (!open) return;
     if (initialNote && isEditing) {
       console.log('Loading existing note data for editing:', initialNote);
-      // First load the note data
       loadNoteData(initialNote);
-      
-      // For edited notes, always start with checkbox unchecked (no toggle)
       isPublic = false;
-      
       console.log('Note loaded for editing, toggle checkbox set to unchecked by default');
     } else if (!isEditing) {
-      // For new notes, reset form and clear toggle
       title = '';
       content = '';
-      isPublic = false; // Start with no toggle (checkbox unchecked)
+      isPublic = false;
       noteId = undefined;
       error = null;
       console.log('Creating new note with initialPublic:', initialPublic);
     }
-  }
+  });
 </script>
 
 <Modal 

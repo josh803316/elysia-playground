@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
   import { authStore } from '../stores/authStore';
   import { noteStore } from '../stores/noteStore';
   import type { Note } from '../api/client';
@@ -159,35 +158,32 @@
     }
   };
   
-  // Fetch notes on load and when auth state changes
-  onMount(async () => {
-    console.log("HomePage component mounted");
-    
-    // Set initialized flag immediately to prevent infinite loops
-    initialized = true;
-    
-    try {
-      // Just load public notes once on mount
-      await fetchPublicNotes();
-      console.log("Initial public notes loaded");
-    } catch (err) {
-      console.error("Error loading initial public notes:", err);
-    } finally {
-      // Set authCheckComplete after initial load
-      authCheckComplete = true;
-      
-      // Check if user is signed in and load private data if needed
-      if (isSignedIn && !hasLoadedPrivateNotes) {
-        try {
-          await handlePrivateDataInit();
-        } catch (err) {
-          console.error("Error loading private data:", err);
+  let homeInitDone = false;
+  $effect(() => {
+    if (homeInitDone) return;
+    homeInitDone = true;
+    (async () => {
+      console.log("HomePage component mounted");
+      initialized = true;
+      try {
+        await fetchPublicNotes();
+        console.log("Initial public notes loaded");
+      } catch (err) {
+        console.error("Error loading initial public notes:", err);
+      } finally {
+        authCheckComplete = true;
+        if (isSignedIn && !hasLoadedPrivateNotes) {
+          try {
+            await handlePrivateDataInit();
+          } catch (err) {
+            console.error("Error loading private data:", err);
+          }
         }
       }
-    }
+    })();
   });
   
-  // Handle auth state changes with SignedIn component's onMount/onDestroy
+  // Handle auth state changes
   const handlePrivateDataInit = async () => {
     console.log("User is signed in, checking for private data");
     
@@ -340,10 +336,6 @@
     initialNoteValues = { ...initialNoteValues, isPublic };
     noteModalOpen = true;
   };
-  
-  onDestroy(() => {
-    // Clean up resources if needed
-  });
   
   // Delete a note (admin only) - with proper type annotation
   const deleteNote = async (id: number): Promise<void> => {

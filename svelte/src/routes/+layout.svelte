@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { ClerkProvider, SignedIn, SignedOut, SignInButton } from 'svelte-clerk/client';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { versionStore } from '$lib/stores/version';
@@ -108,14 +107,13 @@ async function fetchNoteCounts() {
   }
 }
 
-// Restore admin key and Clerk context on mount, then keep counts fresh
-onMount(() => {
+// Restore admin key and Clerk context on mount (Svelte 5)
+$effect(() => {
   const storedApiKey = localStorage.getItem('adminApiKey');
   if (storedApiKey) {
     adminApiKey = storedApiKey;
     isAdminLoggedIn = true;
   }
-
   versionStore.fetchVersion();
   clerkLoaded = true;
   fetchNoteCounts();
@@ -205,7 +203,10 @@ function handleAdminLogout() {
 		}
 	}
 
-	onMount(() => {
+	let layoutInitDone = false;
+	$effect(() => {
+		if (layoutInitDone) return;
+		layoutInitDone = true;
 		let intervalId: ReturnType<typeof setInterval> | undefined;
 		const onClerkUserUpdate = async () => {
 			try {
@@ -215,8 +216,7 @@ function handleAdminLogout() {
 					userName = clerk.user.firstName || clerk.user.username || 'User';
 					console.log('User name updated to:', userName);
 				}
-				
-				// Refresh token when user updates
+
 				if (clerk && clerk.session) {
 					try {
 						const token = await clerk.session.getToken();
@@ -234,54 +234,44 @@ function handleAdminLogout() {
 		};
 
 		const initialize = async () => {
-		// Check for existing admin API key
-		const storedApiKey = localStorage.getItem('adminApiKey');
-		if (storedApiKey) {
-			adminApiKey = storedApiKey;
-			isAdminLoggedIn = true;
-		}
-
-		// Fetch API version
-		versionStore.fetchVersion();
-		
-		// Mark Clerk as loaded when we're in the browser
-		if (typeof window !== 'undefined') {
-			clerkLoaded = true;
-			
-			// Get user data if available from Clerk
-			try {
-				// @ts-ignore - Clerk types handling
-				const clerk = window.Clerk;
-				if (clerk && clerk.user) {
-					userName = clerk.user.firstName || clerk.user.username || 'User';
-					console.log('User name set to:', userName);
-				}
-				
-				// Get user token if session is available
-				if (clerk && clerk.session) {
-					try {
-						const token = await clerk.session.getToken();
-						if (token) {
-							userToken = token;
-							console.log('User token retrieved in layout');
-						}
-					} catch (err) {
-						console.error('Error getting user token:', err);
-					}
-				}
-			} catch (err) {
-				console.error('Error getting user data from Clerk:', err);
+			const storedApiKey = localStorage.getItem('adminApiKey');
+			if (storedApiKey) {
+				adminApiKey = storedApiKey;
+				isAdminLoggedIn = true;
 			}
 
-			// Initial fetch of note counts
-			fetchNoteCounts();
-			
-			// Set up an interval to refresh counts every minute
-			intervalId = setInterval(fetchNoteCounts, 60000);
-			
-			// Set up an event listener for when clerk loads/changes
-			document.addEventListener('clerk-user-update', onClerkUserUpdate);
-		}
+			versionStore.fetchVersion();
+
+			if (typeof window !== 'undefined') {
+				clerkLoaded = true;
+
+				try {
+					// @ts-ignore - Clerk types handling
+					const clerk = window.Clerk;
+					if (clerk && clerk.user) {
+						userName = clerk.user.firstName || clerk.user.username || 'User';
+						console.log('User name set to:', userName);
+					}
+
+					if (clerk && clerk.session) {
+						try {
+							const token = await clerk.session.getToken();
+							if (token) {
+								userToken = token;
+								console.log('User token retrieved in layout');
+							}
+						} catch (err) {
+							console.error('Error getting user token:', err);
+						}
+					}
+				} catch (err) {
+					console.error('Error getting user data from Clerk:', err);
+				}
+
+				fetchNoteCounts();
+				intervalId = setInterval(fetchNoteCounts, 60000);
+				document.addEventListener('clerk-user-update', onClerkUserUpdate);
+			}
 		};
 
 		void initialize();

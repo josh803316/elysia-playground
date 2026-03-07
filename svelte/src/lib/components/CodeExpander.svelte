@@ -1,12 +1,10 @@
 <script lang="ts">
   import { tick } from 'svelte';
 
-  export let code: string;
-  export let id: string;
-  export let label: string = 'Svelte code';
+  let { code, id, label = 'Svelte code' }: { code: string; id: string; label?: string } = $props();
 
-  let open = false;
-  let panelEl: HTMLDivElement | undefined;
+  let open = $state(false);
+  let panelEl = $state<HTMLDivElement | undefined>(undefined);
 
   async function toggle() {
     open = !open;
@@ -23,7 +21,7 @@
   <button
     type="button"
     class="code-toggle"
-    on:click={toggle}
+    onclick={toggle}
     aria-controls="{id}-panel"
     aria-expanded={open}
   >

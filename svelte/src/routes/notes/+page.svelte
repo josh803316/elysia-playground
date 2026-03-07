@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { useClerkContext } from 'svelte-clerk/client';
@@ -165,70 +164,59 @@
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   }));
 
-  onMount(async () => {
-    console.log('Notes page mounted, initializing...');
-    
-    // Check for admin login
-    const storedApiKey = localStorage.getItem('adminApiKey');
-    if (storedApiKey) {
-      adminApiKey = storedApiKey;
-      isAdminLoggedIn = true;
-      console.log('Admin login detected');
-      
-      // Fetch all notes as admin
-      await fetchAllNotes();
-      return;
-    }
-    
-    // Check authentication status
-    if (clerkCtx) {
-      try {
-        // Check if user is signed in
-        isSignedIn = clerkCtx.auth?.userId !== null;
-        console.log('User signed in:', isSignedIn);
-        
-        // If signed in, get the token for API calls
-        if (isSignedIn) {
-          console.log('Fetching Clerk token...');
-          
-          // Try to get token with retries if needed
-          let retries = 2; // Reduce retries to avoid too many error messages
-          
-          try {
-            userToken = await getClerkToken();
-            
-            // If first attempt failed, try with a delay
-            if (!userToken && retries > 0) {
-              // Wait a bit before retrying
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              console.log('First token attempt failed, retrying...');
+  let notesInitDone = false;
+  $effect(() => {
+    if (notesInitDone) return;
+    notesInitDone = true;
+    (async () => {
+      console.log('Notes page mounted, initializing...');
+
+      const storedApiKey = localStorage.getItem('adminApiKey');
+      if (storedApiKey) {
+        adminApiKey = storedApiKey;
+        isAdminLoggedIn = true;
+        console.log('Admin login detected');
+        await fetchAllNotes();
+        return;
+      }
+
+      if (clerkCtx) {
+        try {
+          isSignedIn = clerkCtx.auth?.userId !== null;
+          console.log('User signed in:', isSignedIn);
+
+          if (isSignedIn) {
+            console.log('Fetching Clerk token...');
+            let retries = 2;
+            try {
               userToken = await getClerkToken();
+              if (!userToken && retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                console.log('First token attempt failed, retrying...');
+                userToken = await getClerkToken();
+              }
+            } catch (err) {
+              console.error('Error fetching token:', err);
             }
-          } catch (err) {
-            console.error('Error fetching token:', err);
-          }
-          
-          console.log('Token received:', userToken ? 'Yes (token hidden)' : 'No');
-          
-          if (userToken) {
-            // Fetch notes
-            await fetchPrivateNotes();
+            console.log('Token received:', userToken ? 'Yes (token hidden)' : 'No');
+            if (userToken) {
+              await fetchPrivateNotes();
+            } else {
+              console.warn('No user token available - redirecting to home');
+              goto(`${base}/`);
+            }
           } else {
-            console.warn('No user token available - redirecting to home');
+            console.log('User not signed in, redirecting to home page');
             goto(`${base}/`);
           }
-        } else {
-          // Redirect if not signed in
-          console.log('User not signed in, redirecting to home page');
-          goto(`${base}/`);
+        } catch (err) {
+          console.error('Error using Clerk context:', err);
         }
-      } catch (err) {
-        console.error('Error using Clerk context:', err);
+      } else {
+        console.log('Clerk context not available - redirecting to home');
+        goto(`${base}/`);
       }
-    } else {
-      console.log('Clerk context not available - redirecting to home');
-      goto(`${base}/`);
-    }
+    })();
   });
 </script>
 
