@@ -23,6 +23,7 @@ import {authGuard} from './guards/auth-guard.js';
 import {useLogger} from './middleware/logger.middleware.js';
 import {getAllowedOrigins} from './config/origins.js';
 import {isProtectedRoute} from './config/route-protection.js';
+import {renderAllPage} from './views/all-page.js';
 
 // Helper to safely get error message
 const getErrorMessage = (error: any): string => {
@@ -215,6 +216,13 @@ app
     return {error: errorMsg || 'Unknown error'};
   })
   .head('/', () => '')
+  .get(
+    '/all',
+    () =>
+      new Response(renderAllPage(), {
+        headers: {'content-type': 'text/html; charset=utf-8'},
+      }),
+  )
   // Expose a tiny JS payload for the Vanilla JS frontend with only
   // public configuration derived from server environment variables.
   // This avoids hard‑coding Clerk keys into the static assets.
@@ -815,6 +823,36 @@ app
           "          <a href='/vue' class='link-btn'>",
           '            <span>Open Vue demo</span>',
           "            <span class='icon'>↗</span>",
+          '          </a>',
+          '        </article>',
+          "        <article class='card'>",
+          "          <div class='card-header'>",
+          "            <div class='card-main'>",
+          "              <div class='logo' aria-hidden='true' style='background:radial-gradient(circle at 30% 0,#1e293b,#0b1120);'>",
+          "                <svg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='#38bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='width:18px;height:18px;'>",
+          "                  <rect x='3' y='3' width='7' height='7'/>",
+          "                  <rect x='14' y='3' width='7' height='7'/>",
+          "                  <rect x='3' y='14' width='7' height='7'/>",
+          "                  <rect x='14' y='14' width='7' height='7'/>",
+          '                </svg>',
+          '              </div>',
+          '              <div>',
+          "                <div class='title'>All Frameworks <span>· side-by-side</span></div>",
+          "                <p class='desc'>View every framework in one page and compare code approaches side by side.</p>",
+          '              </div>',
+          '            </div>',
+          "            <div class='badge'>",
+          "              <span class='badge-dot'></span>",
+          '              Compare',
+          '            </div>',
+          '          </div>',
+          "          <div class='meta'>",
+          "            <span class='pill'><strong>View</strong> All 7 frameworks in iframes</span>",
+          "            <span class='pill'><strong>Feature</strong> Code comparison mode</span>",
+          '          </div>',
+          "          <a href='/all' class='link-btn'>",
+          '            <span>Open All Frameworks</span>',
+          "            <span class='icon'>&#8599;</span>",
           '          </a>',
           '        </article>',
           '      </section>',
