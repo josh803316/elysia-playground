@@ -11,6 +11,7 @@ export const publicPaths = [
   '/react',
   '/svelte',
   '/vanilla-js',
+  '/all',
 ];
 
 export const isProtectedRoute = (path: string): boolean => {
