@@ -116,10 +116,11 @@ test.describe('jQuery Notes app', () => {
   });
 
   // ── Code expanders ──────────────────────────────────────────────────────────
+  // Each section has an app-code expander and an E2E test expander (6 toggles total for public, private, admin).
 
   test('three code-expander toggles are present', async ({page}) => {
     const toggles = page.locator('.jq-code-toggle');
-    await expect(toggles).toHaveCount(3);
+    await expect(toggles).toHaveCount(6);
   });
 
   test('code panels are hidden by default', async ({page}) => {
@@ -147,21 +148,20 @@ test.describe('jQuery Notes app', () => {
   });
 
   test('expanded code panels contain language-javascript blocks', async ({page}) => {
-    // Open all three
+    // Open all six (app code + E2E test per section)
     for (const toggle of await page.locator('.jq-code-toggle').all()) {
       await toggle.click();
     }
     const codeBlocks = page.locator('.jq-code-panel code.language-javascript');
-    await expect(codeBlocks).toHaveCount(3);
+    await expect(codeBlocks).toHaveCount(6);
   });
 
   test('Public Notes code expander shows $.get and $.ajax calls', async ({page}) => {
-    // The public-code expander is the second toggle (admin section is first in DOM but hidden)
-    // Find the toggle inside the public section
+    // First .jq-code-toggle in public section is the app code; second is E2E test
     const publicSection = page.locator('[data-testid="section-public-notes"]');
-    const toggle = publicSection.locator('.jq-code-toggle');
-    await toggle.click();
-    const codeText = await publicSection.locator('.jq-code-panel').textContent();
-    expect(codeText).toContain('/api/public-notes');
+    const firstToggle = publicSection.locator('.jq-code-toggle').first();
+    await firstToggle.click();
+    const firstPanelText = await publicSection.locator('.jq-code-panel').first().textContent();
+    expect(firstPanelText).toContain('/api/public-notes');
   });
 });
