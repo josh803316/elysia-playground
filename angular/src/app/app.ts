@@ -6,6 +6,7 @@ import { AdminComponent } from './components/admin/admin';
 import { GlobalSearchComponent } from './components/global-search/global-search';
 import { AuthService } from './services/auth.service';
 import { CodeExpanderComponent } from './components/code-expander/code-expander';
+import { NAV_AUTH_TEST_SNIPPET } from './lib/e2e-snippets';
 
 interface VersionsPayload {
   version: string;
@@ -180,6 +181,8 @@ adminLogout() {
         [code]="ANGULAR_NAV_CODE"
         id="angular-nav-code"
         label="Angular nav &amp; auth code"
+        [testCode]="NAV_AUTH_TEST_SNIPPET"
+        testLabel="E2E test (Playwright)"
       />
     </div>
 
@@ -842,6 +845,7 @@ adminLogout() {
 export class App implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly ANGULAR_NAV_CODE = ANGULAR_NAV_CODE_SRC;
+  readonly NAV_AUTH_TEST_SNIPPET = NAV_AUTH_TEST_SNIPPET;
   /** Expose global Object for template (Object.keys, etc.) */
   readonly Object = Object;
 

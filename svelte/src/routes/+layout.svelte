@@ -28,6 +28,7 @@ import {
 	import NoteModal from '$lib/components/NoteModal.svelte';
 	import GlobalSearch from '$lib/components/GlobalSearch.svelte';
 	import CodeExpander from '$lib/components/CodeExpander.svelte';
+	import { NAV_AUTH_TEST_SNIPPET } from '$lib/e2e-snippets';
 
     let { children } = $props();
 	let versionsOpen = $state(false);
@@ -399,7 +400,7 @@ function handleAdminLogout() {
 
 		<!-- Top nav / auth / admin code sample (full width of content area, left-aligned) -->
 		<div class="w-full max-w-[1320px] mx-auto px-4 mt-3 box-border">
-			<CodeExpander code={SVELTE_NAV_CODE} id="svelte-nav-code" label="Svelte nav & auth code" />
+			<CodeExpander code={SVELTE_NAV_CODE} id="svelte-nav-code" label="Svelte nav & auth code" testCode={NAV_AUTH_TEST_SNIPPET} testLabel="E2E test (Playwright)" />
 		</div>
 
 		<!-- Main Content - match HTMX/React: 1320px container, 2rem vertical / 1rem horizontal padding -->

@@ -6,6 +6,7 @@ import AdminLoginForm from './AdminLoginForm';
 import {GlobalSearch} from './GlobalSearch';
 import {useNoteContext} from '../context/NoteContext';
 import {CodeExpander} from './CodeExpander';
+import {NAV_AUTH_TEST_SNIPPET} from '../lib/e2e-snippets';
 
 interface VersionsPayload {
   version: string;
@@ -438,7 +439,13 @@ export const Layout = ({children}: LayoutProps) => {
       <AppShell.Main>
         {/* Top nav / auth / admin code sample (within main, below fixed header) */}
         <div style={{maxWidth: 1320, margin: '0 auto', padding: '0 1rem', marginTop: '0.75rem'}}>
-          <CodeExpander code={REACT_NAV_CODE} id='react-nav-code' label='React nav & auth code' />
+          <CodeExpander
+            code={REACT_NAV_CODE}
+            id='react-nav-code'
+            label='React nav & auth code'
+            testCode={NAV_AUTH_TEST_SNIPPET}
+            testLabel='E2E test (Playwright)'
+          />
         </div>
 
         <Container size='xl' py='xl' style={{maxWidth: 1320}}>

@@ -8,6 +8,7 @@ import Badge from 'primevue/badge';
 import AdminLoginModal from './AdminLoginModal.vue';
 import GlobalSearch from './GlobalSearch.vue';
 import CodeExpander from './CodeExpander.vue';
+import { NAV_AUTH_TEST_SNIPPET } from '../lib/e2e-snippets';
 
 interface VersionsPayload {
   version: string;
@@ -225,7 +226,7 @@ function handleAdminLogout() {
     <!-- Top nav / auth / admin code sample (directly below title bar, same row as other frameworks) -->
     <div class="nav-code-row">
       <div class="app-container">
-        <CodeExpander :code="VUE_NAV_CODE" id="vue-nav-code" label="Vue nav &amp; auth code" />
+        <CodeExpander :code="VUE_NAV_CODE" id="vue-nav-code" label="Vue nav &amp; auth code" :test-code="NAV_AUTH_TEST_SNIPPET" test-label="E2E test (Playwright)" />
       </div>
     </div>
 

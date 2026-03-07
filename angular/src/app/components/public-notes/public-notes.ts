@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
 import { SearchNotesService, type SearchNote } from '../../services/search-notes.service';
 import { CodeExpanderComponent } from '../code-expander/code-expander';
+import { PUBLIC_NOTES_TEST_SNIPPET } from '../../lib/e2e-snippets';
 
 const PUBLIC_CODE = `// Inject NotesApiService — handles fetch('/api/public-notes')
 @Component({ selector: 'app-public-notes', ... })
@@ -84,7 +85,13 @@ export class PublicNotesComponent implements OnInit {
       </div>
     }
 
-    <app-code-expander [code]="PUBLIC_CODE" id="angular-public-code" label="Angular code" />
+    <app-code-expander
+      [code]="PUBLIC_CODE"
+      id="angular-public-code"
+      label="Angular code"
+      [testCode]="PUBLIC_NOTES_TEST_SNIPPET"
+      testLabel="E2E test (Playwright)"
+    />
 
     <!-- Create/Edit Note Modal -->
     @if (showModal()) {
@@ -410,6 +417,7 @@ export class PublicNotesComponent implements OnInit {
 })
 export class PublicNotesComponent implements OnInit {
   readonly PUBLIC_CODE = PUBLIC_CODE;
+  readonly PUBLIC_NOTES_TEST_SNIPPET = PUBLIC_NOTES_TEST_SNIPPET;
   private api = inject(NotesApiService);
   private searchService = inject(SearchNotesService);
 

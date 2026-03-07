@@ -5,17 +5,31 @@ const props = withDefaults(defineProps<{
   code: string;
   id: string;
   label?: string;
-}>(), { label: 'Vue code' });
+  testCode?: string;
+  testLabel?: string;
+}>(), { label: 'Vue code', testLabel: 'E2E test (Playwright)' });
 
 const open = ref(false);
+const testOpen = ref(false);
 const panelEl = ref<HTMLDivElement | null>(null);
+const testPanelEl = ref<HTMLDivElement | null>(null);
 
-async function toggle() {
-  open.value = !open.value;
-  if (open.value) {
-    await nextTick();
-    if (panelEl.value && (window as any).Prism) {
-      (window as any).Prism.highlightAllUnder(panelEl.value);
+async function toggle(isTest: boolean) {
+  if (isTest) {
+    testOpen.value = !testOpen.value;
+    if (testOpen.value) {
+      await nextTick();
+      if (testPanelEl.value && (window as any).Prism) {
+        (window as any).Prism.highlightAllUnder(testPanelEl.value);
+      }
+    }
+  } else {
+    open.value = !open.value;
+    if (open.value) {
+      await nextTick();
+      if (panelEl.value && (window as any).Prism) {
+        (window as any).Prism.highlightAllUnder(panelEl.value);
+      }
     }
   }
 }
@@ -28,7 +42,7 @@ async function toggle() {
       class="code-toggle"
       :aria-controls="`${props.id}-panel`"
       :aria-expanded="open"
-      @click="toggle"
+      @click="toggle(false)"
     >
       <span class="code-icon">&lt;/&gt;</span>
       {{ props.label }}
@@ -36,6 +50,22 @@ async function toggle() {
     </button>
     <div v-if="open" :id="`${props.id}-panel`" ref="panelEl">
       <pre class="language-javascript" style="margin:0;border-radius:0.5rem;font-size:0.75rem"><code class="language-javascript">{{ props.code }}</code></pre>
+    </div>
+  </div>
+  <div v-if="props.testCode" class="code-expander">
+    <button
+      type="button"
+      class="code-toggle"
+      :aria-controls="`${props.id}-test-panel`"
+      :aria-expanded="testOpen"
+      @click="toggle(true)"
+    >
+      <span class="code-icon">🧪</span>
+      {{ props.testLabel }}
+      <span class="chevron" :class="{ rotated: testOpen }">▼</span>
+    </button>
+    <div v-if="testOpen" :id="`${props.id}-test-panel`" ref="testPanelEl">
+      <pre class="language-javascript" style="margin:0;border-radius:0.5rem;font-size:0.75rem"><code class="language-javascript">{{ props.testCode }}</code></pre>
     </div>
   </div>
 </template>

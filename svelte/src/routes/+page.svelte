@@ -24,6 +24,7 @@
   import { Card } from 'flowbite-svelte';
   import NoteModal from '$lib/components/NoteModal.svelte';
   import CodeExpander from '$lib/components/CodeExpander.svelte';
+  import { ADMIN_TEST_SNIPPET, PUBLIC_NOTES_TEST_SNIPPET, PRIVATE_NOTES_TEST_SNIPPET } from '$lib/e2e-snippets';
 
   const SVELTE_ADMIN_CODE = `// Fetch all notes with admin API key (Svelte 5)
   async function fetchAllNotes() {
@@ -799,7 +800,7 @@
             </Table>
           </div>
         {/if}
-        <CodeExpander code={SVELTE_ADMIN_CODE} id="svelte-admin-code" label="Svelte code" />
+        <CodeExpander code={SVELTE_ADMIN_CODE} id="svelte-admin-code" label="Svelte code" testCode={ADMIN_TEST_SNIPPET} testLabel="E2E test (Playwright)" />
       </section>
     {/if}
 
@@ -876,7 +877,7 @@
             {/each}
           </div>
         {/if}
-        <CodeExpander code={SVELTE_PUBLIC_CODE} id="svelte-public-code" label="Svelte code" />
+        <CodeExpander code={SVELTE_PUBLIC_CODE} id="svelte-public-code" label="Svelte code" testCode={PUBLIC_NOTES_TEST_SNIPPET} testLabel="E2E test (Playwright)" />
     </section>
 
     <!-- Want to create private notes? - only when signed out (match HTMX/React); client-only so prerender works -->
@@ -962,7 +963,7 @@
             {/each}
           </div>
         {/if}
-          <CodeExpander code={SVELTE_PRIVATE_CODE} id="svelte-private-code" label="Svelte code" />
+          <CodeExpander code={SVELTE_PRIVATE_CODE} id="svelte-private-code" label="Svelte code" testCode={PRIVATE_NOTES_TEST_SNIPPET} testLabel="E2E test (Playwright)" />
         </section>
       </SignedIn>
     {/if}

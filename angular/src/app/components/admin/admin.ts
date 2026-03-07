@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { NotesApiService, Note } from '../../services/notes-api.service';
 import { CodeExpanderComponent } from '../code-expander/code-expander';
+import { ADMIN_TEST_SNIPPET } from '../../lib/e2e-snippets';
 
 const ADMIN_CODE = `// admin.ts — Inject NotesApiService and load all notes
 @Component({ selector: 'app-admin', ... })
@@ -117,7 +118,13 @@ export class AdminComponent implements OnChanges {
       </div>
     }
 
-    <app-code-expander [code]="ADMIN_CODE" id="angular-admin-code" label="Angular code" />
+    <app-code-expander
+      [code]="ADMIN_CODE"
+      id="angular-admin-code"
+      label="Angular code"
+      [testCode]="ADMIN_TEST_SNIPPET"
+      testLabel="E2E test (Playwright)"
+    />
   `,
   styles: `
     .section-header {
@@ -273,6 +280,7 @@ export class AdminComponent implements OnChanges {
 })
 export class AdminComponent implements OnChanges {
   readonly ADMIN_CODE = ADMIN_CODE;
+  readonly ADMIN_TEST_SNIPPET = ADMIN_TEST_SNIPPET;
   private api = inject(NotesApiService);
 
   @Input() apiKey: string | null = null;
