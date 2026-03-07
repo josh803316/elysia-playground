@@ -7,6 +7,13 @@
  * exact jQuery running for that section.
  */
 
+import {
+  NAV_AUTH_TEST_SNIPPET,
+  PUBLIC_NOTES_TEST_SNIPPET,
+  PRIVATE_NOTES_TEST_SNIPPET,
+  ADMIN_TEST_SNIPPET,
+} from '../snippets/e2e-snippets.js';
+
 function escapeHtml(text: string): string {
   return text.replace(
     /[&<>"']/g,
@@ -19,9 +26,9 @@ function escapeCode(code: string): string {
   return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** A `</>  Code ▼` toggle + hidden Prism-highlighted panel */
-function codeExpander(code: string, id: string): string {
-  return `
+/** A `</>  Code ▼` toggle + hidden Prism-highlighted panel. Optional testCode adds E2E test expander below. */
+function codeExpander(code: string, id: string, testCode?: string): string {
+  let out = `
   <div class="border-t border-gray-100 mt-4">
     <button
       type="button"
@@ -36,6 +43,24 @@ function codeExpander(code: string, id: string): string {
       <pre class="language-javascript rounded-lg text-xs overflow-x-auto m-0"><code class="language-javascript">${escapeCode(code)}</code></pre>
     </div>
   </div>`;
+  if (testCode != null && testCode !== '') {
+    out += `
+  <div class="border-t border-gray-100 mt-4">
+    <button
+      type="button"
+      class="jq-code-toggle w-full flex items-center gap-1.5 px-0 py-2.5 text-xs font-mono text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer text-left"
+      aria-controls="${id}-test-panel"
+      aria-expanded="false"
+    >
+      <span class="text-gray-300">🧪</span> E2E test (Playwright)
+      <span class="jq-chevron ml-1 inline-block transition-transform duration-200">▼</span>
+    </button>
+    <div id="${id}-test-panel" class="jq-code-panel" style="display:none">
+      <pre class="language-javascript rounded-lg text-xs overflow-x-auto m-0"><code class="language-javascript">${escapeCode(testCode)}</code></pre>
+    </div>
+  </div>`;
+  }
+  return out;
 }
 
 export function baseLayout(content: string, title = 'Elysia Notes - jQuery', clerkPublishableKey?: string): string {
@@ -214,6 +239,20 @@ window.addEventListener('load', async function() {
     document.body.classList.add('clerk-signed-out');
   }
 });</code></pre>
+      </div>
+    </div>
+    <div class="border-t border-gray-100">
+      <button
+        type="button"
+        class="jq-nav-code-toggle w-full flex items-center gap-1.5 px-0 py-2.5 text-xs font-mono text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer text-left"
+        aria-controls="jq-nav-test-panel"
+        aria-expanded="false"
+      >
+        <span class="text-gray-300">🧪</span> E2E test (Playwright)
+        <span class="jq-chevron ml-1 inline-block transition-transform duration-200">▼</span>
+      </button>
+      <div id="jq-nav-test-panel" class="jq-nav-code-panel" style="display:none">
+        <pre class="language-javascript rounded-lg text-xs overflow-x-auto m-0"><code class="language-javascript">${escapeCode(NAV_AUTH_TEST_SNIPPET)}</code></pre>
       </div>
     </div>
   </div>
@@ -937,7 +976,7 @@ export function jqueryPage(clerkPublishableKey?: string): string {
         <div id="public-notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div class="col-span-full text-center py-8 text-gray-400">Loading…</div>
         </div>
-        ${codeExpander(CODE_LOAD_PUBLIC + '\n\n' + CODE_CREATE_PUBLIC + '\n\n' + CODE_EDIT_DELETE_PUBLIC, 'public-code')}
+        ${codeExpander(CODE_LOAD_PUBLIC + '\n\n' + CODE_CREATE_PUBLIC + '\n\n' + CODE_EDIT_DELETE_PUBLIC, 'public-code', PUBLIC_NOTES_TEST_SNIPPET)}
       </div>
 
       <!-- Your Notes (signed-in only) -->
@@ -961,7 +1000,7 @@ export function jqueryPage(clerkPublishableKey?: string): string {
         </div>
       </div>
 
-      ${codeExpander(CODE_LOAD_PRIVATE + '\n\n' + CODE_CREATE_PRIVATE, 'private-code')}
+      ${codeExpander(CODE_LOAD_PRIVATE + '\n\n' + CODE_CREATE_PRIVATE, 'private-code', PRIVATE_NOTES_TEST_SNIPPET)}
 
       <!-- Sign-in prompt (signed-out only) -->
       <div class="show-when-signed-out show-when-loaded">
@@ -999,7 +1038,7 @@ export function jqueryPage(clerkPublishableKey?: string): string {
         </div>
       </div>
 
-      ${codeExpander(CODE_ADMIN, 'admin-code')}
+      ${codeExpander(CODE_ADMIN, 'admin-code', ADMIN_TEST_SNIPPET)}
 
     </div>
   `,

@@ -105,6 +105,26 @@ onChange(({ user }) => {
 });</code></pre>
         </div>
       </div>
+      <div class="vjs-code-expander">
+        <button type="button" class="vjs-code-toggle" aria-controls="vjs-nav-test-panel" aria-expanded="false">
+          <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+        </button>
+        <div id="vjs-nav-test-panel" class="vjs-code-panel" style="display: none">
+          <pre
+            class="language-javascript"
+          ><code class="language-javascript">// e2e-tests/tests/notes.spec.ts, global-search.spec.ts
+test.beforeEach(async ({ page }) =&gt; {
+  await setupClerkTestingToken({ page });
+});
+test('page ready', async ({ page }) =&gt; {
+  await page.goto(appPath, { waitUntil: 'domcontentloaded' });
+  const pageReady = page.getByTestId('section-public-notes')
+    .or(page.getByRole('heading', { name: /public notes/i }))
+    .or(page.getByRole('button', { name: /sign in|create public note/i }));
+  await expect(pageReady).toBeVisible({ timeout: 25_000 });
+});</code></pre>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -148,6 +168,17 @@ async function deleteNote(id) {
   });
   await loadAdminNotes();
 }</code></pre>
+            </div>
+          </div>
+          <div class="vjs-code-expander">
+            <button type="button" class="vjs-code-toggle" aria-controls="vjs-admin-test-panel" aria-expanded="false">
+              <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+            </button>
+            <div id="vjs-admin-test-panel" class="vjs-code-panel" style="display: none">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// e2e-tests/tests/notes.spec.ts — Admin cleanup in globalTeardown
+// globalTeardown deletes notes matching e2eNotePattern() after all tests complete.</code></pre>
             </div>
           </div>
         </div>
@@ -218,6 +249,28 @@ async function createPublicNote(title, content) {
 }</code></pre>
             </div>
           </div>
+          <div class="vjs-code-expander">
+            <button type="button" class="vjs-code-toggle" aria-controls="vjs-public-test-panel" aria-expanded="false">
+              <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+            </button>
+            <div id="vjs-public-test-panel" class="vjs-code-panel" style="display: none">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// e2e-tests/tests/notes.spec.ts — public note: create, edit, delete
+test('public note: create, edit, delete', async ({ page }) =&gt; {
+  await page.goto(appPath, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('section-public-notes').or(
+    page.getByRole('heading', { name: /public notes/i })
+  )).toBeVisible({ timeout: 25_000 });
+  await createPublicNote(page, appPath, content, title);
+  await waitForNoteCardVisible(page, content, 15_000);
+  await editNoteByContent(page, content, content + ' edited');
+  await waitForNoteCardVisible(page, content + ' edited', 20_000);
+  await deleteNoteByContent(page, content + ' edited');
+  await waitForNoteCardGone(page, content + ' edited', 10_000);
+});</code></pre>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -284,6 +337,28 @@ async function createPrivateNote(title, content, token) {
   });
   await loadPrivateNotes(token);
 }</code></pre>
+            </div>
+          </div>
+          <div class="vjs-code-expander">
+            <button type="button" class="vjs-code-toggle" aria-controls="vjs-private-test-panel" aria-expanded="false">
+              <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+            </button>
+            <div id="vjs-private-test-panel" class="vjs-code-panel" style="display: none">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// e2e-tests/tests/notes.spec.ts — private notes (signed in)
+test('private note create, edit, delete', async ({ page }) =&gt; {
+  await page.goto(appPath, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('button', { name: /create private note/i }))
+    .toBeVisible({ timeout: 25_000 });
+  const yourNotes = page.getByTestId('section-your-notes')
+    .or(page.locator('section', { has: page.getByRole('heading', { name: /your notes/i }) }));
+  await expect(yourNotes).toBeVisible({ timeout: 10_000 });
+  await waitForClerkSessionToken(page, 15_000);
+  await createPrivateNote(page, content, title);
+  await expect(page.getByText(title).or(page.getByText(content)).first())
+    .toBeVisible({ timeout: 10_000 });
+});</code></pre>
             </div>
           </div>
         </div>

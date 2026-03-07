@@ -3,6 +3,13 @@
  * These functions generate HTML strings that are returned by the server
  */
 
+import {
+  NAV_AUTH_TEST_SNIPPET,
+  PUBLIC_NOTES_TEST_SNIPPET,
+  PRIVATE_NOTES_TEST_SNIPPET,
+  ADMIN_TEST_SNIPPET,
+} from '../snippets/e2e-snippets.js';
+
 export interface Note {
   id: number;
   title: string;
@@ -194,6 +201,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
   }
 });`,
       'htmx-nav-code',
+      NAV_AUTH_TEST_SNIPPET,
     )}
   </div>
   
@@ -561,10 +569,11 @@ function escapeCode(code: string): string {
 }
 
 /**
- * Code expander toggle widget — shows HTMX-specific code for each section
+ * Code expander toggle widget — shows HTMX-specific code for each section.
+ * Optional testCode renders a second expander "E2E test (Playwright)" below.
  */
-function codeExpander(code: string, id: string): string {
-  return `
+function codeExpander(code: string, id: string, testCode?: string): string {
+  let out = `
     <div class="border-t border-gray-100 mt-4">
       <button type="button" class="htmx-code-toggle w-full flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors"
         aria-controls="${id}-panel" aria-expanded="false">
@@ -575,6 +584,20 @@ function codeExpander(code: string, id: string): string {
         <pre class="rounded-lg bg-gray-900 text-gray-100 p-4 overflow-x-auto text-xs mt-1 !m-0"><code class="language-markup">${escapeCode(code)}</code></pre>
       </div>
     </div>`;
+  if (testCode != null && testCode !== '') {
+    out += `
+    <div class="border-t border-gray-100 mt-4">
+      <button type="button" class="htmx-code-toggle w-full flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors"
+        aria-controls="${id}-test-panel" aria-expanded="false">
+        <span class="text-gray-400">🧪</span> E2E test (Playwright)
+        <span class="htmx-chevron ml-1">▼</span>
+      </button>
+      <div id="${id}-test-panel" class="htmx-code-panel" style="display:none">
+        <pre class="rounded-lg bg-gray-900 text-gray-100 p-4 overflow-x-auto text-xs mt-1 !m-0"><code class="language-javascript">${escapeCode(testCode)}</code></pre>
+      </div>
+    </div>`;
+  }
+  return out;
 }
 
 /**
@@ -654,7 +677,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
           >
             <div class="text-center py-8 text-gray-500">Loading admin notes...</div>
           </div>
-          ${codeExpander(adminCode, 'htmx-admin-code')}
+          ${codeExpander(adminCode, 'htmx-admin-code', ADMIN_TEST_SNIPPET)}
         </div>
       </div>
 
@@ -678,7 +701,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
         <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           ${notes.length === 0 ? emptyState() : notes.map((note) => noteCard(note)).join('')}
         </div>
-        ${codeExpander(publicCode, 'htmx-public-code')}
+        ${codeExpander(publicCode, 'htmx-public-code', PUBLIC_NOTES_TEST_SNIPPET)}
       </div>
 
       <!-- Your Notes Section (only visible when signed in) -->
@@ -710,7 +733,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
               <div class="animate-pulse">Loading your notes...</div>
             </div>
           </div>
-          ${codeExpander(privateCode, 'htmx-private-code')}
+          ${codeExpander(privateCode, 'htmx-private-code', PRIVATE_NOTES_TEST_SNIPPET)}
         </div>
       </div>
       
