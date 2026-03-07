@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { useClerkContext } from 'svelte-clerk/client';
   import { notesStore } from '$lib/stores/notes';
   import { goto } from '$app/navigation';
@@ -17,50 +16,53 @@
   let isSignedIn = $state(false);
   let userToken = $state<string | null>(null);
 
-  onMount(async () => {
-    // Initialize Clerk on the client side
-    try {
-      const clerkCtx = useClerkContext();
-      if (clerkCtx?.auth?.userId) {
-        isSignedIn = true;
-        userToken = await clerkCtx.session?.getToken() || null;
-      } else {
-        goto(`${base}/`);
-        return;
-      }
-
-      if (!isSignedIn || !userToken) {
-        goto(`${base}/`);
-        return;
-      }
-
-      // Fetch the note
+  let editInitDone = false;
+  $effect(() => {
+    if (editInitDone) return;
+    editInitDone = true;
+    (async () => {
       try {
-        loading = true;
-        const response = await fetch(`/api/notes/${noteId}`, {
-          headers: {
-            'Authorization': `Bearer ${userToken}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch note');
+        const clerkCtx = useClerkContext();
+        if (clerkCtx?.auth?.userId) {
+          isSignedIn = true;
+          userToken = await clerkCtx.session?.getToken() || null;
+        } else {
+          goto(`${base}/`);
+          return;
         }
 
-        note = await response.json();
-        title = note.title || '';
-        content = note.content || '';
-        isPublic = note.isPublic === 'true';
+        if (!isSignedIn || !userToken) {
+          goto(`${base}/`);
+          return;
+        }
+
+        try {
+          loading = true;
+          const response = await fetch(`/api/notes/${noteId}`, {
+            headers: {
+              'Authorization': `Bearer ${userToken}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch note');
+          }
+
+          note = await response.json();
+          title = note.title || '';
+          content = note.content || '';
+          isPublic = note.isPublic === 'true';
+        } catch (err) {
+          console.error('Error fetching note:', err);
+          error = err instanceof Error ? err : new Error('Note not found');
+        } finally {
+          loading = false;
+        }
       } catch (err) {
-        console.error('Error fetching note:', err);
-        error = err instanceof Error ? err : new Error('Note not found');
-      } finally {
-        loading = false;
+        console.error('Error initializing Clerk:', err);
+        error = err instanceof Error ? err : new Error('Authentication error');
       }
-    } catch (err) {
-      console.error('Error initializing Clerk:', err);
-      error = err instanceof Error ? err : new Error('Authentication error');
-    }
+    })();
   });
 
   async function handleSubmit() {

@@ -14,27 +14,24 @@
   
   import apiClient from './lib/api/client';
   
-  let apiVersion = 'Loading...';
-  let publicNotesCount = 0;
-  let privateNotesCount = 0;
-  let isAdminLoggedIn = false;
+  let apiVersion = $state('Loading...');
+  let publicNotesCount = $state(0);
+  let privateNotesCount = $state(0);
+  let isAdminLoggedIn = $state(false);
 
   const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
   if (!CLERK_PUBLISHABLE_KEY) {
     throw new Error("Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in env");
   }
-  
+
   async function loadInitialData() {
     try {
       const storedApiKey = localStorage.getItem('adminApiKey');
-  
       if (storedApiKey) {
         isAdminLoggedIn = true;
       }
-  
       const versionData = await apiClient.version.get();
-  
       if (versionData && versionData.version) {
         apiVersion = versionData.version;
       } else if (versionData && versionData.name) {
@@ -42,29 +39,32 @@
       } else {
         apiVersion = 'Unknown';
       }
-  
       try {
         const publicNotes = await apiClient.notes.publicNotes.getAll();
-  
         if (Array.isArray(publicNotes)) {
           publicNotesCount = publicNotes.length;
         }
-      } catch(err) {
+      } catch (err) {
         console.error('Error fetching note counts:', err);
       }
-    } catch(error) {
+    } catch (error) {
       console.error('Error fetching API version:', error);
       apiVersion = 'Error fetching';
     }
   }
-  
+
   function handleAdminLogout() {
     localStorage.removeItem('adminApiKey');
     isAdminLoggedIn = false;
     window.location.reload();
   }
-  
-  loadInitialData();
+
+  let appInitDone = false;
+  $effect(() => {
+    if (appInitDone) return;
+    appInitDone = true;
+    loadInitialData();
+  });
 </script>
 
 <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>

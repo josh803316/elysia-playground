@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { notesStore } from '$lib/stores/notes';
   import { searchStore } from '$lib/stores/searchStore';
@@ -26,22 +25,25 @@
   import NoteModal from '$lib/components/NoteModal.svelte';
   import CodeExpander from '$lib/components/CodeExpander.svelte';
 
-  const SVELTE_ADMIN_CODE = `// Fetch all notes with admin API key
+  const SVELTE_ADMIN_CODE = `// Fetch all notes with admin API key (Svelte 5)
   async function fetchAllNotes() {
     const res = await fetch('/api/notes/all', {
       headers: { 'X-API-Key': adminApiKey },
     });
     allNotes = await res.json();
   }
-  $: if (isAdminLoggedIn) fetchAllNotes();`;
+  $effect(() => {
+    if (isAdminLoggedIn) fetchAllNotes();
+  });`;
 
-  const SVELTE_PUBLIC_CODE = `// Fetch public notes on mount
-  import { onMount } from 'svelte';
-  let publicNotes = [];
+  const SVELTE_PUBLIC_CODE = `// Fetch public notes on mount (Svelte 5)
+  let publicNotes = $state([]);
 
-  onMount(async () => {
-    const res = await fetch('/api/public-notes');
-    publicNotes = await res.json();
+  $effect(() => {
+    (async () => {
+      const res = await fetch('/api/public-notes');
+      publicNotes = await res.json();
+    })();
   });
 
   // Create a public note
@@ -55,8 +57,8 @@
     publicNotes = await res.json();
   }`;
 
-  const SVELTE_PRIVATE_CODE = `// Fetch private notes with Clerk token
-  let privateNotes = [];
+  const SVELTE_PRIVATE_CODE = `// Fetch private notes with Clerk token (Svelte 5)
+  let privateNotes = $state([]);
 
   async function fetchPrivateNotes(token) {
     const res = await fetch('/api/private-notes', {
@@ -65,8 +67,9 @@
     privateNotes = await res.json();
   }
 
-  // Reactive: fetch when userToken is available
-  $: if (userToken) fetchPrivateNotes(userToken);`;
+  $effect(() => {
+    if (userToken) fetchPrivateNotes(userToken);
+  });`;
 
   // Define note type for better type safety
   interface Note {
@@ -550,96 +553,94 @@
     }
   }
 
-  onMount(async () => {
-    console.log('Component mounted, initializing...');
+  let initDone = false;
+  $effect(() => {
+    if (initDone) return;
+    initDone = true;
+    (async () => {
+      console.log('Component mounted, initializing...');
 
-    async function loadPrivateNotesWhenReady() {
-      const clerk = typeof window !== 'undefined' ? (window as any).Clerk : null;
-      if (!clerk?.user) return false;
-      console.log('Clerk ready (window.Clerk.user), loading private notes...');
-      isSignedIn = true;
-      const token = await getClerkToken();
-      if (token) {
-        userToken = token;
-        await fetchUserNotes(token);
-        if (privateNotes.length === 0) await fetchAuthenticatedPrivateNotes(token);
-      }
-      return true;
-    }
-
-    function scheduleClerkReadyCheck() {
-      const maxAttempts = 12;
-      const delays = [0, 100, 250, 500, 750, 1000, 1300, 1700, 2100, 2600, 3200, 4000];
-      let attempt = 0;
-      const tryLoad = async () => {
-        if (await loadPrivateNotesWhenReady()) return;
-        attempt += 1;
-        if (attempt < maxAttempts) setTimeout(tryLoad, delays[attempt] ?? 500);
-      };
-      tryLoad();
-      // When Clerk appears, also subscribe so we run once when auth state is set
-      const pollForClerk = (tries: number) => {
-        const clerk = (window as any).Clerk;
-        if (clerk) {
-          clerk.addListener(() => void loadPrivateNotesWhenReady());
-          void loadPrivateNotesWhenReady();
-          return;
-        }
-        if (tries < 30) setTimeout(() => pollForClerk(tries + 1), 100);
-      };
-      setTimeout(() => pollForClerk(0), 50);
-    }
-    
-    // Layout shows SignedIn via window.Clerk; page's clerkCtx often lags (not hydrated yet). So we always
-    // fetch public notes first, then rely on window.Clerk for auth and run scheduleClerkReadyCheck so we
-    // load private notes when Clerk is ready (same source as layout).
-    try {
-      console.log('Checking Clerk authentication status (window.Clerk is source of truth)...');
-      const clerkNow = typeof window !== 'undefined' ? (window as any).Clerk : null;
-      const signedInNow = !!(clerkNow?.user);
-      isSignedIn = signedInNow;
-      console.log('User signed in (from window.Clerk):', signedInNow);
-
-      if (signedInNow) {
-        let token = await getClerkToken();
-        if (token) userToken = token;
+      async function loadPrivateNotesWhenReady() {
+        const clerk = typeof window !== 'undefined' ? (window as any).Clerk : null;
+        if (!clerk?.user) return false;
+        console.log('Clerk ready (window.Clerk.user), loading private notes...');
+        isSignedIn = true;
+        const token = await getClerkToken();
         if (token) {
+          userToken = token;
           await fetchUserNotes(token);
           if (privateNotes.length === 0) await fetchAuthenticatedPrivateNotes(token);
         }
-        await fetchPublicNotes();
-        // In case token wasn't ready yet, still schedule a follow-up check
-        if (privateNotes.length === 0) scheduleClerkReadyCheck();
-      } else {
+        return true;
+      }
+
+      function scheduleClerkReadyCheck() {
+        const maxAttempts = 12;
+        const delays = [0, 100, 250, 500, 750, 1000, 1300, 1700, 2100, 2600, 3200, 4000];
+        let attempt = 0;
+        const tryLoad = async () => {
+          if (await loadPrivateNotesWhenReady()) return;
+          attempt += 1;
+          if (attempt < maxAttempts) setTimeout(tryLoad, delays[attempt] ?? 500);
+        };
+        tryLoad();
+        const pollForClerk = (tries: number) => {
+          const clerk = (window as any).Clerk;
+          if (clerk) {
+            clerk.addListener(() => void loadPrivateNotesWhenReady());
+            void loadPrivateNotesWhenReady();
+            return;
+          }
+          if (tries < 30) setTimeout(() => pollForClerk(tries + 1), 100);
+        };
+        setTimeout(() => pollForClerk(0), 50);
+      }
+
+      try {
+        console.log('Checking Clerk authentication status (window.Clerk is source of truth)...');
+        const clerkNow = typeof window !== 'undefined' ? (window as any).Clerk : null;
+        const signedInNow = !!(clerkNow?.user);
+        isSignedIn = signedInNow;
+        console.log('User signed in (from window.Clerk):', signedInNow);
+
+        if (signedInNow) {
+          let token = await getClerkToken();
+          if (token) userToken = token;
+          if (token) {
+            await fetchUserNotes(token);
+            if (privateNotes.length === 0) await fetchAuthenticatedPrivateNotes(token);
+          }
+          await fetchPublicNotes();
+          if (privateNotes.length === 0) scheduleClerkReadyCheck();
+        } else {
+          await fetchPublicNotes();
+          scheduleClerkReadyCheck();
+        }
+      } catch (err) {
+        console.error('Error during notes init:', err);
         await fetchPublicNotes();
         scheduleClerkReadyCheck();
       }
-    } catch (err) {
-      console.error('Error during notes init:', err);
-      await fetchPublicNotes();
-      scheduleClerkReadyCheck();
-    }
 
-    // Check for existing admin API key
-    const storedApiKey = localStorage.getItem('adminApiKey');
-    if (storedApiKey) {
-      adminApiKey = storedApiKey;
-      isAdminLoggedIn = true;
-      console.log('Admin login detected');
-    }
+      const storedApiKey = localStorage.getItem('adminApiKey');
+      if (storedApiKey) {
+        adminApiKey = storedApiKey;
+        isAdminLoggedIn = true;
+        console.log('Admin login detected');
+      }
 
-    // Ensure public notes are loaded if not already (e.g. no Clerk context)
-    if (publicNotes.length === 0) {
-      await fetchPublicNotes();
-    }
+      if (publicNotes.length === 0) {
+        await fetchPublicNotes();
+      }
 
-    if (isAdminLoggedIn && adminApiKey) {
-      console.log('Fetching all notes as admin...');
-      await fetchAllNotes();
-    }
+      if (isAdminLoggedIn && adminApiKey) {
+        console.log('Fetching all notes as admin...');
+        await fetchAllNotes();
+      }
 
-    initialized = true;
-    console.log('Component initialization complete');
+      initialized = true;
+      console.log('Component initialization complete');
+    })();
   });
 
   // Get formatted date
