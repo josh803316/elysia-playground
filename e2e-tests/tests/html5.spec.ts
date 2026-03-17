@@ -32,8 +32,8 @@ test.describe('HTML5 Showcase', () => {
   test('hero section is visible with correct heading', async ({page}) => {
     const hero = page.locator('[data-testid="hero"]');
     await expect(hero).toBeVisible();
-    await expect(hero.getByText('HTML5')).toBeVisible();
-    await expect(hero.getByText('Features That Replace JavaScript')).toBeVisible();
+    await expect(hero.locator('h2')).toContainText('HTML5');
+    await expect(hero.locator('h2')).toContainText('Features That Replace JavaScript');
   });
 
   test('all 9 demo sections are rendered', async ({page}) => {
