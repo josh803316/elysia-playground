@@ -1,0 +1,10 @@
+{
+  "name": "@josh803316/html5-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'HTML5 is served by the Elysia server'",
+    "build": "echo 'HTML5 build - static files only'",
+    "test": "echo 'No tests yet'"
+  }
+}
