@@ -146,34 +146,31 @@ function waitForCreateNoteForm(page: Page, timeout = 10000) {
  * Uses .or() chaining with Playwright auto-waiting instead of manual isVisible polling.
  */
 async function fillTitleField(page: Page, modal: ReturnType<Page['locator']>, value: string) {
+  // Page-level fallbacks (page.getByRole('dialog')... and page.getByPlaceholder())
+  // are intentionally omitted: they match elements across ALL dialogs including closed
+  // ones in html5 (which keeps all 4 native <dialog>s in DOM), causing strict mode
+  // violations. The modal-scoped locators are sufficient.
   const titleField = modal
     .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
     .first()
     .or(modal.getByRole('textbox', {name: /title/i}).first())
-    .or(modal.getByLabel(/title/i).first())
-    .or(page.getByRole('dialog').getByRole('textbox', {name: /title/i}).first())
-    .or(page.getByPlaceholder(TITLE_PLACEHOLDER_REGEX).first());
+    .or(modal.getByLabel(/title/i).first());
   await titleField.waitFor({state: 'visible', timeout: 5_000});
   await titleField.fill(value);
 }
 
 /**
- * Fill the content/textarea field using modal scope with page-level fallback.
+ * Fill the content/textarea field using modal scope.
  * Uses .or() chaining with Playwright auto-waiting instead of manual isVisible polling.
  */
 async function fillContentField(page: Page, modal: ReturnType<Page['locator']>, value: string) {
+  // Page-level fallbacks omitted for the same reason as fillTitleField: they match
+  // across all dialogs including closed ones in html5.
   const contentField = modal
     .getByPlaceholder(CONTENT_PLACEHOLDER_REGEX)
     .first()
     .or(modal.getByRole('textbox', {name: /content/i}).first())
-    .or(modal.locator('textarea').first())
-    .or(
-      page
-        .getByRole('dialog')
-        .getByRole('textbox', {name: /content/i})
-        .first(),
-    )
-    .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX).first());
+    .or(modal.locator('textarea').first());
   await contentField.waitFor({state: 'visible', timeout: 5_000});
   await contentField.fill(value);
 }
