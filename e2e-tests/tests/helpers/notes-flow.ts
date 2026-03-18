@@ -109,13 +109,22 @@ export async function waitForNoteCardGone(page: Page, contentSnippet: string, ti
  * Vanilla JS, and HTMX.
  */
 function waitForCreateNoteForm(page: Page, timeout = 10000) {
-  // No .first() on the formIndicator — waitFor({state:'visible'}) succeeds as soon as
-  // ANY matching placeholder is visible. Using .first() would pin to the first element
-  // in DOM order, which in html5 (multiple persistent <dialog>s) is the public-note
-  // dialog's input — it never becomes visible when the private-note dialog opens.
+  // Scope to visible modal containers so that:
+  // 1. html5's hidden <dialog> elements (all kept in DOM) are excluded — only
+  //    dialog[open] and .modal:visible match the currently open dialog.
+  // 2. .first() keeps the locator single-element, avoiding strict mode violations
+  //    (without it, Playwright throws when both title + content inputs are visible).
   const formIndicator = page
-    .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
-    .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX));
+    .locator(
+      'dialog[open] :is(input[placeholder], textarea[placeholder]), ' +
+        '[role="dialog"]:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '[aria-modal="true"]:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '.modal-box:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '.modal:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '[class*="Modal-root"]:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '#note-modal:visible :is(input[placeholder], textarea[placeholder])',
+    )
+    .first();
   return formIndicator.waitFor({state: 'visible', timeout}).then(async () => {
     const fieldLocator = page
       .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
