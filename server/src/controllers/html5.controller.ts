@@ -1,10 +1,2 @@
-import {Elysia} from 'elysia';
-import {html5Page} from '../views/html5-templates.js';
-
-export const html5Controller = new Elysia({prefix: '/html5'}).get(
-  '/',
-  () =>
-    new Response(html5Page(), {
-      headers: {'Content-Type': 'text/html'},
-    }),
-);
+// html5Controller has been removed. The HTML5 SPA is now served via serveSPA() in index.ts.
+// This file is kept as a placeholder to avoid import errors from any remaining references.

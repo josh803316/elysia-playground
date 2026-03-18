@@ -17,7 +17,6 @@ import {publicNotesController} from './controllers/public-notes.controller.js';
 import {versionsController} from './controllers/versions.controller.js';
 import {htmxController} from './controllers/htmx.controller.js';
 import {jqueryController} from './controllers/jquery.controller.js';
-import {html5Controller} from './controllers/html5.controller.js';
 import {getDB, initDB} from './db/index.js';
 import {apiKeyGuard} from './guards/api-key-guard.js';
 import {authGuard} from './guards/auth-guard.js';
@@ -87,6 +86,7 @@ const api = new Elysia({prefix: '/api'})
 const reactAssetsPath = resolve(new URL('../../react/dist', import.meta.url).pathname);
 const svelteAssetsPath = resolve(new URL('../../svelte/build', import.meta.url).pathname);
 const vanillaJsAssetsPath = resolve(new URL('../../vanilla-js', import.meta.url).pathname);
+const html5AssetsPath = resolve(new URL('../../html5', import.meta.url).pathname);
 const angularAssetsPath = resolve(new URL('../../angular/dist/angular/browser', import.meta.url).pathname);
 const vueAssetsPath = resolve(new URL('../../vue/dist', import.meta.url).pathname);
 
@@ -235,6 +235,20 @@ app
     };
 
     const body = `window.__VANILLA_ENV__ = ${JSON.stringify(payload)};`;
+
+    return new Response(body, {
+      headers: {'content-type': 'application/javascript; charset=utf-8'},
+    });
+  })
+  // Expose a tiny JS payload for the HTML5 frontend with only
+  // public configuration derived from server environment variables.
+  .get('/html5/env.js', () => {
+    const payload = {
+      clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
+      clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
+    };
+
+    const body = `window.__HTML5_ENV__ = ${JSON.stringify(payload)};`;
 
     return new Response(body, {
       headers: {'content-type': 'application/javascript; charset=utf-8'},
@@ -915,7 +929,7 @@ app
   .use(versionsController) // Add versions controller at the app level
   .use(htmxController) // Add HTMX controller
   .use(jqueryController) // Add jQuery showcase controller
-  .use(html5Controller) // Add HTML5 showcase controller
+  .use(serveSPA(html5AssetsPath, '/html5')) // Serve HTML5 SPA
   .use(api) // Use the API router with prefix
   // Serve built React app at /react
   .use(serveSPA(reactAssetsPath, '/react'))

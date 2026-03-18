@@ -403,53 +403,74 @@ $.ajax({
     id: 'html5',
     name: 'HTML5',
     path: '/html5',
-    badge: 'Showcase',
-    admin: `<!-- HTML5 showcase has no admin view -->
-<!-- It demonstrates native browser features instead of CRUD -->
-<!-- See the 9 interactive demos at /html5 -->`,
-    public: `<!-- Native form validation — no JS needed -->
-<form>
-  <input type="number" min="1" max="100" required />
-  <input type="password" minlength="8" required />
-  <input type="email" required />
-  <button type="submit">Submit</button>
-</form>
+    badge: 'SPA',
+    admin: `// Fetch all notes with admin API key, render with <template>
+async function loadAdminNotes() {
+  const key = localStorage.getItem('adminApiKey');
+  const res = await fetch('/api/notes/all', {
+    headers: { 'X-API-Key': key },
+  });
+  const notes = await res.json();
+  renderAdminTable(notes);
+}
 
-<!-- Dialog replaces modal libraries -->
-<dialog id="confirmDialog">
-  <p>Are you sure?</p>
-  <button onclick="confirmDialog.close()">Cancel</button>
-  <button onclick="submitDelete()">Confirm</button>
-</dialog>
-<button onclick="confirmDialog.showModal()">Delete</button>
+// Delete note via REST API
+async function handleAdminDelete(id) {
+  const key = localStorage.getItem('adminApiKey');
+  await fetch(\`/api/notes/\${id}/admin\`, {
+    method: 'DELETE',
+    headers: { 'X-API-Key': key },
+  });
+  await loadAdminNotes();
+}`,
+    public: `// Fetch public notes and render using <template id="tpl-public-note">
+async function loadPublicNotes() {
+  const res = await fetch('/api/public-notes');
+  publicNotes = await res.json();
+  renderPublicNotes();
+}
 
-<!-- Details/Summary for toggle UI -->
-<details>
-  <summary>Advanced Filters</summary>
-  <label><input type="checkbox" /> Show archived</label>
-</details>`,
-    private: `<!-- Template for dynamic content -->
-<template id="cardTemplate">
-  <article class="card">
-    <h3></h3><p></p>
-  </article>
-</template>
+function renderPublicNotes() {
+  const grid = document.getElementById('public-notes-grid');
+  grid.innerHTML = '';
+  const tpl = document.getElementById('tpl-public-note');
+  for (const note of publicNotes) {
+    const card = tpl.content.cloneNode(true);
+    // textContent prevents XSS for user-provided data
+    card.querySelector('.note-card-title').textContent = note.title || '';
+    card.querySelector('.note-card-content').textContent = note.content || '';
+    grid.appendChild(card);
+  }
+}
 
-<script>
-const tpl = document.getElementById("cardTemplate");
-const clone = tpl.content.cloneNode(true);
-clone.querySelector("h3").textContent = "Status";
-clone.querySelector("p").textContent = "All systems go.";
-document.body.appendChild(clone);
-</script>
+// Open native <dialog> — no modal library needed
+document.getElementById('btn-create-public').addEventListener('click', () => {
+  document.getElementById('dialog-create-public').showModal();
+});`,
+    private: `// Fetch private notes with Bearer token from Clerk
+async function loadPrivateNotes() {
+  const token = getToken();
+  const res = await fetch('/api/private-notes', {
+    headers: { Authorization: \`Bearer \${token}\` },
+  });
+  privateNotes = await res.json();
+  renderPrivateNotes();
+}
 
-<!-- Native drag and drop -->
-<div draggable="true"
-     ondragstart="event.dataTransfer.setData('text', this.id)">
-  Task A
-</div>
+// Open native <dialog> to create a private note
+document.getElementById('btn-create-private').addEventListener('click', () => {
+  document.getElementById('dialog-create-private').showModal();
+});
 
-<!-- Progress bar -->
-<progress id="job" value="30" max="100"></progress>`,
+// Form submit handler — native validation, no library needed
+document.getElementById('form-create-private').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!e.target.checkValidity()) { e.target.reportValidity(); return; }
+  const title = e.target.elements['title'].value.trim();
+  const content = e.target.elements['content'].value.trim();
+  await api.createPrivateNote(token, { title, content });
+  document.getElementById('dialog-create-private').close();
+  await loadPrivateNotes();
+});`,
   },
 ];

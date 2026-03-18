@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elysia Notes - HTML5</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/html5/styles.css" />
+    <!-- HTML5 env bootstrap (exposes window.__HTML5_ENV__ from server env vars) -->
+    <script src="/html5/env.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  </head>
+  <body class="signed-out">
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="navbar-inner">
+        <a href="/html5" class="navbar-brand-link">
+          <h1 class="navbar-brand-text">Elysia Notes - HTML5</h1>
+        </a>
+
+        <div class="nav-right">
+          <div class="nav-links">
+            <a href="/html5" class="nav-home-link">Home</a>
+            <!-- Public badge: only when signed out -->
+            <span class="nav-count-badge nav-count-badge--green show-when-signed-out" id="nav-public-standalone"
+              >Public: <span id="public-count">0</span></span
+            >
+            <!-- My Notes + both badges: only when signed in -->
+            <span class="nav-notes-group">
+              <a href="/html5" class="nav-link-plain">My Notes</a>
+              <span class="nav-count-badge nav-count-badge--green"
+                >Public: <span id="public-count-signed-in">0</span></span
+              >
+              <span class="nav-count-badge nav-count-badge--purple">Private: <span id="private-count">0</span></span>
+            </span>
+          </div>
+
+          <div class="nav-auth">
+            <!-- Signed-out state -->
+            <div class="show-when-signed-out">
+              <button class="btn btn-sign-in" id="btn-sign-in">Sign In</button>
+            </div>
+
+            <!-- Signed-in state -->
+            <div class="show-when-signed-in">
+              <span class="nav-user">Hello, <strong id="user-name"></strong></span>
+              <button class="btn-text-link" id="btn-sign-out">Sign Out</button>
+            </div>
+
+            <!-- Admin buttons -->
+            <button class="btn-teal-sm hide-when-admin" id="btn-admin-login">Admin Login</button>
+            <button class="btn-danger-sm show-when-admin" id="btn-admin-logout">Admin Logout</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Top bar / auth wiring code sample -->
+    <div class="container" style="padding-top: 0.75rem; padding-bottom: 0">
+      <details class="vjs-code-expander vjs-code-expander--nav">
+        <summary>
+          <span class="vjs-code-icon">&lt;/&gt;</span> HTML5 nav &amp; auth code <span class="vjs-chevron">▼</span>
+        </summary>
+        <div class="vjs-code-panel">
+          <pre
+            class="language-javascript"
+          ><code class="language-javascript">// Wire up nav + auth using native &lt;dialog&gt; elements
+function bindNavButtons() {
+  document.getElementById('btn-sign-in').addEventListener('click', signIn);
+  document.getElementById('btn-sign-out').addEventListener('click', signOut);
+
+  document.getElementById('btn-admin-login').addEventListener('click', () => {
+    // Native &lt;dialog&gt;: call showModal() to open
+    document.getElementById('dialog-admin-login').showModal();
+  });
+
+  document.getElementById('btn-admin-logout').addEventListener('click', () => {
+    localStorage.removeItem('adminApiKey');
+    document.body.classList.remove('admin-active');
+    document.getElementById('admin-table-container').innerHTML = '';
+  });
+}
+
+// React to Clerk auth changes and keep the top bar in sync
+onChange(({ user }) => {
+  const body = document.body;
+  if (user) {
+    body.classList.add('signed-in');
+    body.classList.remove('signed-out');
+    document.getElementById('user-name').textContent =
+      user.firstName || user.emailAddresses?.[0]?.emailAddress || 'User';
+    loadPrivateNotes();
+  } else {
+    body.classList.remove('signed-in');
+    body.classList.add('signed-out');
+    document.getElementById('user-name').textContent = '';
+    document.getElementById('private-notes-grid').innerHTML = '';
+  }
+});</code></pre>
+        </div>
+      </details>
+      <details class="vjs-code-expander">
+        <summary>
+          <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+        </summary>
+        <div class="vjs-code-panel">
+          <pre class="language-javascript"><code class="language-javascript">// e2e-tests/tests/html5.spec.ts
+test('page has correct title', async ({ page }) => {
+  await page.goto(appPath, { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveTitle(/Elysia Notes - HTML5/);
+});</code></pre>
+        </div>
+      </details>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+      <!-- Admin Section -->
+      <section class="section show-when-admin-block" data-testid="section-admin-table">
+        <div class="section-box">
+          <div class="section-header">
+            <h2>All Notes (Admin View)</h2>
+            <p class="section-subtitle">View and manage all notes in the system</p>
+          </div>
+          <div class="delete-by-regex-row">
+            <input type="text" id="admin-regex-input" placeholder="e.g. e2e- or ^test" class="regex-input" />
+            <button type="button" id="btn-delete-by-regex" class="btn-delete-matching">Delete matching notes</button>
+          </div>
+          <p class="regex-hint">Delete notes whose content or title matches the regex</p>
+          <div id="admin-table-container">
+            <div class="empty-state">Loading admin notes...</div>
+          </div>
+          <details class="vjs-code-expander">
+            <summary>
+              <span class="vjs-code-icon">&lt;/&gt;</span> HTML5 code <span class="vjs-chevron">▼</span>
+            </summary>
+            <div class="vjs-code-panel">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// Fetch all notes with admin API key, render with &lt;template&gt;
+async function loadAdminNotes() {
+  const key = localStorage.getItem('adminApiKey');
+  const res = await fetch('/api/notes/all', {
+    headers: { 'X-API-Key': key },
+  });
+  const notes = await res.json();
+  renderAdminTable(notes);
+}
+
+function renderAdminTable(notes) {
+  const container = document.getElementById('admin-table-container');
+  container.innerHTML = '';
+  if (!notes.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'No notes found.';
+    container.appendChild(empty);
+    return;
+  }
+  // Use &lt;template&gt; for row rendering
+  const tpl = document.getElementById('tpl-admin-row');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'admin-table-wrapper';
+  const table = document.createElement('table');
+  table.className = 'admin-table';
+  table.innerHTML = '&lt;thead&gt;&lt;tr&gt;&lt;th&gt;ID&lt;/th&gt;&lt;th&gt;Title&lt;/th&gt;&lt;th&gt;Content&lt;/th&gt;&lt;th&gt;Type&lt;/th&gt;&lt;th&gt;Actions&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;';
+  const tbody = document.createElement('tbody');
+  for (const note of notes) {
+    const row = tpl.content.cloneNode(true);
+    // Use textContent for user data — no XSS
+    row.querySelector('.col-id').textContent = note.id;
+    row.querySelector('.col-title').textContent = note.title || '';
+    row.querySelector('.col-content').textContent = note.content || note.data || '';
+    row.querySelector('.col-type').textContent = note.isPublic ? 'Public' : 'Private';
+    row.querySelector('.btn-admin-delete').dataset.id = note.id;
+    tbody.appendChild(row);
+  }
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
+}</code></pre>
+            </div>
+          </details>
+          <details class="vjs-code-expander">
+            <summary>
+              <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+            </summary>
+            <div class="vjs-code-panel">
+              <pre class="language-javascript"><code class="language-javascript">// Admin cleanup in globalTeardown
+// globalTeardown deletes notes matching e2eNotePattern() after all tests complete.</code></pre>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- Public Notes -->
+      <section class="section" data-testid="section-public-notes">
+        <div class="section-box">
+          <div class="section-header">
+            <div>
+              <h2>Public Notes</h2>
+              <p class="section-subtitle">Visible to everyone</p>
+            </div>
+            <button class="btn btn-primary" id="btn-create-public">
+              <span class="icon-plus"></span>
+              Create Public Note
+            </button>
+          </div>
+          <div class="notes-grid" id="public-notes-grid">
+            <div class="empty-state">Loading public notes...</div>
+          </div>
+          <details class="vjs-code-expander">
+            <summary>
+              <span class="vjs-code-icon">&lt;/&gt;</span> HTML5 code <span class="vjs-chevron">▼</span>
+            </summary>
+            <div class="vjs-code-panel">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// Fetch public notes and render using &lt;template id="tpl-public-note"&gt;
+async function loadPublicNotes() {
+  const res = await fetch('/api/public-notes');
+  publicNotes = await res.json();
+  renderPublicNotes();
+}
+
+function renderPublicNotes() {
+  const grid = document.getElementById('public-notes-grid');
+  grid.innerHTML = '';
+  if (!publicNotes.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'No public notes yet. Create one!';
+    grid.appendChild(empty);
+    updateCounts();
+    return;
+  }
+  const tpl = document.getElementById('tpl-public-note');
+  for (const note of publicNotes) {
+    const card = tpl.content.cloneNode(true);
+    // textContent prevents XSS for user-provided data
+    card.querySelector('.note-card-title').textContent = note.title || '';
+    card.querySelector('.note-card-content').textContent = note.content || '';
+    card.querySelector('.note-card-date').textContent = formatDate(note.createdAt);
+    card.querySelector('.btn-edit-note').dataset.id = note.id;
+    card.querySelector('.btn-delete-note').dataset.id = note.id;
+    grid.appendChild(card);
+  }
+  updateCounts();
+}
+
+// Open native &lt;dialog&gt; to create a public note
+document.getElementById('btn-create-public').addEventListener('click', () => {
+  document.getElementById('dialog-create-public').showModal();
+});</code></pre>
+            </div>
+          </details>
+          <details class="vjs-code-expander">
+            <summary>
+              <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+            </summary>
+            <div class="vjs-code-panel">
+              <pre class="language-javascript"><code class="language-javascript">// e2e-tests/tests/html5.spec.ts
+test('Create Public Note button opens a dialog', async ({ page }) => {
+  await page.locator('#btn-create-public').click();
+  await expect(page.locator('#dialog-create-public')).toBeVisible();
+});</code></pre>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- Your Notes / Private (signed-in only) -->
+      <section class="section show-when-signed-in-block" data-testid="section-your-notes">
+        <div class="section-box">
+          <div class="section-header">
+            <div>
+              <h2>Your Notes</h2>
+              <p class="section-subtitle">Only you can see these notes</p>
+            </div>
+            <button class="btn btn-primary" id="btn-create-private">
+              <span class="icon-plus"></span>
+              Create Private Note
+            </button>
+          </div>
+          <div class="notes-grid" id="private-notes-grid">
+            <div class="empty-state">Loading private notes...</div>
+          </div>
+          <details class="vjs-code-expander">
+            <summary>
+              <span class="vjs-code-icon">&lt;/&gt;</span> HTML5 code <span class="vjs-chevron">▼</span>
+            </summary>
+            <div class="vjs-code-panel">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// Fetch private notes with Bearer token, render using &lt;template id="tpl-private-note"&gt;
+async function loadPrivateNotes() {
+  const token = getToken();
+  if (!token) return;
+  const res = await fetch('/api/private-notes', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  privateNotes = await res.json();
+  renderPrivateNotes();
+}
+
+function renderPrivateNotes() {
+  const grid = document.getElementById('private-notes-grid');
+  grid.innerHTML = '';
+  const tpl = document.getElementById('tpl-private-note');
+  for (const note of privateNotes) {
+    const card = tpl.content.cloneNode(true);
+    card.querySelector('.note-card-title').textContent = note.title || '';
+    card.querySelector('.note-card-content').textContent = note.content || note.data || '';
+    card.querySelector('.note-card-date').textContent = formatDate(note.createdAt);
+    card.querySelector('.btn-delete-note').dataset.id = note.id;
+    grid.appendChild(card);
+  }
+  document.getElementById('private-count').textContent = String(privateNotes.length);
+}
+
+// Open native &lt;dialog&gt; to create a private note
+document.getElementById('btn-create-private').addEventListener('click', () => {
+  document.getElementById('dialog-create-private').showModal();
+});</code></pre>
+            </div>
+          </details>
+          <details class="vjs-code-expander">
+            <summary>
+              <span class="vjs-code-icon">🧪</span> E2E test (Playwright) <span class="vjs-chevron">▼</span>
+            </summary>
+            <div class="vjs-code-panel">
+              <pre
+                class="language-javascript"
+              ><code class="language-javascript">// e2e-tests/tests/notes.spec.ts — private notes (signed in)
+test('private note create, delete', async ({ page }) => {
+  await page.goto(appPath, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('button', { name: /create private note/i }))
+    .toBeVisible({ timeout: 25_000 });
+});</code></pre>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- Sign-in prompt (signed-out only) -->
+      <section class="section show-when-signed-out-block">
+        <div class="section-box sign-in-prompt">
+          <h2 class="sign-in-title">Want to create private notes?</h2>
+          <p>Sign in to create and manage your own private notes.</p>
+          <button
+            class="btn btn-sign-in"
+            style="margin-top: 1rem"
+            onclick="document.getElementById('btn-sign-in').click()"
+          >
+            Sign In to Get Started
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer: Versions inline with other links -->
+    <footer class="footer footer--with-versions">
+      <div id="versions-panel" class="versions-panel versions-panel--above-footer" aria-hidden="true"></div>
+      <div class="footer-inner">
+        <span>&copy; 2024 Notes App</span>
+        <div class="footer-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Contact Us</a>
+          <button type="button" id="versions-btn" class="footer-link-btn">Versions</button>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Modal container (backward compat, not used by dialogs) -->
+    <div id="modal-container"></div>
+
+    <!-- Native <dialog> elements (defined inline, opened via .showModal()) -->
+
+    <!-- Create Public Note dialog -->
+    <dialog id="dialog-create-public">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Create Public Note</h3>
+          <button type="button" class="modal-close" id="dialog-create-public-close">&#x2715;</button>
+        </div>
+        <form id="form-create-public" class="modal-form" method="dialog" novalidate>
+          <div>
+            <label class="label" for="create-public-title">Title</label>
+            <input
+              id="create-public-title"
+              name="title"
+              type="text"
+              class="input"
+              placeholder="Note title"
+              required
+              minlength="1"
+            />
+          </div>
+          <div>
+            <label class="label" for="create-public-content">Content</label>
+            <textarea
+              id="create-public-content"
+              name="content"
+              class="input"
+              rows="4"
+              placeholder="Note content"
+              required
+              minlength="1"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="dialog-create-public-cancel">Cancel</button>
+            <button type="submit" class="btn btn-green">Create Note</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Create Private Note dialog -->
+    <dialog id="dialog-create-private">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Create Private Note</h3>
+          <button type="button" class="modal-close" id="dialog-create-private-close">&#x2715;</button>
+        </div>
+        <form id="form-create-private" class="modal-form" method="dialog" novalidate>
+          <div>
+            <label class="label" for="create-private-title">Title</label>
+            <input
+              id="create-private-title"
+              name="title"
+              type="text"
+              class="input"
+              placeholder="Note title"
+              required
+              minlength="1"
+            />
+          </div>
+          <div>
+            <label class="label" for="create-private-content">Content</label>
+            <textarea
+              id="create-private-content"
+              name="content"
+              class="input"
+              rows="4"
+              placeholder="Note content"
+              required
+              minlength="1"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="dialog-create-private-cancel">Cancel</button>
+            <button type="submit" class="btn btn-purple">Create Note</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Edit Note dialog -->
+    <dialog id="dialog-edit-note">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Edit Note</h3>
+          <button type="button" class="modal-close" id="dialog-edit-note-close">&#x2715;</button>
+        </div>
+        <form id="form-edit-note" class="modal-form" method="dialog" novalidate>
+          <input type="hidden" id="edit-note-id" name="id" />
+          <div>
+            <label class="label" for="edit-note-title">Title</label>
+            <input
+              id="edit-note-title"
+              name="title"
+              type="text"
+              class="input"
+              placeholder="Note title"
+              required
+              minlength="1"
+            />
+          </div>
+          <div>
+            <label class="label" for="edit-note-content">Content</label>
+            <textarea
+              id="edit-note-content"
+              name="content"
+              class="input"
+              rows="4"
+              placeholder="Note content"
+              required
+              minlength="1"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="dialog-edit-note-cancel">Cancel</button>
+            <button type="submit" class="btn btn-amber">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Admin Login dialog -->
+    <dialog id="dialog-admin-login">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Admin Login</h3>
+          <button type="button" class="modal-close" id="dialog-admin-login-close">&#x2715;</button>
+        </div>
+        <form id="form-admin-login" class="modal-form" method="dialog" novalidate>
+          <div>
+            <label class="label" for="admin-api-key-input">Admin API Key</label>
+            <input
+              id="admin-api-key-input"
+              name="apiKey"
+              type="password"
+              class="input"
+              placeholder="Enter admin API key"
+              required
+              minlength="1"
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="dialog-admin-login-cancel">Cancel</button>
+            <button type="submit" class="btn btn-teal">Login</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Templates for note cards -->
+
+    <!-- Public note card template -->
+    <template id="tpl-public-note">
+      <div class="note-card">
+        <div class="note-card-body">
+          <div class="note-card-head">
+            <span class="note-card-title"></span>
+            <span class="badge badge-public">Public</span>
+          </div>
+          <p class="note-card-content"></p>
+          <div class="note-card-meta--right">
+            <span class="note-card-date"></span>
+          </div>
+        </div>
+        <div class="note-card-footer">
+          <button class="card-action-edit btn-edit-note" type="button">Edit</button>
+          <button class="card-action-delete btn-delete-note" type="button">Delete</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Private note card template -->
+    <template id="tpl-private-note">
+      <div class="note-card note-card--private">
+        <div class="note-card-body">
+          <div class="note-card-head">
+            <span class="note-card-title"></span>
+            <span class="badge badge-private">Private</span>
+          </div>
+          <p class="note-card-content"></p>
+          <div class="note-card-meta--right">
+            <span class="note-card-date"></span>
+          </div>
+        </div>
+        <div class="note-card-footer">
+          <button class="card-action-delete btn-delete-note" type="button">Delete</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Admin table row template -->
+    <template id="tpl-admin-row">
+      <tr>
+        <td
+          class="col-id"
+          style="
+            font-family: monospace;
+            font-size: 0.75rem;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          "
+        ></td>
+        <td class="col-title"></td>
+        <td class="col-content table-content-cell"></td>
+        <td class="col-type"><span class="badge-private-sm"></span></td>
+        <td>
+          <button type="button" class="card-action-delete btn-admin-delete">Delete</button>
+        </td>
+      </tr>
+    </template>
+
+    <!-- App entry point (ES module) -->
+    <script type="module" src="/html5/app.js"></script>
+  </body>
+</html>
