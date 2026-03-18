@@ -146,31 +146,36 @@ function waitForCreateNoteForm(page: Page, timeout = 10000) {
  * Uses .or() chaining with Playwright auto-waiting instead of manual isVisible polling.
  */
 async function fillTitleField(page: Page, modal: ReturnType<Page['locator']>, value: string) {
-  // Page-level fallbacks (page.getByRole('dialog')... and page.getByPlaceholder())
-  // are intentionally omitted: they match elements across ALL dialogs including closed
-  // ones in html5 (which keeps all 4 native <dialog>s in DOM), causing strict mode
-  // violations. The modal-scoped locators are sufficient.
+  // Page-level fallbacks scope to :visible dialog containers so that html5's closed
+  // <dialog> elements (all kept in DOM) are excluded, while Svelte's portal-rendered
+  // Flowbite modal (aria-modal="true") is still reachable when `modal` is form:visible.
+  const visibleDialog = page.locator('[role="dialog"]:visible, [aria-modal="true"]:visible');
   const titleField = modal
     .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
     .first()
     .or(modal.getByRole('textbox', {name: /title/i}).first())
-    .or(modal.getByLabel(/title/i).first());
+    .or(modal.getByLabel(/title/i).first())
+    .or(visibleDialog.getByRole('textbox', {name: /title/i}).first())
+    .or(visibleDialog.getByPlaceholder(TITLE_PLACEHOLDER_REGEX).first());
   await titleField.waitFor({state: 'visible', timeout: 5_000});
   await titleField.fill(value);
 }
 
 /**
- * Fill the content/textarea field using modal scope.
+ * Fill the content/textarea field using modal scope with visible-scoped page fallback.
  * Uses .or() chaining with Playwright auto-waiting instead of manual isVisible polling.
  */
 async function fillContentField(page: Page, modal: ReturnType<Page['locator']>, value: string) {
-  // Page-level fallbacks omitted for the same reason as fillTitleField: they match
-  // across all dialogs including closed ones in html5.
+  // Page-level fallbacks scope to :visible dialog containers (same reasoning as
+  // fillTitleField — avoids html5 closed dialogs, covers Svelte portal modals).
+  const visibleDialog = page.locator('[role="dialog"]:visible, [aria-modal="true"]:visible');
   const contentField = modal
     .getByPlaceholder(CONTENT_PLACEHOLDER_REGEX)
     .first()
     .or(modal.getByRole('textbox', {name: /content/i}).first())
-    .or(modal.locator('textarea').first());
+    .or(modal.locator('textarea').first())
+    .or(visibleDialog.getByRole('textbox', {name: /content/i}).first())
+    .or(visibleDialog.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX).first());
   await contentField.waitFor({state: 'visible', timeout: 5_000});
   await contentField.fill(value);
 }
