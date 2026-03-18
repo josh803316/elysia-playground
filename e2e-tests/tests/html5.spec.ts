@@ -18,10 +18,15 @@ const appPath = `${BASE_URL}/html5/`;
 test.describe('HTML5 Notes app', () => {
   test.beforeEach(async ({page}) => {
     await page.goto(appPath, {waitUntil: 'domcontentloaded'});
+    // Wait for the load event so app.js module has run and event listeners are attached.
+    // (Module scripts execute before load; Clerk CDN script loads after — so this keeps
+    // the page in signed-out state while ensuring buttons are interactive.)
+    await page.waitForLoadState('load');
     const pageReady = page
       .getByTestId('section-public-notes')
       .or(page.getByRole('heading', {name: /public notes/i}))
-      .or(page.getByRole('button', {name: /sign in|create public note/i}));
+      .or(page.getByRole('button', {name: /sign in|create public note/i}))
+      .first();
     await expect(pageReady).toBeVisible({timeout: 25_000});
   });
 

@@ -109,10 +109,13 @@ export async function waitForNoteCardGone(page: Page, contentSnippet: string, ti
  * Vanilla JS, and HTMX.
  */
 function waitForCreateNoteForm(page: Page, timeout = 10000) {
+  // No .first() on the formIndicator — waitFor({state:'visible'}) succeeds as soon as
+  // ANY matching placeholder is visible. Using .first() would pin to the first element
+  // in DOM order, which in html5 (multiple persistent <dialog>s) is the public-note
+  // dialog's input — it never becomes visible when the private-note dialog opens.
   const formIndicator = page
     .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
-    .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX))
-    .first();
+    .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX));
   return formIndicator.waitFor({state: 'visible', timeout}).then(async () => {
     const fieldLocator = page
       .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
@@ -408,9 +411,11 @@ export async function editNoteByContent(page: Page, contentSnippet: string, newC
   await timed('click Edit button', () => card.getByRole('button', {name: /edit/i}).first().click());
 
   // HTMX uses id="note-modal"; others use role="dialog" or .modal-box/.modal
+  // Use :visible qualifiers so hidden <dialog> elements in the HTML5 app (which keeps
+  // all 4 native dialogs in DOM at all times) don't match before the edit modal opens.
   const modal = page
     .getByRole('dialog')
-    .or(page.locator('.modal-box, .modal, #note-modal, [aria-modal="true"]'))
+    .or(page.locator('.modal-box:visible, .modal:visible, #note-modal:visible, [aria-modal="true"]:visible'))
     .filter({hasText: /edit|content|save/i})
     .first();
   await timed('wait for edit modal visible', () => modal.waitFor({state: 'visible', timeout: 10000}));
