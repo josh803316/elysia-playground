@@ -40,6 +40,10 @@
         "vitest": "^4.0.18",
       },
     },
+    "html5": {
+      "name": "@josh803316/html5-frontend",
+      "version": "1.0.0",
+    },
     "htmx": {
       "name": "@josh803316/htmx-frontend",
       "version": "1.0.0",
@@ -635,6 +639,8 @@
     "@josh803316/angular-frontend": ["@josh803316/angular-frontend@workspace:angular"],
 
     "@josh803316/elysia-api": ["@josh803316/elysia-api@workspace:server"],
+
+    "@josh803316/html5-frontend": ["@josh803316/html5-frontend@workspace:html5"],
 
     "@josh803316/htmx-frontend": ["@josh803316/htmx-frontend@workspace:htmx"],
 
