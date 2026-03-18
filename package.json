@@ -12,6 +12,7 @@
     "svelte",
     "server",
     "htmx",
+    "html5",
     "vanilla-js",
     "angular",
     "vue"
@@ -35,6 +36,7 @@
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
     "test:htmx": "cd server && NODE_ENV=test USE_PGLITE=true bun test src/controllers/htmx.controller.test.ts",
+    "test:html5": "cd server && bun test src/controllers/html5.controller.test.ts src/views/html5-ux-conformance.test.ts",
     "lint": "turbo run lint",
     "install:all": "bun install && bun run install:workspaces",
     "install:workspaces": "bun run install:react && bun run install:svelte && bun run install:server && bun run install:htmx && bun run install:vanilla-js && bun run install:angular",
