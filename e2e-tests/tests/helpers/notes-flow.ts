@@ -109,9 +109,21 @@ export async function waitForNoteCardGone(page: Page, contentSnippet: string, ti
  * Vanilla JS, and HTMX.
  */
 function waitForCreateNoteForm(page: Page, timeout = 10000) {
+  // Scope to visible modal containers so that:
+  // 1. html5's hidden <dialog> elements (all kept in DOM) are excluded — only
+  //    dialog[open] and .modal:visible match the currently open dialog.
+  // 2. .first() keeps the locator single-element, avoiding strict mode violations
+  //    (without it, Playwright throws when both title + content inputs are visible).
   const formIndicator = page
-    .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
-    .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX))
+    .locator(
+      'dialog[open] :is(input[placeholder], textarea[placeholder]), ' +
+        '[role="dialog"]:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '[aria-modal="true"]:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '.modal-box:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '.modal:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '[class*="Modal-root"]:visible :is(input[placeholder], textarea[placeholder]), ' +
+        '#note-modal:visible :is(input[placeholder], textarea[placeholder])',
+    )
     .first();
   return formIndicator.waitFor({state: 'visible', timeout}).then(async () => {
     const fieldLocator = page
@@ -119,7 +131,7 @@ function waitForCreateNoteForm(page: Page, timeout = 10000) {
       .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX));
     const dialogLike = page
       .locator(
-        '[role="dialog"]:visible, [aria-modal="true"]:visible, .modal-box:visible, .modal:visible, ' +
+        'dialog[open], [role="dialog"]:visible, [aria-modal="true"]:visible, .modal-box:visible, .modal:visible, ' +
           '[class*="Modal-root"]:visible, [class*="Modal"]:visible, #note-modal:visible',
       )
       .filter({has: fieldLocator})
@@ -134,34 +146,36 @@ function waitForCreateNoteForm(page: Page, timeout = 10000) {
  * Uses .or() chaining with Playwright auto-waiting instead of manual isVisible polling.
  */
 async function fillTitleField(page: Page, modal: ReturnType<Page['locator']>, value: string) {
+  // Page-level fallbacks scope to :visible dialog containers so that html5's closed
+  // <dialog> elements (all kept in DOM) are excluded, while Svelte's portal-rendered
+  // Flowbite modal (aria-modal="true") is still reachable when `modal` is form:visible.
+  const visibleDialog = page.locator('dialog[open], [role="dialog"]:visible, [aria-modal="true"]:visible');
   const titleField = modal
     .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
     .first()
     .or(modal.getByRole('textbox', {name: /title/i}).first())
     .or(modal.getByLabel(/title/i).first())
-    .or(page.getByRole('dialog').getByRole('textbox', {name: /title/i}).first())
-    .or(page.getByPlaceholder(TITLE_PLACEHOLDER_REGEX).first());
+    .or(visibleDialog.getByRole('textbox', {name: /title/i}).first())
+    .or(visibleDialog.getByPlaceholder(TITLE_PLACEHOLDER_REGEX).first());
   await titleField.waitFor({state: 'visible', timeout: 5_000});
   await titleField.fill(value);
 }
 
 /**
- * Fill the content/textarea field using modal scope with page-level fallback.
+ * Fill the content/textarea field using modal scope with visible-scoped page fallback.
  * Uses .or() chaining with Playwright auto-waiting instead of manual isVisible polling.
  */
 async function fillContentField(page: Page, modal: ReturnType<Page['locator']>, value: string) {
+  // Page-level fallbacks scope to :visible dialog containers (same reasoning as
+  // fillTitleField — avoids html5 closed dialogs, covers Svelte portal modals).
+  const visibleDialog = page.locator('dialog[open], [role="dialog"]:visible, [aria-modal="true"]:visible');
   const contentField = modal
     .getByPlaceholder(CONTENT_PLACEHOLDER_REGEX)
     .first()
     .or(modal.getByRole('textbox', {name: /content/i}).first())
     .or(modal.locator('textarea').first())
-    .or(
-      page
-        .getByRole('dialog')
-        .getByRole('textbox', {name: /content/i})
-        .first(),
-    )
-    .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX).first());
+    .or(visibleDialog.getByRole('textbox', {name: /content/i}).first())
+    .or(visibleDialog.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX).first());
   await contentField.waitFor({state: 'visible', timeout: 5_000});
   await contentField.fill(value);
 }
@@ -408,9 +422,11 @@ export async function editNoteByContent(page: Page, contentSnippet: string, newC
   await timed('click Edit button', () => card.getByRole('button', {name: /edit/i}).first().click());
 
   // HTMX uses id="note-modal"; others use role="dialog" or .modal-box/.modal
+  // Use :visible qualifiers so hidden <dialog> elements in the HTML5 app (which keeps
+  // all 4 native dialogs in DOM at all times) don't match before the edit modal opens.
   const modal = page
     .getByRole('dialog')
-    .or(page.locator('.modal-box, .modal, #note-modal, [aria-modal="true"]'))
+    .or(page.locator('.modal-box:visible, .modal:visible, #note-modal:visible, [aria-modal="true"]:visible'))
     .filter({hasText: /edit|content|save/i})
     .first();
   await timed('wait for edit modal visible', () => modal.waitFor({state: 'visible', timeout: 10000}));

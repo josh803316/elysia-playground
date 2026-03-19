@@ -1,119 +1,112 @@
-import {describe, it, expect, beforeAll} from 'bun:test';
-import {Elysia} from 'elysia';
+import {describe, it, expect} from 'bun:test';
+import {readFileSync} from 'fs';
+import {resolve} from 'path';
 
-describe('HTML5 Controller', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let html5Module: any;
+const html5IndexPath = resolve(import.meta.dir, '../../../html5/index.html');
 
-  beforeAll(async () => {
-    html5Module = await import('./html5.controller');
+function getHtml(): string {
+  return readFileSync(html5IndexPath, 'utf-8');
+}
+
+describe('HTML5 SPA (html5/index.html)', () => {
+  it('html5/index.html file exists', () => {
+    expect(() => getHtml()).not.toThrow();
   });
 
-  function createApp() {
-    return new Elysia().use(html5Module.html5Controller);
-  }
+  it('includes correct page title', () => {
+    const html = getHtml();
+    expect(html).toContain('<title>Elysia Notes - HTML5</title>');
+  });
 
-  describe('GET /html5/', () => {
-    it('returns 200', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      expect(res.status).toBe(200);
-    });
+  it('includes Prism.js CDN for syntax highlighting', () => {
+    const html = getHtml();
+    expect(html).toContain('prismjs');
+  });
 
-    it('returns text/html content-type', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      expect(res.headers.get('Content-Type')).toContain('text/html');
-    });
+  it('renders nav with correct branding', () => {
+    const html = getHtml();
+    expect(html).toContain('Elysia Notes - HTML5');
+  });
 
-    it('includes correct page title', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('<title>Elysia Notes - HTML5</title>');
-    });
+  it('loads /html5/env.js for Clerk keys', () => {
+    const html = getHtml();
+    expect(html).toContain('/html5/env.js');
+  });
 
-    it('includes Prism.js CDN for syntax highlighting', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('prismjs');
-    });
+  it('loads /html5/app.js as ES module', () => {
+    const html = getHtml();
+    expect(html).toContain('/html5/app.js');
+    expect(html).toContain('type="module"');
+  });
 
-    it('includes Tailwind CDN', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('tailwindcss.com');
-    });
+  it('loads /html5/styles.css', () => {
+    const html = getHtml();
+    expect(html).toContain('/html5/styles.css');
+  });
 
-    it('renders nav with correct branding', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('Elysia Notes - HTML5');
-    });
+  it('includes public notes section with correct testid', () => {
+    const html = getHtml();
+    expect(html).toContain('data-testid="section-public-notes"');
+  });
 
-    it('includes Playground Home link in nav', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('Playground Home');
-      expect(html).toContain('href="/"');
-    });
+  it('includes your notes section with correct testid', () => {
+    const html = getHtml();
+    expect(html).toContain('data-testid="section-your-notes"');
+  });
 
-    it('renders hero section with correct testid', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('data-testid="hero"');
-      expect(html).toContain('HTML5');
-      expect(html).toContain('Features That Replace JavaScript');
-    });
+  it('includes admin section with correct testid', () => {
+    const html = getHtml();
+    expect(html).toContain('data-testid="section-admin-table"');
+  });
 
-    it('renders demos container with correct testid', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('data-testid="demos-container"');
-    });
+  it('includes native <dialog> elements for modals', () => {
+    const html = getHtml();
+    expect(html).toContain('id="dialog-create-public"');
+    expect(html).toContain('id="dialog-create-private"');
+    expect(html).toContain('id="dialog-edit-note"');
+    expect(html).toContain('id="dialog-admin-login"');
+  });
 
-    it('renders all 9 demo sections', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      const expectedIds = [
-        'demo-dialog',
-        'demo-validation',
-        'demo-details',
-        'demo-datetime',
-        'demo-autocomplete',
-        'demo-template',
-        'demo-dragdrop',
-        'demo-progress',
-        'demo-semantic',
-      ];
-      for (const id of expectedIds) {
-        expect(html).toContain(`data-testid="${id}"`);
-      }
-    });
+  it('includes <template> elements for note rendering', () => {
+    const html = getHtml();
+    expect(html).toContain('id="tpl-public-note"');
+    expect(html).toContain('id="tpl-private-note"');
+    expect(html).toContain('id="tpl-admin-row"');
+  });
 
-    it('includes 9 code expander toggles', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      const count = (html.match(/class="html5-code-toggle/g) ?? []).length;
-      expect(count).toBe(9);
-    });
+  it('includes footer with versions button', () => {
+    const html = getHtml();
+    expect(html).toContain('versions-btn');
+    expect(html).toContain('2024 Notes App');
+  });
 
-    it('includes 9 code panels with language-markup class', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      const count = (html.match(/class="language-markup"/g) ?? []).length;
-      expect(count).toBeGreaterThanOrEqual(9);
-    });
+  it('includes sign-in prompt', () => {
+    const html = getHtml();
+    expect(html).toContain('Sign In to Get Started');
+  });
 
-    it('includes footer with versions button', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('versions-btn');
-      expect(html).toContain('2024 Notes App');
-    });
+  it('includes required nav button IDs', () => {
+    const html = getHtml();
+    expect(html).toContain('id="btn-sign-in"');
+    expect(html).toContain('id="btn-sign-out"');
+    expect(html).toContain('id="btn-admin-login"');
+    expect(html).toContain('id="btn-admin-logout"');
+  });
 
-    it('uses nav height and container max-width tokens from UX spec', async () => {
-      const res = await createApp().handle(new Request('http://localhost/html5/'));
-      const html = await res.text();
-      expect(html).toContain('h-[60px]');
-      expect(html).toContain('max-w-[1320px]');
-    });
+  it('includes public and private note grid IDs', () => {
+    const html = getHtml();
+    expect(html).toContain('id="public-notes-grid"');
+    expect(html).toContain('id="private-notes-grid"');
+  });
+
+  it('uses <details>/<summary> for code expanders', () => {
+    const html = getHtml();
+    expect(html).toContain('details class="vjs-code-expander"');
+    expect(html).toContain('<summary>');
+  });
+
+  it('does not use tailwindcss CDN (uses custom CSS)', () => {
+    const html = getHtml();
+    expect(html).not.toContain('tailwindcss.com');
   });
 });

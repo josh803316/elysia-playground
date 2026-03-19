@@ -1,0 +1,131 @@
+/**
+ * API wrappers for all /api/* endpoints. Uses fetch with same-origin so dev server
+ * proxy works. Each function throws on non-ok response and returns parsed JSON otherwise.
+ */
+
+function authHeaders(token) {
+  return token ? {Authorization: `Bearer ${token}`} : {};
+}
+
+function adminHeaders(apiKey) {
+  return {'X-API-Key': apiKey};
+}
+
+// ── Public Notes ──────────────────────────────────────────────
+
+export async function fetchPublicNotes() {
+  const res = await fetch('/api/public-notes');
+  if (!res.ok) {
+    throw new Error('Failed to fetch public notes');
+  }
+  return res.json();
+}
+
+export async function createPublicNote(data) {
+  const body =
+    typeof data === 'string' ? {title: 'Public Note', content: data} : {title: data.title, content: data.content};
+  const res = await fetch('/api/public-notes', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to create public note');
+  }
+  return res.json();
+}
+
+export async function updatePublicNote(id, {title, content, isPublic}) {
+  const res = await fetch(`/api/public-notes/${id}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({title, content, isPublic}),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to update public note');
+  }
+  return res.json();
+}
+
+export async function deletePublicNote(id) {
+  const res = await fetch(`/api/public-notes/${id}`, {method: 'DELETE'});
+  if (!res.ok) {
+    throw new Error('Failed to delete public note');
+  }
+  return res.json();
+}
+
+// ── Private Notes (Bearer token) ─────────────────────────────
+
+export async function fetchPrivateNotes(token) {
+  const res = await fetch('/api/private-notes', {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to fetch private notes');
+  }
+  return res.json();
+}
+
+export async function createPrivateNote(token, data) {
+  const body = typeof data === 'string' ? {title: 'Private Note', data} : {title: data.title, data: data.content};
+  const res = await fetch('/api/private-notes', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json', ...authHeaders(token)},
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to create private note');
+  }
+  return res.json();
+}
+
+export async function deletePrivateNote(token, id) {
+  const res = await fetch(`/api/private-notes/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to delete private note');
+  }
+  return res.json();
+}
+
+// ── Admin (X-API-Key header) ─────────────────────────────────
+
+export async function fetchAllNotesAdmin(apiKey) {
+  const res = await fetch('/api/notes/all', {
+    headers: adminHeaders(apiKey),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to fetch admin notes');
+  }
+  return res.json();
+}
+
+export async function deleteNoteAdmin(apiKey, id) {
+  const res = await fetch(`/api/notes/${id}/admin`, {
+    method: 'DELETE',
+    headers: adminHeaders(apiKey),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to delete note (admin)');
+  }
+  return res.json();
+}
+
+export async function deleteNotesByRegexAdmin(apiKey, contentRegex) {
+  const res = await fetch('/api/notes/admin/delete-by-regex', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...adminHeaders(apiKey),
+    },
+    body: JSON.stringify({contentRegex: contentRegex.trim()}),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed: ${res.status}`);
+  }
+  return res.json();
+}
