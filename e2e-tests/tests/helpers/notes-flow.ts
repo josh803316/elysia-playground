@@ -131,7 +131,7 @@ function waitForCreateNoteForm(page: Page, timeout = 10000) {
       .or(page.getByPlaceholder(CONTENT_PLACEHOLDER_REGEX));
     const dialogLike = page
       .locator(
-        '[role="dialog"]:visible, [aria-modal="true"]:visible, .modal-box:visible, .modal:visible, ' +
+        'dialog[open], [role="dialog"]:visible, [aria-modal="true"]:visible, .modal-box:visible, .modal:visible, ' +
           '[class*="Modal-root"]:visible, [class*="Modal"]:visible, #note-modal:visible',
       )
       .filter({has: fieldLocator})
@@ -149,7 +149,7 @@ async function fillTitleField(page: Page, modal: ReturnType<Page['locator']>, va
   // Page-level fallbacks scope to :visible dialog containers so that html5's closed
   // <dialog> elements (all kept in DOM) are excluded, while Svelte's portal-rendered
   // Flowbite modal (aria-modal="true") is still reachable when `modal` is form:visible.
-  const visibleDialog = page.locator('[role="dialog"]:visible, [aria-modal="true"]:visible');
+  const visibleDialog = page.locator('dialog[open], [role="dialog"]:visible, [aria-modal="true"]:visible');
   const titleField = modal
     .getByPlaceholder(TITLE_PLACEHOLDER_REGEX)
     .first()
@@ -168,7 +168,7 @@ async function fillTitleField(page: Page, modal: ReturnType<Page['locator']>, va
 async function fillContentField(page: Page, modal: ReturnType<Page['locator']>, value: string) {
   // Page-level fallbacks scope to :visible dialog containers (same reasoning as
   // fillTitleField — avoids html5 closed dialogs, covers Svelte portal modals).
-  const visibleDialog = page.locator('[role="dialog"]:visible, [aria-modal="true"]:visible');
+  const visibleDialog = page.locator('dialog[open], [role="dialog"]:visible, [aria-modal="true"]:visible');
   const contentField = modal
     .getByPlaceholder(CONTENT_PLACEHOLDER_REGEX)
     .first()
