@@ -1,22 +1,22 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import compression from "vite-plugin-compression";
-import { visualizer } from "rollup-plugin-visualizer";
+import {defineConfig} from 'vite';
+import react from '@vitejs/plugin-react';
+import compression from 'vite-plugin-compression';
+import {visualizer} from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ command }) => ({
-  base: command === "build" ? "/react/" : "/",
+export default defineConfig(({command}) => ({
+  base: command === 'build' ? '/react/' : '/',
   plugins: [
     react(),
     // Add gzip/brotli compression for all assets
     compression({
-      algorithm: "gzip",
-      ext: ".gz",
+      algorithm: 'gzip',
+      ext: '.gz',
       verbose: false, // avoid misleading absolute-path log (files still written to dist/assets)
     }),
     compression({
-      algorithm: "brotliCompress",
-      ext: ".br",
+      algorithm: 'brotliCompress',
+      ext: '.br',
       verbose: false,
     }),
     // Add bundle analyzer (generates stats.html in project root when building)
@@ -24,13 +24,13 @@ export default defineConfig(({ command }) => ({
       open: true, // Set to true to open stats.html automatically after build
       gzipSize: true,
       brotliSize: true,
-      filename: "stats.html",
+      filename: 'stats.html',
     }),
   ],
   server: {
     proxy: {
-      "/api": {
-        target: "http://localhost:3500",
+      '/api': {
+        target: 'http://localhost:3500',
         changeOrigin: true,
       },
     },
@@ -43,16 +43,18 @@ export default defineConfig(({ command }) => ({
     // Better code splitting
     rollupOptions: {
       output: {
-        manualChunks: {
-          "react-vendor": ["react", "react-dom", "react-router-dom"],
-          "mantine-core": ["@mantine/core", "@mantine/hooks"],
-          clerk: ["@clerk/clerk-react"],
-          "tabler-icons": ["@tabler/icons-react"],
+        manualChunks: (id) => {
+          if (['react', 'react-dom', 'react-router-dom'].some((m) => id.includes(`/node_modules/${m}/`)))
+            return 'react-vendor';
+          if (['@mantine/core', '@mantine/hooks'].some((m) => id.includes(`/node_modules/${m}/`)))
+            return 'mantine-core';
+          if (id.includes('/node_modules/@clerk/clerk-react/')) return 'clerk';
+          if (id.includes('/node_modules/@tabler/icons-react/')) return 'tabler-icons';
         },
       },
     },
     // Optimize minification
-    minify: "terser",
+    minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true,
@@ -60,20 +62,14 @@ export default defineConfig(({ command }) => ({
       },
     },
     // Generate smaller source maps
-    sourcemap: "hidden",
+    sourcemap: 'hidden',
   },
   optimizeDeps: {
     // Preload critical dependencies
-    include: [
-      "react",
-      "react-dom",
-      "react-router-dom",
-      "@mantine/core",
-      "@mantine/hooks",
-    ],
+    include: ['react', 'react-dom', 'react-router-dom', '@mantine/core', '@mantine/hooks'],
     // Improve dependency scanning
     esbuildOptions: {
-      target: "es2020",
+      target: 'es2020',
     },
   },
 }));
