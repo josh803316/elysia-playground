@@ -4,7 +4,7 @@
   import { searchStore } from '$lib/stores/searchStore';
   import { goto } from '$app/navigation';
   import { useClerkContext } from 'svelte-clerk/client';
-  import { SignedIn, SignedOut, SignInButton } from 'svelte-clerk/client';
+  import { Show, SignInButton } from 'svelte-clerk/client';
   import { 
     Alert, 
     Button, 
@@ -882,7 +882,7 @@
 
     <!-- Want to create private notes? - only when signed out (match HTMX/React); client-only so prerender works -->
     {#if browser}
-      <SignedOut>
+      <Show when="signed-out">
         <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 text-center" data-testid="section-sign-in-prompt">
           <h2 class="text-xl font-semibold text-gray-700 mb-2">Want to create private notes?</h2>
           <p class="text-gray-600 mb-4">Sign in to create and manage your own private notes.</p>
@@ -890,12 +890,12 @@
             <Button class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 font-medium">Sign In to Get Started</Button>
           </SignInButton>
         </section>
-      </SignedOut>
+      </Show>
     {/if}
 
     <!-- Your Notes Section - only when signed in (use Clerk so it never shows when signed out) -->
     {#if browser}
-      <SignedIn>
+      <Show when="signed-in">
         <section class="bg-white rounded-lg shadow-sm p-6 border border-gray-200" data-testid="section-your-notes">
         <div class="flex justify-between items-center mb-4">
           <div>
@@ -965,7 +965,7 @@
         {/if}
           <CodeExpander code={SVELTE_PRIVATE_CODE} id="svelte-private-code" label="Svelte code" testCode={PRIVATE_NOTES_TEST_SNIPPET} testLabel="E2E test (Playwright)" />
         </section>
-      </SignedIn>
+      </Show>
     {/if}
 </div>
 

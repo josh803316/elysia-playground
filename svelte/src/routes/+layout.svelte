@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ClerkProvider, SignedIn, SignedOut, SignInButton } from 'svelte-clerk/client';
+	import { ClerkProvider, Show, SignInButton } from 'svelte-clerk/client';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { versionStore } from '$lib/stores/version';
@@ -350,20 +350,20 @@ function handleAdminLogout() {
 				<div class="flex items-center gap-4 shrink-0">
 					<a href={toBasePath('/')} class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Home</a>
 					<!-- Public badge: signed-out only (standalone) -->
-					<SignedOut>
+					<Show when="signed-out">
 						<span class="text-xs font-medium py-0.5 px-2 rounded bg-green-100 text-green-800">Public: {publicNotesCount}</span>
-					</SignedOut>
+					</Show>
 					<!-- My Notes + both badges: only when signed in -->
-					<SignedIn>
+					<Show when="signed-in">
 						<a href={toBasePath('/notes')} class="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-1.5 transition-colors">
 							{isAdminLoggedIn ? 'All Notes' : 'My Notes'}
 							<span class="text-xs font-medium py-0.5 px-2 rounded bg-green-100 text-green-800">Public: {publicNotesCount}</span>
 							<span class="text-xs font-medium py-0.5 px-2 rounded bg-purple-100 text-purple-800">Private: {privateNotesCount}</span>
 						</a>
-					</SignedIn>
+					</Show>
 
 					<!-- User Authentication -->
-					<SignedIn>
+					<Show when="signed-in">
 						<span class="text-sm text-gray-700">Hello, {isAdminLoggedIn ? 'Admin' : (userName || 'User')}</span>
 						<button
 							type="button"
@@ -378,9 +378,9 @@ function handleAdminLogout() {
 						>
 							{isAdminLoggedIn ? "Admin Logout" : "Admin Login"}
 						</button>
-					</SignedIn>
+					</Show>
 
-					<SignedOut>
+					<Show when="signed-out">
 						<SignInButton mode="modal">
 							<button type="button" class="text-sm font-medium text-white px-4 py-2 rounded-lg border-none cursor-pointer transition-colors" style="background:#0d9488" onmouseover={(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#0f766e')} onmouseout={(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#0d9488')}
 							>Sign In</button>
@@ -393,7 +393,7 @@ function handleAdminLogout() {
 							onmouseout={(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#0d9488')}
 							onclick={() => (adminModalOpen = true)}
 						>Admin Login</button>
-					</SignedOut>
+					</Show>
 				</div>
 			</div>
 		</header>
