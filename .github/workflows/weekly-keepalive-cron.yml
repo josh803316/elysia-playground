@@ -48,6 +48,58 @@ jobs:
             exit 1
           fi
 
+      - name: Wait for deployment to be ready
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          BASE="${E2E_BASE_URL%/}"
+          log_response() {
+            local url="$1" code="$2" body="$3"
+            echo "[wait] GET $url -> HTTP $code" >&2
+          }
+
+          # First try to wait for the specific commit SHA (if /versions is exposed)
+          if [ -n "$EXPECTED_SHA" ]; then
+            echo "Polling $BASE for commit $EXPECTED_SHA to be live (max ~3 min)..."
+            for i in $(seq 1 36); do
+              for path in "/versions" "/api/versions"; do
+                RESP=$(curl -s -w "\n%{http_code}" "$BASE$path" || true)
+                CODE=$(echo "$RESP" | tail -n1)
+                BODY=$(echo "$RESP" | sed '$d')
+                if [ "$CODE" = "200" ]; then
+                  COMMIT_SHA=$(echo "$BODY" | jq -r '.commitSha // empty' 2>/dev/null || true)
+                  if [ -n "$COMMIT_SHA" ] && [ "$COMMIT_SHA" = "$EXPECTED_SHA" ]; then
+                    echo "Deployment ready (commit $EXPECTED_SHA is live)."
+                    exit 0
+                  fi
+                fi
+              done
+
+              # Fallback: at least check basic health so we don't run against completely stale deploys
+              for path in "/health" "/api/health" "/api/public-notes"; do
+                CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE$path" || echo "000")
+                if [ "$CODE" = "200" ]; then
+                  echo "Basic endpoint responding (HTTP 200 at $path). Proceeding (SHA check may not be available for this backend)."
+                  exit 0
+                fi
+              done
+
+              echo "Attempt $i/36: not ready yet, sleeping 5s..."
+              sleep 5
+            done
+            echo "Warning: Could not confirm exact SHA. Proceeding anyway (the keepalive may create only public notes if the admin route is not live yet)."
+          else
+            echo "No EXPECTED_SHA; doing basic readiness check..."
+            for i in $(seq 1 12); do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/public-notes" || echo "000")
+              if [ "$CODE" = "200" ]; then
+                echo "Public notes endpoint responding."
+                exit 0
+              fi
+              sleep 5
+            done
+          fi
+
       - name: Install dependencies
         run: bun install && cd e2e-tests && bun install
         env:
