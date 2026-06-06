@@ -31,7 +31,7 @@
     "build:vue": "cd vue && bun run build",
     "dev:vue": "turbo run dev --filter=./vue --filter=./server",
     "install:vue": "cd vue && bun install",
-    "build:frontends": "bun run build:react && bun run build:svelte && (bun run build:vue || echo 'Vue build skipped (estree-walker export conflict after dep upgrades)') && (cd angular && bun run build || echo 'Angular build skipped (Node version incompatibility in current Vercel build env)')",
+    "build:frontends": "bun run build:react && bun run build:svelte && (bun run build:vue || echo 'Vue build skipped (estree-walker export conflict after dep upgrades)') && (cd angular && bun run build || (mkdir -p dist/angular && echo '<!doctype html><html><body><h1>Angular build skipped (env incompatibility)</h1></body></html>' > dist/angular/index.html && echo 'Angular placeholder created'))",
     "dev:monolith": "bun run build:react && bun run build:svelte && bun run build:angular && bun run build:vue && bun run dev:server",
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
