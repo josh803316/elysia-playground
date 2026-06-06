@@ -1,7 +1,7 @@
 import {Elysia, t} from 'elysia';
 import {authGuard} from '../guards/auth-guard.js';
 import {ownershipGuard} from '../guards/ownership-guard.js';
-import {eq, and, desc} from 'drizzle-orm';
+import {desc} from 'drizzle-orm';
 import {notes, users} from '../db/schema.js';
 import {BaseApiController} from './base-api.controller.js';
 import {NotesModel} from '../models/notes.model.js';
@@ -402,6 +402,57 @@ export class NotesController extends BaseApiController<Note> {
           {
             body: t.Object({
               contentRegex: t.String(),
+            }),
+          },
+        )
+        // Admin: create a note (public or private/system) - used by weekly cron keepalive
+        .post(
+          '/notes/admin/create',
+          async (ctx: any) => {
+            try {
+              const typedCtx = ctx as unknown as Context & {
+                body?: {title?: string; content?: string; isPublic?: boolean};
+              };
+
+              let apiKey;
+              if (typeof typedCtx.request.headers.get === 'function') {
+                apiKey = typedCtx.request.headers.get('x-api-key');
+              } else {
+                const headers = typedCtx.request.headers as Record<string, string>;
+                apiKey = headers['x-api-key'] || headers['X-API-Key'] || headers['X-Api-Key'];
+              }
+
+              if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+                return new Response('Unauthorized: Invalid or missing API key', {status: 401});
+              }
+
+              const {title, content, isPublic = false} = typedCtx.body ?? {};
+              if (!title || !content) {
+                return new Response(JSON.stringify({error: 'title and content are required'}), {
+                  status: 400,
+                  headers: {'Content-Type': 'application/json'},
+                });
+              }
+
+              const noteData = {
+                title: String(title).trim(),
+                content: String(content),
+                isPublic: String(isPublic).toLowerCase(),
+                userId: null, // system/cron note, no owner
+              };
+
+              const note = await this.notesModel.createNote(typedCtx.db, noteData);
+              return note;
+            } catch (err) {
+              console.error('Error creating note (admin):', err);
+              return new Response('Server error creating note via admin', {status: 500});
+            }
+          },
+          {
+            body: t.Object({
+              title: t.String(),
+              content: t.String(),
+              isPublic: t.Optional(t.Boolean()),
             }),
           },
         )

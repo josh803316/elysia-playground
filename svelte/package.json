@@ -24,23 +24,23 @@
     "@storybook/sveltekit": "10.3.3",
     "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.55.0",
-    "@sveltejs/vite-plugin-svelte": "^7.0.0",
-    "@tailwindcss/vite": "^4.2.2",
+    "@sveltejs/kit": "^2.63.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tailwindcss/vite": "^4.3.0",
     "autoprefixer": "^10.4.27",
-    "svelte": "^5.55.0",
+    "svelte": "^5.56.2",
     "svelte-check": "^4.4.5",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.2",
-    "vitest": "^4.1.1"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
   },
   "dependencies": {
-    "@elysiajs/eden": "^1.4.8",
-    "flowbite": "^4.0.1",
-    "flowbite-svelte": "^1.31.0",
+    "@elysiajs/eden": "^1.4.9",
+    "flowbite": "^4.0.2",
+    "flowbite-svelte": "^1.33.1",
     "flowbite-svelte-icons": "^3.1.0",
     "postcss": "^8.5.8",
-    "svelte-clerk": "^1.1.1",
-    "tailwindcss": "^4.2.2"
+    "svelte-clerk": "^1.1.9",
+    "tailwindcss": "^4.3.0"
   }
 }

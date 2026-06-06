@@ -40,7 +40,12 @@ export function baseLayout(
   content: string,
   title: string = 'Elysia Notes - HTMX',
   clerkPublishableKey?: string,
+  clerkFrontendApi?: string,
 ): string {
+  const clerkScriptSrc = clerkFrontendApi
+    ? `https://${clerkFrontendApi}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js`
+    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,7 +62,7 @@ export function baseLayout(
     async
     crossorigin="anonymous"
     data-clerk-publishable-key="${clerkPublishableKey}"
-    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    src="${clerkScriptSrc}"
     type="text/javascript"
   ></script>`
       : ''
@@ -513,7 +518,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
 /**
  * Notes table page - full page with table of all notes (admin view, requires Admin API Key)
  */
-export function notesTablePage(clerkPublishableKey?: string): string {
+export function notesTablePage(clerkPublishableKey?: string, clerkFrontendApi?: string): string {
   return baseLayout(
     `
     <div class="space-y-6">
@@ -558,6 +563,7 @@ export function notesTablePage(clerkPublishableKey?: string): string {
   `,
     'Notes – Table view',
     clerkPublishableKey,
+    clerkFrontendApi,
   );
 }
 
@@ -603,7 +609,7 @@ function codeExpander(code: string, id: string, testCode?: string): string {
 /**
  * Main notes page content
  */
-export function notesPage(notes: Note[], clerkPublishableKey?: string): string {
+export function notesPage(notes: Note[], clerkPublishableKey?: string, clerkFrontendApi?: string): string {
   const adminCode = `<!-- Admin notes loaded via HTMX -->
 <div
   id="admin-notes-container"
@@ -755,6 +761,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
   `,
     'Elysia Notes - HTMX',
     clerkPublishableKey,
+    clerkFrontendApi,
   );
 }
 

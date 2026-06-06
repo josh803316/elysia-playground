@@ -41,10 +41,13 @@ import {
 	let adminModalOpen = $state(false);
 	let clerkLoaded = $state(false);
 
-	const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+	const CLERK_PUBLISHABLE_KEY = 
+		(typeof window !== 'undefined' && (window as any).__SVELTE_ENV__?.clerkPublishableKey)
+			? (window as any).__SVELTE_ENV__.clerkPublishableKey
+			: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 	if (!CLERK_PUBLISHABLE_KEY) {
-		throw new Error('Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in env');
+		throw new Error('Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in env or serve /svelte/env.js');
 	}
 	let userName = $state<string | null>(null);
 	let createNoteModalOpen = $state(false);

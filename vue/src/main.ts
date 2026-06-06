@@ -11,10 +11,19 @@ import App from './App.vue';
 import { router } from './router';
 import './style.css';
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+declare global {
+  interface Window {
+    __VUE_ENV__?: { clerkPublishableKey?: string; clerkFrontendApi?: string };
+  }
+}
+const PUBLISHABLE_KEY =
+  typeof window !== 'undefined' && window.__VUE_ENV__?.clerkPublishableKey?.trim()
+    ? window.__VUE_ENV__.clerkPublishableKey!.trim()
+    : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
 if (!PUBLISHABLE_KEY) {
   throw new Error(
-    'Missing Clerk publishable key. Copy vue/.env.example to vue/.env and set VITE_CLERK_PUBLISHABLE_KEY (get it from https://dashboard.clerk.com).'
+    'Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in .env or serve /vue/env.js',
   );
 }
 
@@ -22,7 +31,7 @@ if (!PUBLISHABLE_KEY) {
 const VuePreset = definePreset(Aura, {
   semantic: {
     primary: {
-      50:  '{green.50}',
+      50: '{green.50}',
       100: '{green.100}',
       200: '{green.200}',
       300: '{green.300}',

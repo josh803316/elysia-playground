@@ -63,7 +63,16 @@ function codeExpander(code: string, id: string, testCode?: string): string {
   return out;
 }
 
-export function baseLayout(content: string, title = 'Elysia Notes - jQuery', clerkPublishableKey?: string): string {
+export function baseLayout(
+  content: string,
+  title = 'Elysia Notes - jQuery',
+  clerkPublishableKey?: string,
+  clerkFrontendApi?: string,
+): string {
+  const clerkScriptSrc = clerkFrontendApi
+    ? `https://${clerkFrontendApi}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js`
+    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -81,7 +90,7 @@ export function baseLayout(content: string, title = 'Elysia Notes - jQuery', cle
     async
     crossorigin="anonymous"
     data-clerk-publishable-key="${clerkPublishableKey}"
-    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    src="${clerkScriptSrc}"
     type="text/javascript"
   ></script>`
       : ''
@@ -956,7 +965,7 @@ $.ajax({
 
 // ─── Page function ────────────────────────────────────────────────────────────
 
-export function jqueryPage(clerkPublishableKey?: string): string {
+export function jqueryPage(clerkPublishableKey?: string, clerkFrontendApi?: string): string {
   return baseLayout(
     `
     <div class="space-y-8">
@@ -1044,5 +1053,6 @@ export function jqueryPage(clerkPublishableKey?: string): string {
   `,
     'Elysia Notes - jQuery',
     clerkPublishableKey,
+    clerkFrontendApi,
   );
 }

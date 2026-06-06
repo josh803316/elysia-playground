@@ -52,6 +52,7 @@ package-lock.json
 *.launch
 .settings/
 .vscode/
+.claude/settings.local.json
 
 # Bun
 bun.lockb

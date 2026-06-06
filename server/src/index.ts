@@ -278,6 +278,30 @@ app
       headers: {'content-type': 'application/javascript; charset=utf-8'},
     });
   })
+  .get('/svelte/env.js', () => {
+    const payload = {
+      clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
+      clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
+    };
+
+    const body = `window.__SVELTE_ENV__ = ${JSON.stringify(payload)};`;
+
+    return new Response(body, {
+      headers: {'content-type': 'application/javascript; charset=utf-8'},
+    });
+  })
+  .get('/vue/env.js', () => {
+    const payload = {
+      clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
+      clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
+    };
+
+    const body = `window.__VUE_ENV__ = ${JSON.stringify(payload)};`;
+
+    return new Response(body, {
+      headers: {'content-type': 'application/javascript; charset=utf-8'},
+    });
+  })
   .get(
     '/favicon.svg',
     () =>
