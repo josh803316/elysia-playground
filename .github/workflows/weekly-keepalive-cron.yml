@@ -58,51 +58,81 @@ jobs:
             echo "[wait] GET $url -> HTTP $code" >&2
           }
 
-          # First try to wait for the specific commit SHA (if /versions is exposed)
+          # --- Improved versions endpoint logic (primary signal) ---
+          # The /versions (and /api/versions) endpoint returns { commitSha, ... } from VERCEL_GIT_COMMIT_SHA or GIT_COMMIT_SHA.
+          # We poll it persistently with good logging and tolerant matching (full SHA or prefix).
+          # This is the same mechanism used by the main e2e workflows.
           if [ -n "$EXPECTED_SHA" ]; then
-            echo "Polling $BASE for commit $EXPECTED_SHA to be live (max ~3 min)..."
-            for i in $(seq 1 36); do
+            echo "Polling $BASE for commit $EXPECTED_SHA via /versions (primary) + health+admin-probe fallback (max ~4 min)..."
+            VERSIONS_MATCHED=false
+
+            for i in $(seq 1 48); do
+              VERSIONS_GOT_SHA=""
+
               for path in "/versions" "/api/versions"; do
-                RESP=$(curl -s -w "\n%{http_code}" "$BASE$path" || true)
+                RESP=$(curl -s -w "\n%{http_code}" --max-time 8 "$BASE$path" || true)
                 CODE=$(echo "$RESP" | tail -n1)
                 BODY=$(echo "$RESP" | sed '$d')
-                if [ "$CODE" = "200" ]; then
-                  COMMIT_SHA=$(echo "$BODY" | jq -r '.commitSha // empty' 2>/dev/null || true)
-                  if [ -n "$COMMIT_SHA" ] && [ "$COMMIT_SHA" = "$EXPECTED_SHA" ]; then
-                    echo "Deployment ready (commit $EXPECTED_SHA is live)."
-                    exit 0
-                  fi
-                fi
-              done
 
-              # Fallback: at least check basic health so we don't run against completely stale deploys
-              for path in "/health" "/api/health" "/api/public-notes"; do
-                CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE$path" || echo "000")
                 if [ "$CODE" = "200" ]; then
-                  echo "Basic endpoint responding (HTTP 200 at $path)."
-                  # Additionally probe the admin create route specifically (the one the private note depends on).
-                  # A 404 means the new code with the route isn't live yet. Non-404 (e.g. 400 for bad body, or 200) means it's there.
-                  ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/api/notes/admin/create" \
-                    -H "content-type: application/json" \
-                    -H "x-api-key: ${E2E_ADMIN_API_KEY}" \
-                    -d '{"title":"__keepalive-probe__","content":"probe","isPublic":false}' || echo "000")
-                  if [ "$ADMIN_CODE" != "404" ] && [ "$ADMIN_CODE" != "000" ]; then
-                    echo "Admin create route responding (HTTP $ADMIN_CODE). New code is live."
-                    exit 0
+                  # Robust extraction + trim
+                  RAW_SHA=$(echo "$BODY" | jq -r '.commitSha // empty' 2>/dev/null | tr -d ' \n\r' || true)
+                  if [ -n "$RAW_SHA" ]; then
+                    VERSIONS_GOT_SHA="$RAW_SHA"
+                    echo "[wait] $path returned commitSha='${RAW_SHA}' (expected='${EXPECTED_SHA}') attempt $i"
+
+                    # Tolerant match: exact, or one is prefix of the other (handles short vs full SHA)
+                    if [ "$RAW_SHA" = "$EXPECTED_SHA" ] || [[ "$EXPECTED_SHA" == "$RAW_SHA"* ]] || [[ "$RAW_SHA" == "$EXPECTED_SHA"* ]]; then
+                      echo "Deployment ready via versions (commit $EXPECTED_SHA is live at $path)."
+                      VERSIONS_MATCHED=true
+                      exit 0
+                    fi
                   else
-                    echo "Admin create still 404 or unreachable (code=$ADMIN_CODE). Waiting for full deploy..."
+                    echo "[wait] $path returned 200 but no commitSha in payload (attempt $i)"
                   fi
                 fi
               done
 
-              echo "Attempt $i/36: not ready yet, sleeping 5s..."
+              if [ -n "$VERSIONS_GOT_SHA" ]; then
+                echo "[wait] versions present but SHA mismatch (got '$VERSIONS_GOT_SHA')"
+              fi
+
+              # Fallback health + targeted admin probe (user-requested improvement for the private note route)
+              # We still prefer versions, but this lets us proceed when versions signal is unreliable in this env.
+              HEALTH_OK=false
+              for path in "/health" "/api/health" "/api/public-notes"; do
+                CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$BASE$path" || echo "000")
+                if [ "$CODE" = "200" ]; then
+                  HEALTH_OK=true
+                  echo "[wait] Basic health OK at $path (attempt $i)"
+                  break
+                fi
+              done
+
+              if $HEALTH_OK; then
+                # Probe the admin create route (the one the "private" keepalive depends on)
+                ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 -X POST "$BASE/api/notes/admin/create" \
+                  -H "content-type: application/json" \
+                  -H "x-api-key: ${E2E_ADMIN_API_KEY}" \
+                  -d '{"title":"__keepalive-probe__","content":"probe","isPublic":false}' || echo "000")
+
+                if [ "$ADMIN_CODE" != "404" ] && [ "$ADMIN_CODE" != "000" ]; then
+                  echo "Admin create route responding (HTTP $ADMIN_CODE). New code is live."
+                  exit 0
+                else
+                  echo "Admin create still returning $ADMIN_CODE (waiting for full deploy of new route)..."
+                fi
+              fi
+
+              echo "Attempt $i/48: no matching versions SHA yet, sleeping 5s..."
               sleep 5
             done
-            echo "Warning: Could not confirm exact SHA. Proceeding anyway (the keepalive may create only public notes if the admin route is not live yet)."
+
+            echo "Warning: Timed out waiting for exact versions SHA match. Proceeding with best-effort (admin probe may still create the private note once the route is live, or fall back to public notes)."
           else
             echo "No EXPECTED_SHA; doing basic readiness check..."
             for i in $(seq 1 12); do
-              CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/public-notes" || echo "000")
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$BASE/api/public-notes" || echo "000")
               if [ "$CODE" = "200" ]; then
                 echo "Public notes endpoint responding."
                 exit 0
