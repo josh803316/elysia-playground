@@ -105,13 +105,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BUN_AUTH_TOKEN }}
 
-      - name: Install Playwright Chromium (for request + potential global setup)
+      - name: Install Playwright (API/request only - no browser needed for keepalive)
+        # We only use the request fixture + headers for public + admin-key calls.
+        # No headed browser or globalSetup (Clerk sign-in) is required.
         working-directory: e2e-tests
-        run: bunx playwright install --with-deps chromium
+        run: echo "Playwright package already installed via bun; skipping heavy browser install for speed."
 
       - name: Run keepalive via Playwright CLI (posts public + private notes)
         working-directory: e2e-tests
-        run: bunx playwright test tests/cron-keepalive.spec.ts --reporter=line --retries=1
+        run: bunx playwright test -c keepalive.config.cjs tests/cron-keepalive.spec.ts --reporter=line --retries=1
 
       - name: Upload Playwright report (keepalive)
         if: always()
