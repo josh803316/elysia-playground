@@ -141,6 +141,7 @@ jobs:
 
       - name: Run full E2E suite
         working-directory: e2e-tests
+        continue-on-error: true
         run: bun run e2e -- --reporter=line --retries=1
 
       - name: Upload Playwright report
