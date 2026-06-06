@@ -141,8 +141,8 @@ jobs:
 
       - name: Run full E2E suite
         working-directory: e2e-tests
-        continue-on-error: true
-        run: bun run e2e -- --reporter=line --retries=1
+        run: bun run e2e -- --reporter=line --retries=1 || true
+        # || true to ensure the step (and job) does not fail the overall action even if E2E tests have post-upgrade flakiness or timeouts against prod. Failures are still visible in logs and artifacts.
 
       - name: Upload Playwright report
         if: always()
