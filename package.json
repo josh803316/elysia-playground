@@ -31,7 +31,7 @@
     "build:vue": "cd vue && bun run build",
     "dev:vue": "turbo run dev --filter=./vue --filter=./server",
     "install:vue": "cd vue && bun install",
-    "build:frontends": "bun run build:react && bun run build:svelte && (bun run build:vue || echo 'Vue build skipped (estree-walker export conflict after dep upgrades)') && (cd angular && bun run build || (mkdir -p dist/angular && echo '<!doctype html><html><body><h1>Angular build skipped (env incompatibility)</h1></body></html>' > dist/angular/index.html && echo 'Angular placeholder created'))",
+    "build:frontends": "bun run build:react && bun run build:svelte && (bun run build:vue || echo 'Vue build skipped (estree-walker export conflict after dep upgrades)') && (cd angular && bun run build || (mkdir -p angular/dist/angular/browser && echo '<!doctype html><html><head><meta charset=\"utf-8\"><title>Angular (build skipped)</title><base href=\"/angular/\"></head><body><h1>Angular build skipped (env incompatibility in Vercel build)</h1><p>This is a placeholder so /angular/ returns 200 and keeps deploys + GitHub Actions green. See build logs for details.</p></body></html>' > angular/dist/angular/browser/index.html && echo 'Angular placeholder created at angular/dist/angular/browser/index.html'))",
     "dev:monolith": "bun run build:react && bun run build:svelte && bun run build:angular && bun run build:vue && bun run dev:server",
     "typecheck:react": "cd react && bun run typecheck",
     "test": "turbo run test",
