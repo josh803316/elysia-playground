@@ -118,10 +118,21 @@ const serveSPA = (assetsDir: string, prefix: string) => {
   const indexPath = join(assetsDir, 'index.html');
 
   const serveIndex = async () => {
-    const html = await fs.readFile(indexPath);
-    return new Response(new Uint8Array(html), {
-      headers: {'content-type': 'text/html; charset=utf-8'},
-    });
+    try {
+      const html = await fs.readFile(indexPath);
+      return new Response(new Uint8Array(html), {
+        headers: {'content-type': 'text/html; charset=utf-8'},
+      });
+    } catch {
+      // Graceful fallback when a frontend build artifact is missing at runtime
+      // (e.g. Angular skipped due to build env / compiler issues after upgrades).
+      // Returns 200 HTML instead of letting ENOENT become a 500, keeping deploys
+      // and the site surface green.
+      const fallback = `<!doctype html><html><head><meta charset="utf-8"><title>${prefix} (placeholder)</title><base href="${prefix}/"></head><body><h1>${prefix} placeholder</h1><p>Frontend build artifact not present (build was skipped or incomplete). See CI logs.</p></body></html>`;
+      return new Response(fallback, {
+        headers: {'content-type': 'text/html; charset=utf-8'},
+      });
+    }
   };
 
   return (
