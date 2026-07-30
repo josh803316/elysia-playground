@@ -60,6 +60,9 @@ bun.lockb
 # Turborepo
 .turbo
 
+# Angular CLI cache
+.angular/
+
 # Playwright (e2e-tests)
 e2e-tests/playwright/
 e2e-tests/test-results/
