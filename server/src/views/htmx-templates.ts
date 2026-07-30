@@ -468,11 +468,11 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
               userAvatar.style.display = 'block';
             }
             
-            // Refresh private notes section
-            htmx.trigger('#private-notes-container', 'refreshPrivateNotes');
-            // Refresh nav note counts (Public/Private badges)
             const token = await window.Clerk.session.getToken();
             window.__clerkToken = token || null;
+            // Refresh authenticated UI only after the token is available.
+            htmx.trigger('#private-notes-container', 'refreshPrivateNotes');
+            // Refresh nav note counts (Public/Private badges)
             if (window.refreshNavNoteCounts) window.refreshNavNoteCounts(token);
           } else {
             window.__clerkToken = null;
@@ -1026,16 +1026,93 @@ export function privateNoteCard(note: Note): string {
         <p class="text-gray-600 text-sm mb-3 line-clamp-2">${escapeHtml(note.content)}</p>
         <div class="flex justify-between items-center text-xs text-gray-500">
           <span>${createdDate}</span>
-          <button 
-            hx-delete="/htmx/private-notes/${note.id}" 
-            hx-target="#private-note-${note.id}"
-            hx-swap="outerHTML swap:0.2s"
-            hx-confirm="Are you sure you want to delete this private note?"
-            class="text-red-600 hover:text-red-800 font-medium transition-colors"
+          <span class="flex gap-3">
+            <button
+              hx-get="/htmx/private-notes/${note.id}/edit"
+              hx-target="#modal-container"
+              hx-swap="innerHTML"
+              class="text-purple-600 hover:text-purple-800 font-medium transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              hx-delete="/htmx/private-notes/${note.id}"
+              hx-target="#private-note-${note.id}"
+              hx-swap="outerHTML swap:0.2s"
+              hx-confirm="Are you sure you want to delete this private note?"
+              class="text-red-600 hover:text-red-800 font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Edit private note form modal
+ */
+export function editPrivateNoteModal(note: Note): string {
+  return `
+    <div id="note-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+        <div class="flex justify-between items-center border-b px-6 py-4 bg-gradient-to-r from-purple-50 to-teal-50">
+          <h2 class="text-xl font-semibold text-gray-800">🔒 Edit Private Note</h2>
+          <button
+            type="button"
+            onclick="document.getElementById('modal-container').innerHTML = ''"
+            class="text-gray-500 hover:text-gray-700 text-2xl"
           >
-            Delete
+            &times;
           </button>
         </div>
+        <form
+          hx-put="/htmx/private-notes/${note.id}"
+          hx-target="#private-note-${note.id}"
+          hx-swap="outerHTML"
+          hx-on::after-request="if(event.detail.successful) document.getElementById('modal-container').innerHTML = ''"
+          class="p-6 space-y-4"
+        >
+          <div>
+            <label for="private-edit-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              id="private-edit-title"
+              name="title"
+              value="${escapeHtml(note.title)}"
+              required
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
+            />
+          </div>
+          <div>
+            <label for="private-edit-data" class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+            <textarea
+              id="private-edit-data"
+              name="data"
+              rows="4"
+              required
+              placeholder="Write your private note here..."
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors resize-none"
+            >${escapeHtml(note.content)}</textarea>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onclick="document.getElementById('modal-container').innerHTML = ''"
+              class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   `;

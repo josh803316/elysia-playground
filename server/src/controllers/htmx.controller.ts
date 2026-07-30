@@ -8,6 +8,7 @@ import {
   noteCard,
   newNoteModal,
   editNoteModal,
+  editPrivateNoteModal,
   newPrivateNoteModal,
   privateNotesGrid,
   privateNoteCard,
@@ -407,6 +408,52 @@ export const htmxController = new Elysia({prefix: '/htmx'})
     });
   })
 
+  // Get an authenticated owner's private note edit form
+  .get('/private-notes/:id/edit', async (ctx) => {
+    try {
+      const typedCtx = ctx as unknown as ClerkContext & {params: {id: string}};
+      const noteId = Number(typedCtx.params.id);
+      const authData = typedCtx.auth();
+
+      if (!authData?.userId) {
+        return new Response(errorMessage('Authentication required'), {
+          status: 401,
+          headers: {'Content-Type': 'text/html'},
+        });
+      }
+      if (isNaN(noteId)) {
+        return new Response(errorMessage('Invalid note ID'), {
+          status: 400,
+          headers: {'Content-Type': 'text/html'},
+        });
+      }
+
+      const user = await usersModel.findOrCreateByClerkId(typedCtx.db, authData.userId, typedCtx.clerk);
+      const noteResult = await typedCtx.db
+        .select()
+        .from(notes)
+        .where(and(eq(notes.id, noteId), eq(notes.userId, user.id), eq(notes.isPublic, 'false')))
+        .limit(1);
+
+      if (noteResult.length === 0) {
+        return new Response(errorMessage('Note not found or access denied'), {
+          status: 404,
+          headers: {'Content-Type': 'text/html'},
+        });
+      }
+
+      return new Response(editPrivateNoteModal(noteResult[0] as Note), {
+        headers: {'Content-Type': 'text/html'},
+      });
+    } catch (error) {
+      console.error('Error fetching private note for edit:', error);
+      return new Response(errorMessage('Authentication required'), {
+        status: 401,
+        headers: {'Content-Type': 'text/html'},
+      });
+    }
+  })
+
   // Get all private notes for the current user
   .get('/private-notes', async (ctx) => {
     try {
@@ -530,6 +577,78 @@ export const htmxController = new Elysia({prefix: '/htmx'})
         console.error('Error creating private note:', error);
         return new Response(errorMessage('Failed to create note. Please ensure you are signed in.'), {
           status: 500,
+          headers: {'Content-Type': 'text/html'},
+        });
+      }
+    },
+    {
+      body: t.Object({
+        title: t.String(),
+        data: t.String(),
+      }),
+    },
+  )
+
+  // Update a private note owned by the authenticated user
+  .put(
+    '/private-notes/:id',
+    async (ctx) => {
+      try {
+        const typedCtx = ctx as unknown as ClerkContext & {params: {id: string}};
+        const noteId = Number(typedCtx.params.id);
+        const body = typedCtx.body as {title: string; data: string};
+        const authData = typedCtx.auth();
+
+        if (!authData?.userId) {
+          return new Response(errorMessage('Authentication required'), {
+            status: 401,
+            headers: {'Content-Type': 'text/html'},
+          });
+        }
+        if (isNaN(noteId)) {
+          return new Response(errorMessage('Invalid note ID'), {
+            status: 400,
+            headers: {'Content-Type': 'text/html'},
+          });
+        }
+        if (!body.title?.trim() || !body.data?.trim()) {
+          return new Response(errorMessage('Title and content are required'), {
+            status: 400,
+            headers: {'Content-Type': 'text/html'},
+          });
+        }
+
+        const user = await usersModel.findOrCreateByClerkId(typedCtx.db, authData.userId, typedCtx.clerk);
+        const ownedNote = await typedCtx.db
+          .select()
+          .from(notes)
+          .where(and(eq(notes.id, noteId), eq(notes.userId, user.id), eq(notes.isPublic, 'false')))
+          .limit(1);
+
+        if (ownedNote.length === 0) {
+          return new Response(errorMessage('Note not found or access denied'), {
+            status: 404,
+            headers: {'Content-Type': 'text/html'},
+          });
+        }
+
+        const updated = await typedCtx.db
+          .update(notes)
+          .set({
+            title: body.title.trim(),
+            content: body.data.trim(),
+            updatedAt: new Date(),
+          })
+          .where(and(eq(notes.id, noteId), eq(notes.userId, user.id)))
+          .returning();
+
+        return new Response(privateNoteCard(updated[0] as Note), {
+          headers: {'Content-Type': 'text/html'},
+        });
+      } catch (error) {
+        console.error('Error updating private note:', error);
+        return new Response(errorMessage('Authentication required'), {
+          status: 401,
           headers: {'Content-Type': 'text/html'},
         });
       }
