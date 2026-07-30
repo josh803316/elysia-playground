@@ -5,8 +5,8 @@
     "": {
       "name": "e2e-tests",
       "devDependencies": {
-        "@clerk/testing": "latest",
-        "@playwright/test": "latest",
+        "@clerk/testing": "^2.2.15",
+        "@playwright/test": "^1.62.0",
       },
     },
   },
