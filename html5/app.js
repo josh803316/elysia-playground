@@ -35,6 +35,7 @@ const userNameEl = $('#user-name');
 const dialogCreatePublic = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-create-public'));
 const dialogCreatePrivate = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-create-private'));
 const dialogEditNote = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-edit-note'));
+const dialogEditPrivateNote = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-edit-private-note'));
 const dialogAdminLogin = /** @type {HTMLDialogElement} */ (document.getElementById('dialog-admin-login'));
 
 // ── Template refs ─────────────────────────────────────────────
@@ -95,8 +96,11 @@ function renderPrivateNotes() {
     fragment.querySelector('.note-card-title').textContent = note.title || '';
     fragment.querySelector('.note-card-content').textContent = note.content || note.data || '';
     fragment.querySelector('.note-card-date').textContent = formatDate(note.createdAt);
+    const editBtn = fragment.querySelector('.btn-edit-note');
     const deleteBtn = fragment.querySelector('.btn-delete-note');
+    editBtn.dataset.id = note.id;
     deleteBtn.dataset.id = note.id;
+    editBtn.addEventListener('click', () => openEditPrivateDialog(note));
     deleteBtn.addEventListener('click', () => handleDeletePrivate(note.id));
     privateGrid.appendChild(fragment);
   }
@@ -206,6 +210,13 @@ function openEditDialog(note) {
   dialogEditNote.showModal();
 }
 
+function openEditPrivateDialog(note) {
+  document.getElementById('edit-private-note-id').value = note.id;
+  document.getElementById('edit-private-note-title').value = note.title || '';
+  document.getElementById('edit-private-note-content').value = note.content || note.data || '';
+  dialogEditPrivateNote.showModal();
+}
+
 // ── Action handlers ──────────────────────────────────────────
 
 async function handleCreatePublic(title, content) {
@@ -266,6 +277,18 @@ async function handleEditNote(id, title, content) {
   } catch (err) {
     console.error(err);
     alert('Failed to update note.');
+  }
+}
+
+async function handleEditPrivate(id, title, content) {
+  try {
+    const token = await refreshToken();
+    await api.updatePrivateNote(token, id, {title, content});
+    dialogEditPrivateNote.close();
+    await loadPrivateNotes();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to update private note.');
   }
 }
 
@@ -395,6 +418,28 @@ function bindDialogForms() {
   document.getElementById('dialog-edit-note-close').addEventListener('click', () => dialogEditNote.close());
   document.getElementById('dialog-edit-note-cancel').addEventListener('click', () => dialogEditNote.close());
 
+  // Edit Private Note form
+  document.getElementById('form-edit-private-note').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const id = form.elements['id'].value;
+    const title = form.elements['title'].value.trim();
+    const content = form.elements['content'].value.trim();
+    await handleEditPrivate(id, title, content);
+  });
+
+  // Close buttons for Edit Private Note dialog
+  document
+    .getElementById('dialog-edit-private-note-close')
+    .addEventListener('click', () => dialogEditPrivateNote.close());
+  document
+    .getElementById('dialog-edit-private-note-cancel')
+    .addEventListener('click', () => dialogEditPrivateNote.close());
+
   // Admin Login form
   document.getElementById('form-admin-login').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -416,7 +461,13 @@ function bindDialogForms() {
   document.getElementById('dialog-admin-login-cancel').addEventListener('click', () => dialogAdminLogin.close());
 
   // Close dialogs on backdrop click
-  for (const dialog of [dialogCreatePublic, dialogCreatePrivate, dialogEditNote, dialogAdminLogin]) {
+  for (const dialog of [
+    dialogCreatePublic,
+    dialogCreatePrivate,
+    dialogEditNote,
+    dialogEditPrivateNote,
+    dialogAdminLogin,
+  ]) {
     dialog.addEventListener('click', (e) => {
       if (e.target === dialog) {
         dialog.close();

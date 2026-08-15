@@ -92,6 +92,7 @@ export class PrivateNotesComponent implements OnChanges {
               </div>
             </div>
             <div class="note-card-footer">
+              <button class="action-edit" (click)="openEditModal(note)">Edit</button>
               <button class="action-delete" (click)="deleteNote(note.id)">Delete</button>
             </div>
           </div>
@@ -112,7 +113,7 @@ export class PrivateNotesComponent implements OnChanges {
       <div class="modal-overlay" (click)="closeOnOverlay($event)">
         <div class="modal-box">
           <div class="modal-header-private">
-            <h3>🔒 Create Private Note</h3>
+            <h3>🔒 {{ editingNote() ? 'Edit Private Note' : 'Create Private Note' }}</h3>
             <button class="modal-close" (click)="closeModal()">×</button>
           </div>
           <form class="modal-form" (submit)="saveNote($event)">
@@ -134,7 +135,7 @@ export class PrivateNotesComponent implements OnChanges {
             <div class="modal-actions">
               <button type="button" class="btn-cancel" (click)="closeModal()">Cancel</button>
               <button type="submit" class="btn-submit-purple" [disabled]="saving()">
-                Create Private Note
+                {{ editingNote() ? 'Save Changes' : 'Create Private Note' }}
               </button>
             </div>
           </form>
@@ -258,6 +259,19 @@ export class PrivateNotesComponent implements OnChanges {
       padding: 0.75rem 1.25rem;
       display: flex;
       justify-content: flex-end;
+    }
+    .action-edit {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #7c3aed;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .action-edit:hover {
+      color: #6d28d9;
     }
     .action-delete {
       background: none;
@@ -413,6 +427,7 @@ export class PrivateNotesComponent implements OnChanges {
   loading = signal(false);
   error = signal('');
   showModal = signal(false);
+  editingNote = signal<Note | null>(null);
   formContent = '';
   saving = signal(false);
   modalError = signal('');
@@ -445,13 +460,22 @@ export class PrivateNotesComponent implements OnChanges {
   }
 
   openCreateModal() {
+    this.editingNote.set(null);
     this.formContent = '';
+    this.modalError.set('');
+    this.showModal.set(true);
+  }
+
+  openEditModal(note: Note) {
+    this.editingNote.set(note);
+    this.formContent = note.content ?? '';
     this.modalError.set('');
     this.showModal.set(true);
   }
 
   closeModal() {
     this.showModal.set(false);
+    this.editingNote.set(null);
   }
 
   closeOnOverlay(event: MouseEvent) {
@@ -471,7 +495,12 @@ export class PrivateNotesComponent implements OnChanges {
     this.saving.set(true);
     this.modalError.set('');
     try {
-      await this.api.createPrivateNote(this.token, content);
+      const editing = this.editingNote();
+      if (editing) {
+        await this.api.updatePrivateNote(this.token, editing.id, content);
+      } else {
+        await this.api.createPrivateNote(this.token, content);
+      }
       this.closeModal();
       await this.loadNotes();
       this.notesChanged.emit();

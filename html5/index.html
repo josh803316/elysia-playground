@@ -460,6 +460,47 @@ test('private note create, delete', async ({ page }) => {
       </div>
     </dialog>
 
+    <!-- Edit Private Note dialog -->
+    <dialog id="dialog-edit-private-note">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Edit Private Note</h3>
+          <button type="button" class="modal-close" id="dialog-edit-private-note-close">&#x2715;</button>
+        </div>
+        <form id="form-edit-private-note" class="modal-form" method="dialog" novalidate>
+          <input type="hidden" id="edit-private-note-id" name="id" />
+          <div>
+            <label class="label" for="edit-private-note-title">Title</label>
+            <input
+              id="edit-private-note-title"
+              name="title"
+              type="text"
+              class="input"
+              placeholder="Note title"
+              required
+              minlength="1"
+            />
+          </div>
+          <div>
+            <label class="label" for="edit-private-note-content">Content</label>
+            <textarea
+              id="edit-private-note-content"
+              name="content"
+              class="input"
+              rows="4"
+              placeholder="Note content"
+              required
+              minlength="1"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="dialog-edit-private-note-cancel">Cancel</button>
+            <button type="submit" class="btn btn-purple">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
     <!-- Edit Note dialog -->
     <dialog id="dialog-edit-note">
       <div class="modal">
@@ -565,6 +606,7 @@ test('private note create, delete', async ({ page }) => {
           </div>
         </div>
         <div class="note-card-footer">
+          <button class="card-action-edit btn-edit-note" type="button">Edit</button>
           <button class="card-action-delete btn-delete-note" type="button">Delete</button>
         </div>
       </div>

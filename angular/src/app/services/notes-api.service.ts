@@ -41,7 +41,7 @@ export class NotesApiService {
 
   async updatePublicNote(
     id: number,
-    data: { title?: string; content?: string; isPublic?: boolean }
+    data: { title?: string; content?: string; isPublic?: boolean },
   ): Promise<Note> {
     const res = await fetch(`${this.baseUrl}/public-notes/${id}`, {
       method: 'PUT',
@@ -81,6 +81,20 @@ export class NotesApiService {
     return res.json();
   }
 
+  async updatePrivateNote(token: string, id: number, data: string): Promise<Note> {
+    const title = data.trim().slice(0, 50) || 'Private Note';
+    const res = await fetch(`${this.baseUrl}/private-notes/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title, data }),
+    });
+    if (!res.ok) throw new Error('Failed to update private note');
+    return res.json();
+  }
+
   async deletePrivateNote(token: string, id: number): Promise<void> {
     const res = await fetch(`${this.baseUrl}/private-notes/${id}`, {
       method: 'DELETE',
@@ -107,7 +121,10 @@ export class NotesApiService {
     if (!res.ok) throw new Error('Failed to delete note (admin)');
   }
 
-  async deleteNotesByRegexAdmin(apiKey: string, contentRegex: string): Promise<{ deletedCount: number }> {
+  async deleteNotesByRegexAdmin(
+    apiKey: string,
+    contentRegex: string,
+  ): Promise<{ deletedCount: number }> {
     const res = await fetch(`${this.baseUrl}/notes/admin/delete-by-regex`, {
       method: 'POST',
       headers: {

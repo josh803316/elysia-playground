@@ -137,6 +137,50 @@ export class PrivateNotesController extends BaseApiController<Note> {
                   body: 'privateMemo',
                 },
               )
+              // Update an existing private note
+              .put(
+                '/:id',
+                async (ctx) => {
+                  try {
+                    const typedCtx = ctx as unknown as ClerkContext & {
+                      params: {id: string};
+                    };
+                    const {id} = typedCtx.params;
+                    const noteId = Number(id);
+
+                    if (isNaN(noteId)) {
+                      return new Response('Invalid note ID', {status: 400});
+                    }
+
+                    const rawTitle = (typedCtx.body.title || '').trim();
+                    if (!rawTitle) {
+                      return new Response(JSON.stringify({error: 'Title is required'}), {
+                        status: 400,
+                        headers: {'Content-Type': 'application/json'},
+                      });
+                    }
+
+                    // ownershipGuard has already verified this note belongs to the current user
+                    const updatedNote = await this.notesModel.update(typedCtx.db, noteId, {
+                      title: rawTitle,
+                      content: typedCtx.body.data,
+                      updatedAt: new Date(),
+                    });
+
+                    if (!updatedNote) {
+                      return new Response('Note not found', {status: 404});
+                    }
+
+                    return updatedNote;
+                  } catch (error) {
+                    console.error('Error updating note:', error);
+                    return new Response('Error updating note', {status: 500});
+                  }
+                },
+                {
+                  body: 'privateMemo',
+                },
+              )
               // Delete a private note
               .delete('/:id', async (ctx) => {
                 try {

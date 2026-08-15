@@ -1,15 +1,8 @@
-import {
-  describe,
-  expect,
-  it,
-  beforeEach,
-  beforeAll,
-  afterAll,
-} from "bun:test";
-import { treaty } from "@elysiajs/eden";
-import { privateNotesController } from "./private-notes.controller";
-import { TestDBUtils } from "../../test/utils/db-utils";
-import { createTestApp } from "../../test/utils/app-utils";
+import {describe, expect, it, beforeEach, beforeAll, afterAll} from 'bun:test';
+import {treaty} from '@elysiajs/eden';
+import {privateNotesController} from './private-notes.controller';
+import {TestDBUtils} from '../../test/utils/db-utils';
+import {createTestApp} from '../../test/utils/app-utils';
 
 interface Note {
   id: number;
@@ -27,20 +20,21 @@ interface DeleteResponse {
 }
 
 interface PrivateNoteAPI {
-  "private-notes": {
+  'private-notes': {
     put: (
-      body: { title: string; data: string },
-      options?: { headers?: Record<string, string> }
-    ) => Promise<
-      | { data: Note; error?: never }
-      | { data?: never; error: { status: number; value: { message: string } } }
-    >;
-    (params: { id: string }): {
-      delete: (options?: { headers?: Record<string, string> }) => Promise<
-        | { data: DeleteResponse; error?: never }
+      body: {title: string; data: string},
+      options?: {headers?: Record<string, string>},
+    ) => Promise<{data: Note; error?: never} | {data?: never; error: {status: number; value: {message: string}}}>;
+    (params: {id: string}): {
+      put: (
+        body: {title: string; data: string},
+        options?: {headers?: Record<string, string>},
+      ) => Promise<{data: Note; error?: never} | {data?: never; error: {status: number; value: {message: string}}}>;
+      delete: (options?: {headers?: Record<string, string>}) => Promise<
+        | {data: DeleteResponse; error?: never}
         | {
             data?: never;
-            error: { status: number; value: { message: string } };
+            error: {status: number; value: {message: string}};
           }
       >;
     };
@@ -48,12 +42,12 @@ interface PrivateNoteAPI {
 }
 
 // Define test user IDs and emails
-const TEST_USER_ID = "user_test123";
-const TEST_USER_EMAIL = "test1@example.com";
-const TEST_USER2_ID = "user_test456";
-const TEST_USER2_EMAIL = "test2@example.com";
+const TEST_USER_ID = 'user_test123';
+const TEST_USER_EMAIL = 'test1@example.com';
+const TEST_USER2_ID = 'user_test456';
+const TEST_USER2_EMAIL = 'test2@example.com';
 
-describe("Private Notes Controller", () => {
+describe('Private Notes Controller', () => {
   let dbUtils: TestDBUtils;
 
   // Initialize DB once before all tests
@@ -70,209 +64,302 @@ describe("Private Notes Controller", () => {
     }
   });
 
-  describe("Not signed in", () => {
-  it("should not allow unauthorized access", async () => {
-    // Create app with auth function that returns null userId
-    const { app } = await createTestApp({
-      controller: privateNotesController,
-      dbUtils,
-      withAuth: false,
+  describe('Not signed in', () => {
+    it('should not allow unauthorized access', async () => {
+      // Create app with auth function that returns null userId
+      const {app} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        withAuth: false,
+      });
+
+      if (!app) throw new Error('App not initialized');
+      const api = treaty(app) as any;
+
+      // Try to create a note - should get 401 since auth() returns userId: null
+      const {data, error} = await api.api['private-notes'].put({
+        title: 'Test Title',
+        data: 'This is a test private note',
+      });
+
+      console.log({data, error});
+
+      expect(error).toBeDefined();
+      expect(error?.status).toBe(401);
+      expect(data).toBeNull();
     });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    // Try to create a note - should get 401 since auth() returns userId: null
-    const { data, error } = await api.api["private-notes"].put({
-      title: "Test Title",
-      data: "This is a test private note",
-    });
-
-    console.log({ data, error });
-
-    expect(error).toBeDefined();
-    expect(error?.status).toBe(401);
-    expect(data).toBeNull();
   });
-  });
 
-  describe("Signed in", () => {
-  it("should create a new private note", async () => {
-    const { app, token } = await createTestApp({
-      controller: privateNotesController,
-      dbUtils,
-      userId: TEST_USER_ID,
+  describe('Signed in', () => {
+    it('should create a new private note', async () => {
+      const {app, token} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      });
+
+      if (!app) throw new Error('App not initialized');
+      const api = treaty(app) as any;
+
+      const {data, error} = await api.api['private-notes'].put(
+        {
+          title: 'Test Title',
+          data: 'This is a test private note',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      console.log({data, error});
+
+      expect(error).toBeNull();
+      expect(data).toBeDefined();
+      expect(data).toHaveProperty('title', 'Test Title');
+      expect(data).toHaveProperty('content', 'This is a test private note');
+      expect(data).toHaveProperty('isPublic', 'false');
     });
 
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
+    it('should get all private notes for a user', async () => {
+      const {app, token} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      });
 
-    const { data, error } = await api.api["private-notes"].put(
-      {
-        title: "Test Title",
-        data: "This is a test private note",
-      },
-      {
+      if (!app) throw new Error('App not initialized');
+      const api = treaty(app) as any;
+
+      // First create a note
+      await api.api['private-notes'].put(
+        {
+          title: 'Test Title',
+          data: 'This is a test private note',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // Get all notes
+      const {data, error} = await api.api['private-notes'].get({
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
-    );
+      });
 
-    console.log({ data, error });
+      console.log({data, error});
 
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data).toHaveProperty("title", "Test Title");
-    expect(data).toHaveProperty("content", "This is a test private note");
-    expect(data).toHaveProperty("isPublic", "false");
-  });
-
-  it("should get all private notes for a user", async () => {
-    const { app, token } = await createTestApp({
-      controller: privateNotesController,
-      dbUtils,
-      userId: TEST_USER_ID,
+      expect(error).toBeNull();
+      expect(data).toBeDefined();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBeGreaterThan(0);
+      expect(data[0]).toHaveProperty('title', 'Test Title');
     });
 
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
+    it('should delete a private note', async () => {
+      const {app, token} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      });
 
-    // First create a note
-    await api.api["private-notes"].put(
-      {
-        title: "Test Title",
-        data: "This is a test private note",
-      },
-      {
+      if (!app) throw new Error('App not initialized');
+      const api = treaty(app) as any;
+
+      // First create a note
+      const createResponse = await api.api['private-notes'].put(
+        {
+          title: 'Test Title',
+          data: 'This is a test private note',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      console.log({createResponse});
+
+      const createdNote = createResponse.data as Note;
+
+      // Then delete it using Eden Treaty
+      const {data, error} = await api.api['private-notes'][createdNote.id].delete({
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
-    );
+      });
 
-    // Get all notes
-    const { data, error } = await api.api["private-notes"].get({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      console.log({data, error});
 
-    console.log({ data, error });
+      expect(error).toBeNull();
+      expect(data).toBeDefined();
+      expect(data).toHaveProperty('success', true);
 
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThan(0);
-    expect(data[0]).toHaveProperty("title", "Test Title");
-  });
-
-  it("should delete a private note", async () => {
-    const { app, token } = await createTestApp({
-      controller: privateNotesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    // First create a note
-    const createResponse = await api.api["private-notes"].put(
-      {
-        title: "Test Title",
-        data: "This is a test private note",
-      },
-      {
+      // Verify the note is deleted
+      const {error: getError} = await api.api['private-notes'][createdNote.id].delete({
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
-    );
+      });
 
-    console.log({ createResponse });
+      console.log({getError});
 
-    const createdNote = createResponse.data as Note;
-
-    // Then delete it using Eden Treaty
-    const { data, error } = await api.api["private-notes"][
-      createdNote.id
-    ].delete({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      expect(getError).toBeDefined();
+      expect(getError?.status).toBe(404);
     });
 
-    console.log({ data, error });
+    it('should update a private note', async () => {
+      const {app, token} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      });
 
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data).toHaveProperty("success", true);
+      if (!app) throw new Error('App not initialized');
+      const api = treaty(app) as any;
 
-    // Verify the note is deleted
-    const { error: getError } = await api.api["private-notes"][
-      createdNote.id
-    ].delete({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    console.log({ getError });
-
-    expect(getError).toBeDefined();
-    expect(getError?.status).toBe(404);
-  });
-
-  it("should not allow access to other users' notes", async () => {
-    // Create first user context
-    const { app: app1, token: token1 } = await createTestApp({
-      controller: privateNotesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-      email: TEST_USER_EMAIL,
-    });
-
-    if (!app1) throw new Error("App not initialized");
-    const api1 = treaty(app1) as any;
-
-    // Create second user context with different user
-    const { app: app2, token: token2 } = await createTestApp({
-      controller: privateNotesController,
-      dbUtils,
-      userId: TEST_USER2_ID,
-      email: TEST_USER2_EMAIL,
-    });
-
-    if (!app2) throw new Error("App not initialized");
-    const api2 = treaty(app2) as any;
-
-    // First user creates a note
-    const createResponse = await api1.api["private-notes"].put(
-      {
-        title: "Test Title",
-        data: "This is a test private note",
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token1}`,
+      const createResponse = await api.api['private-notes'].put(
+        {
+          title: 'Original Title',
+          data: 'Original content',
         },
-      }
-    );
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
-    const createdNote = createResponse.data as Note;
+      const createdNote = createResponse.data as Note;
 
-    // Second user tries to delete the note
-    const { error } = await api2.api["private-notes"][createdNote.id].delete({
-      headers: {
-        Authorization: `Bearer ${token2}`,
-      },
+      const {data, error} = await api.api['private-notes'][createdNote.id].put(
+        {
+          title: 'Updated Title',
+          data: 'Updated content',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      console.log({data, error});
+
+      expect(error).toBeNull();
+      expect(data).toBeDefined();
+      expect(data).toHaveProperty('title', 'Updated Title');
+      expect(data).toHaveProperty('content', 'Updated content');
     });
 
-    console.log({ error });
+    it("should not allow updating another user's note", async () => {
+      const {app: app1, token: token1} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+        email: TEST_USER_EMAIL,
+      });
 
-    expect(error).toBeDefined();
-    expect(error?.status).toBe(403); // Should be 403 Forbidden
-  });
+      if (!app1) throw new Error('App not initialized');
+      const api1 = treaty(app1) as any;
+
+      const {app: app2, token: token2} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER2_ID,
+        email: TEST_USER2_EMAIL,
+      });
+
+      if (!app2) throw new Error('App not initialized');
+      const api2 = treaty(app2) as any;
+
+      const createResponse = await api1.api['private-notes'].put(
+        {
+          title: 'Test Title',
+          data: 'This is a test private note',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token1}`,
+          },
+        },
+      );
+
+      const createdNote = createResponse.data as Note;
+
+      const {error} = await api2.api['private-notes'][createdNote.id].put(
+        {
+          title: 'Hijacked Title',
+          data: 'Hijacked content',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token2}`,
+          },
+        },
+      );
+
+      console.log({error});
+
+      expect(error).toBeDefined();
+      expect(error?.status).toBe(403);
+    });
+
+    it("should not allow access to other users' notes", async () => {
+      // Create first user context
+      const {app: app1, token: token1} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+        email: TEST_USER_EMAIL,
+      });
+
+      if (!app1) throw new Error('App not initialized');
+      const api1 = treaty(app1) as any;
+
+      // Create second user context with different user
+      const {app: app2, token: token2} = await createTestApp({
+        controller: privateNotesController,
+        dbUtils,
+        userId: TEST_USER2_ID,
+        email: TEST_USER2_EMAIL,
+      });
+
+      if (!app2) throw new Error('App not initialized');
+      const api2 = treaty(app2) as any;
+
+      // First user creates a note
+      const createResponse = await api1.api['private-notes'].put(
+        {
+          title: 'Test Title',
+          data: 'This is a test private note',
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token1}`,
+          },
+        },
+      );
+
+      const createdNote = createResponse.data as Note;
+
+      // Second user tries to delete the note
+      const {error} = await api2.api['private-notes'][createdNote.id].delete({
+        headers: {
+          Authorization: `Bearer ${token2}`,
+        },
+      });
+
+      console.log({error});
+
+      expect(error).toBeDefined();
+      expect(error?.status).toBe(403); // Should be 403 Forbidden
+    });
   });
 });

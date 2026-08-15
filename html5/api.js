@@ -80,6 +80,18 @@ export async function createPrivateNote(token, data) {
   return res.json();
 }
 
+export async function updatePrivateNote(token, id, {title, content}) {
+  const res = await fetch(`/api/private-notes/${id}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json', ...authHeaders(token)},
+    body: JSON.stringify({title, data: content}),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to update private note');
+  }
+  return res.json();
+}
+
 export async function deletePrivateNote(token, id) {
   const res = await fetch(`/api/private-notes/${id}`, {
     method: 'DELETE',

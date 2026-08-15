@@ -17,6 +17,7 @@ import {
   createPublicNoteModal,
   createPrivateNoteModal,
   editNoteModal,
+  editPrivateNoteModal,
   adminLoginModal,
 } from './components.js';
 
@@ -68,7 +69,12 @@ function renderPrivateNotes() {
     privateGrid.appendChild(emptyState('No private notes yet.'));
   } else {
     for (const note of privateNotes) {
-      privateGrid.appendChild(privateNoteCard(note, {onDelete: (id) => handleDeletePrivate(id)}));
+      privateGrid.appendChild(
+        privateNoteCard(note, {
+          onEdit: (n) => openEditPrivateModal(n),
+          onDelete: (id) => handleDeletePrivate(id),
+        }),
+      );
     }
   }
   privateCountBadge.textContent = privateNotes.length;
@@ -196,6 +202,18 @@ async function handleEditPublic(id, data) {
   }
 }
 
+async function handleEditPrivate(id, data) {
+  try {
+    const token = await refreshToken();
+    await api.updatePrivateNote(token, id, data);
+    closeModal();
+    await loadPrivateNotes();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to update private note.');
+  }
+}
+
 async function handleAdminDelete(id) {
   if (!confirm('Admin delete this note?')) return;
   try {
@@ -213,6 +231,15 @@ function openEditModal(note) {
   openModal(
     editNoteModal(note, {
       onSubmit: (data) => handleEditPublic(note.id, data),
+      onClose: closeModal,
+    }),
+  );
+}
+
+function openEditPrivateModal(note) {
+  openModal(
+    editPrivateNoteModal(note, {
+      onSubmit: (data) => handleEditPrivate(note.id, data),
       onClose: closeModal,
     }),
   );
