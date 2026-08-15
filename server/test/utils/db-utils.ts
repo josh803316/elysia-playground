@@ -1,9 +1,9 @@
-import { PGlite } from "@electric-sql/pglite";
-import { sql } from "drizzle-orm";
-import * as schema from "../../src/db/schema";
-import { notes, users } from "../../src/db/schema";
-import { drizzle } from "drizzle-orm/pglite";
-import { randomUUID } from "crypto";
+import {PGlite} from '@electric-sql/pglite';
+import {sql} from 'drizzle-orm';
+import * as schema from '../../src/db/schema';
+import {notes, users} from '../../src/db/schema';
+import {drizzle} from 'drizzle-orm/pglite';
+import {randomUUID} from 'crypto';
 
 interface UserRow {
   id: number;
@@ -52,7 +52,7 @@ export class TestDBUtils {
     try {
       if (this.pgLiteInstance) {
         // Return existing instance if already created
-        return { db: this.db, pgLiteInstance: this.pgLiteInstance };
+        return {db: this.db, pgLiteInstance: this.pgLiteInstance};
       }
 
       // Create a new in-memory database
@@ -85,17 +85,17 @@ export class TestDBUtils {
       `);
 
       // Create Drizzle instance with schema so ORM uses correct table names
-      this.db = drizzle(this.pgLiteInstance, { schema });
+      this.db = drizzle(this.pgLiteInstance, {schema});
 
-      console.log("Test database created successfully");
-      return { db: this.db, pgLiteInstance: this.pgLiteInstance };
+      console.log('Test database created successfully');
+      return {db: this.db, pgLiteInstance: this.pgLiteInstance};
     } catch (error) {
-      console.error("Error creating test database:", error);
+      console.error('Error creating test database:', error);
       if (this.pgLiteInstance) {
         try {
           await this.pgLiteInstance.close();
         } catch (e) {
-          console.error("Error closing PGlite instance:", e);
+          console.error('Error closing PGlite instance:', e);
         }
         this.pgLiteInstance = null;
       }
@@ -109,14 +109,14 @@ export class TestDBUtils {
   public async seedTestUser(clerkId: string) {
     try {
       if (!this.db) {
-        throw new Error("Database not initialized");
+        throw new Error('Database not initialized');
       }
 
       // Create a test user
       const testUser = {
         clerkId: clerkId,
-        firstName: "Test",
-        lastName: "User",
+        firstName: 'Test',
+        lastName: 'User',
         email: `test-${clerkId}@example.com`,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -143,12 +143,8 @@ export class TestDBUtils {
         testUser.updatedAt,
       ]);
 
-      if (
-        !insertedUser ||
-        !insertedUser.rows ||
-        insertedUser.rows.length === 0
-      ) {
-        throw new Error("Failed to insert test user");
+      if (!insertedUser || !insertedUser.rows || insertedUser.rows.length === 0) {
+        throw new Error('Failed to insert test user');
       }
 
       const userId = (insertedUser.rows[0] as UserRow).id;
@@ -156,16 +152,16 @@ export class TestDBUtils {
       // Create test notes
       const notesData = [
         {
-          title: "Test Note 1",
-          content: "Test content for note 1",
+          title: 'Test Note 1',
+          content: 'Test content for note 1',
           userId: userId,
-          isPublic: "false",
+          isPublic: 'false',
         },
         {
-          title: "Test Note 2",
-          content: "Test content for note 2",
+          title: 'Test Note 2',
+          content: 'Test content for note 2',
           userId: userId,
-          isPublic: "false",
+          isPublic: 'false',
         },
       ];
 
@@ -195,7 +191,7 @@ export class TestDBUtils {
         notes: insertedNotes,
       };
     } catch (error) {
-      console.error("Error seeding test user:", error);
+      console.error('Error seeding test user:', error);
       throw error;
     }
   }
@@ -206,13 +202,13 @@ export class TestDBUtils {
   public async createPublicAnonymousNote() {
     try {
       if (!this.db) {
-        throw new Error("Database not initialized");
+        throw new Error('Database not initialized');
       }
 
       const noteData = {
-        title: "Public Anonymous Note",
-        content: "This is a public anonymous note for testing",
-        isPublic: "true",
+        title: 'Public Anonymous Note',
+        content: 'This is a public anonymous note for testing',
+        isPublic: 'true',
       };
 
       const noteInsertQuery = `
@@ -228,13 +224,30 @@ export class TestDBUtils {
       ]);
 
       if (!result || !result.rows || result.rows.length === 0) {
-        throw new Error("Failed to insert public anonymous note");
+        throw new Error('Failed to insert public anonymous note');
       }
 
       return result.rows[0] as NoteRow;
     } catch (error) {
-      console.error("Error creating public anonymous note:", error);
+      console.error('Error creating public anonymous note:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Close the underlying PGlite instance. Call once, after the entire test run
+   * finishes (this class is a process-wide singleton shared by every test file) —
+   * an unclosed PGlite instance leaves Bun's process unable to exit cleanly.
+   */
+  public async close() {
+    if (this.pgLiteInstance) {
+      try {
+        await this.pgLiteInstance.close();
+      } catch (e) {
+        console.error('Error closing PGlite instance:', e);
+      }
+      this.pgLiteInstance = null;
+      this.db = null;
     }
   }
 
@@ -244,16 +257,16 @@ export class TestDBUtils {
   public async clearAllData() {
     try {
       if (!this.pgLiteInstance) {
-        throw new Error("Database not initialized");
+        throw new Error('Database not initialized');
       }
 
       // Delete data in reverse order of dependencies
-      await this.pgLiteInstance.query("DELETE FROM notes");
-      await this.pgLiteInstance.query("DELETE FROM users");
+      await this.pgLiteInstance.query('DELETE FROM notes');
+      await this.pgLiteInstance.query('DELETE FROM users');
 
-      console.log("Database cleared successfully");
+      console.log('Database cleared successfully');
     } catch (error) {
-      console.error("Error clearing database:", error);
+      console.error('Error clearing database:', error);
       throw error;
     }
   }

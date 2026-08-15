@@ -81,11 +81,11 @@ describe('jQuery Controller', () => {
       }
     });
 
-    it('includes code expander toggles (3 sections)', async () => {
+    it('includes code expander toggles (3 sections x code + E2E test)', async () => {
       const res = await createApp().handle(new Request('http://localhost/jquery/'));
       const html = await res.text();
       const count = (html.match(/class="jq-code-toggle/g) ?? []).length;
-      expect(count).toBe(3);
+      expect(count).toBe(6);
     });
 
     it('includes code panels with language-javascript class', async () => {

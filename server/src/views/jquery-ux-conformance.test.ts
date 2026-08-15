@@ -57,10 +57,10 @@ describe('jQuery templates UX conformance', () => {
     expect(html).not.toContain('htmx.org');
   });
 
-  it('jqueryPage has 3 code expanders (one per section)', () => {
+  it('jqueryPage has 6 code expanders (code + E2E test per section)', () => {
     const html = jqueryPage(undefined);
     const count = (html.match(/class="jq-code-toggle/g) ?? []).length;
-    expect(count).toBe(3);
+    expect(count).toBe(6);
   });
 
   it('code expanders reference correct REST API endpoints', () => {
