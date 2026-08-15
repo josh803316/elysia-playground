@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NotesApiService, Note } from '../../services/notes-api.service';
-import { SearchNotesService } from '../../services/search-notes.service';
+import { SearchNotesService, type SearchNote } from '../../services/search-notes.service';
 import { CodeExpanderComponent } from '../code-expander/code-expander';
 import { PRIVATE_NOTES_TEST_SNIPPET } from '../../lib/e2e-snippets';
 
@@ -466,8 +466,8 @@ export class PrivateNotesComponent implements OnChanges {
     this.showModal.set(true);
   }
 
-  openEditModal(note: Note) {
-    this.editingNote.set(note);
+  openEditModal(note: Note | SearchNote) {
+    this.editingNote.set(note as Note);
     this.formContent = note.content ?? '';
     this.modalError.set('');
     this.showModal.set(true);
