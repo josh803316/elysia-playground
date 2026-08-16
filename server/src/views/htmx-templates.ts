@@ -43,8 +43,11 @@ export function baseLayout(
   clerkFrontendApi?: string,
 ): string {
   const clerkScriptSrc = clerkFrontendApi
-    ? `https://${clerkFrontendApi}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js`
-    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+    ? `https://${clerkFrontendApi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`
+    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js';
+  const clerkUiScriptSrc = clerkFrontendApi
+    ? `https://${clerkFrontendApi}/npm/@clerk/ui@1/dist/ui.browser.js`
+    : 'https://cdn.jsdelivr.net/npm/@clerk/ui@1/dist/ui.browser.js';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -58,8 +61,9 @@ export function baseLayout(
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
   ${
     clerkPublishableKey
-      ? `<script
-    async
+      ? `<script defer crossorigin="anonymous" src="${clerkUiScriptSrc}" type="text/javascript"></script>
+  <script
+    defer
     crossorigin="anonymous"
     data-clerk-publishable-key="${clerkPublishableKey}"
     src="${clerkScriptSrc}"
@@ -446,7 +450,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
     // Initialize Clerk
     window.addEventListener('load', async () => {
       try {
-        await window.Clerk.load();
+        await window.Clerk.load({ui: {ClerkUI: window.__internal_ClerkUICtor}});
         
         // Update body class based on auth state
         const updateAuthState = async () => {
