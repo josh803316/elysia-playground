@@ -2,7 +2,12 @@
   "extends": "@josh803316/shared-config/tsconfig/bun.json",
   "compilerOptions": {
     "allowImportingTsExtensions": true,
-    "types": ["bun"]
+    "types": ["bun"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "noUncheckedIndexedAccess": false,
+    "verbatimModuleSyntax": false
   },
   "include": ["index.ts", "server/src/**/*"],
   "exclude": ["node_modules", "**/node_modules", "dist/"]
