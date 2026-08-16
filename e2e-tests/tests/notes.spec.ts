@@ -14,7 +14,7 @@ import {readFileSync, existsSync} from 'fs';
 import {join, dirname} from 'path';
 import {fileURLToPath} from 'url';
 import {test, expect} from '@playwright/test';
-import {setupClerkTestingToken} from '@clerk/testing/playwright';
+import {clerk, setupClerkTestingToken} from '@clerk/testing/playwright';
 import {APP_PATHS, type AppName} from './helpers/apps.js';
 import {requireEnvVars} from './helpers/env.js';
 
@@ -165,6 +165,24 @@ test.describe('private notes (signed in)', () => {
       const content = privateNoteContent(appNameTyped);
       const title = privateNoteTitle(appNameTyped);
       logStep(`TEST private note: create, edit, delete — ${appName}`);
+
+      // HTMX uses Clerk's browser bundle directly and cannot refresh the
+      // short-lived storageState JWT the way the framework SDKs do. Renew its
+      // session immediately before exercising the authenticated HTMX page.
+      if (appName === 'htmx') {
+        await timed('refresh Clerk session for HTMX', async () => {
+          await page.goto('/react', {waitUntil: 'domcontentloaded', timeout: 20_000});
+          await page.waitForLoadState('load');
+          await clerk
+            .signIn({
+              page,
+              signInParams: {strategy: 'email_code', identifier: process.env.CLERK_TEST_EMAIL!},
+            })
+            .catch((error: unknown) => {
+              if (!(error instanceof Error) || !error.message.includes("You're already signed in")) throw error;
+            });
+        });
+      }
 
       // Navigate to app — storage state provides auth session automatically.
       await timed(`page.goto ${appPath}`, () => page.goto(appPath, {waitUntil: 'domcontentloaded', timeout: 20_000}));
