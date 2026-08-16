@@ -1,4 +1,4 @@
-import { Note } from "../hooks/useNotes";
+import type { Note } from "../hooks/useNotes";
 import { Table, ActionIcon, Group, Text } from "@mantine/core";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 
