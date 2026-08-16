@@ -1,4 +1,5 @@
 {
+  "extends": "@josh803316/shared-config/tsconfig/bun.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ES2022",

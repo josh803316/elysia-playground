@@ -1,3 +1,6 @@
-import sharedConfig from '@josh803316/shared-config/prettier.config.js';
-
-export default sharedConfig;
+export default {
+  printWidth: 120,
+  bracketSpacing: false,
+  singleQuote: true,
+  jsxSingleQuote: true,
+}

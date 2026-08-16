@@ -58,7 +58,7 @@ const api = new Elysia({prefix: '/api'})
   .use(publicNotesController) // /api/public-notes
   .get(
     '/api-key-example',
-    async (ctx) => {
+    async () => {
       return {
         success: true,
         message: 'API Key authentication successful',
