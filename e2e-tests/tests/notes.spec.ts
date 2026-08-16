@@ -146,6 +146,14 @@ test.describe('private notes (signed in)', () => {
   // Serial so tests don't compete for private note visibility across apps
   test.describe.configure({mode: 'serial'});
 
+  // HTMX initializes Clerk directly from the short-lived session in storageState,
+  // while the framework SDKs refresh it. Exercise HTMX first so the bootstrap JWT
+  // cannot expire while the preceding serial cases run.
+  const privateNoteApps = [
+    ...APP_PATHS.filter(({name}) => name === 'htmx'),
+    ...APP_PATHS.filter(({name}) => name !== 'htmx'),
+  ];
+
   test.beforeEach(async ({page}) => {
     resetTimer();
     await page.addInitScript(() => {
@@ -156,7 +164,7 @@ test.describe('private notes (signed in)', () => {
     await timed('setupClerkTestingToken', () => setupClerkTestingToken({page}));
   });
 
-  for (const appDef of APP_PATHS) {
+  for (const appDef of privateNoteApps) {
     const {name: appName, path: appPath, supportsPrivateNoteEdit} = appDef;
 
     test(`${appName}: private note create, edit, delete`, async ({page}) => {
