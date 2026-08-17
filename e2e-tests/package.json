@@ -10,7 +10,7 @@
     "e2e:install": "playwright install chromium"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
-    "@clerk/testing": "^2.2.15"
+    "@playwright/test": "^1.62.1",
+    "@clerk/testing": "^2.2.24"
   }
 }
