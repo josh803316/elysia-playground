@@ -153,7 +153,7 @@ const serveSPA = (assetsDir: string, prefix: string) => {
       .group(prefix, (app) =>
         app
           .get('/', async () => await serveIndex())
-          .get('/*', async ({ params }) => {
+          .get('/*', async ({ params }: { params: Record<string, string | undefined> }) => {
             const reqPath = params['*'] ?? ''
             const filePath = resolve(assetsDir, reqPath)
 
@@ -182,7 +182,7 @@ const serveSPA = (assetsDir: string, prefix: string) => {
 }
 
 // Create the main app
-const app = new Elysia().state({ resource: null as unknown })
+const app = new Elysia()
 const allowedOrigins = getAllowedOrigins()
 
 // Add custom logger middleware. Named useLogger for the Pino helper; not a React hook.
@@ -979,7 +979,7 @@ app
   // Serve SvelteKit's /_app/ assets (referenced by relative paths in svelte/build/index.html
   // when the page is loaded without a trailing slash, e.g. GET /svelte resolves ./ to /)
   .group('/_app', (app) =>
-    app.get('/*', async ({ params }) => {
+    app.get('/*', async ({ params }: { params: Record<string, string | undefined> }) => {
       const reqPath = params['*'] ?? ''
       const svelteAppDir = resolve(svelteAssetsPath, '_app')
       const filePath = resolve(svelteAppDir, reqPath)

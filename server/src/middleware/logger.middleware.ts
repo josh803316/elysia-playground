@@ -1,5 +1,5 @@
 import { createPinoLogger } from '@bogeychan/elysia-logger'
-import type { Elysia } from 'elysia'
+import type { AnyElysia } from 'elysia'
 import * as util from 'util'
 
 // Explicitly check for development mode - default to development if not set
@@ -13,7 +13,7 @@ util.inspect.defaultOptions = {
   breakLength: 80,
 }
 
-export function useLogger(app: Elysia) {
+export function useLogger(app: AnyElysia) {
   const logger = createPinoLogger({
     redact: {
       paths: [
