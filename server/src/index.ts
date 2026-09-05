@@ -3,34 +3,35 @@
  * are mounted under /api; guards (authGuard, apiKeyGuard) protect routes. DB is
  * initialized once at cold start; seeding runs only in PGlite mode.
  */
-import {Elysia, NotFoundError} from 'elysia';
-import {swagger} from '@elysiajs/swagger';
-import {opentelemetry} from '@elysiajs/opentelemetry';
-import {clerkPluginWithRequestOrigin} from './clerk-with-request-origin.js';
-import {cors} from '@elysiajs/cors';
-import {promises as fs} from 'fs';
-import {join, resolve} from 'path';
 
-import {privateNotesController} from './controllers/private-notes.controller.js';
-import {notesController} from './controllers/notes.controller.js';
-import {publicNotesController} from './controllers/public-notes.controller.js';
-import {versionsController} from './controllers/versions.controller.js';
-import {htmxController} from './controllers/htmx.controller.js';
-import {jqueryController} from './controllers/jquery.controller.js';
-import {getDB, initDB} from './db/index.js';
-import {apiKeyGuard} from './guards/api-key-guard.js';
-import {authGuard} from './guards/auth-guard.js';
-import {useLogger} from './middleware/logger.middleware.js';
-import {getAllowedOrigins} from './config/origins.js';
-import {isProtectedRoute} from './config/route-protection.js';
-import {renderAllPage} from './views/all-page.js';
+import { cors } from '@elysia/cors'
+import { openapi } from '@elysia/openapi'
+import { opentelemetry } from '@elysia/opentelemetry'
+import { Elysia, NotFound } from 'elysia'
+import { promises as fs } from 'fs'
+import { join, resolve } from 'path'
+import { clerkPluginWithRequestOrigin } from './clerk-with-request-origin.js'
+import { getAllowedOrigins } from './config/origins.js'
+import { isProtectedRoute } from './config/route-protection.js'
+import { htmxController } from './controllers/htmx.controller.js'
+import { jqueryController } from './controllers/jquery.controller.js'
+import { notesController } from './controllers/notes.controller.js'
+import { privateNotesController } from './controllers/private-notes.controller.js'
+import { publicNotesController } from './controllers/public-notes.controller.js'
+import { versionsController } from './controllers/versions.controller.js'
+import { getDB, initDB } from './db/index.js'
+import { apiKeyGuard } from './guards/api-key-guard.js'
+import { authGuard } from './guards/auth-guard.js'
+import { useLogger } from './middleware/logger.middleware.js'
+import { renderAllPage } from './views/all-page.js'
 
 // Helper to safely get error message
 const getErrorMessage = (error: any): string => {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null && 'message' in error) return String(error.message);
-  return String(error);
-};
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error !== null && 'message' in error)
+    return String(error.message)
+  return String(error)
+}
 
 const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
@@ -42,53 +43,55 @@ const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="url(#bg)"/>
   <path d="M16 20h26a8 8 0 0 1 0 16H30v8h-8v-24h-6z" fill="#fff"/>
   <circle cx="46" cy="44" r="6" fill="#fff" opacity=".9"/>
-</svg>`;
+</svg>`
 
 // Initialize/seed DB once per cold start. Do not hard-exit on failure in serverless.
 // Seeding only applies to PGlite (in-memory) mode; Supabase data persists.
-const dbSetupPromise = initDB({seed: true}).catch((error) => {
-  console.error('Database setup failed during startup:', error);
-  return null;
-});
+const dbSetupPromise = initDB({ seed: true }).catch((_error) => {
+  return null
+})
 
 // Create API routes with /api prefix
-const api = new Elysia({prefix: '/api'})
+const api = new Elysia({ prefix: '/api' })
   .use(privateNotesController) // /api/private-notes
   .use(notesController) // /api/notes
   .use(publicNotesController) // /api/public-notes
   .get(
     '/api-key-example',
+    {
+      beforeHandle: apiKeyGuard,
+    },
     async () => {
       return {
         success: true,
         message: 'API Key authentication successful',
         timestamp: new Date().toISOString(),
         isAdmin: true,
-      };
-    },
-    {
-      beforeHandle: apiKeyGuard,
-    },
+      }
+    }
   )
-  .onError(({error, code, request}) => {
-    const url = new URL(request.url);
-    const errorMsg = getErrorMessage(error);
-    console.error(`[API ERROR] ${request.method} ${url.pathname} - ${code} - ${errorMsg}`);
+  .error(({ error, request }) => {
+    const url = new URL(request.url)
+    const errorMsg = getErrorMessage(error)
+    const _kind =
+      error instanceof NotFound ? 'not-found' : error instanceof Error ? error.name : 'unknown'
 
-    if (code === 'NOT_FOUND') {
-      return {error: 'Route not found', path: url.pathname};
+    if (error instanceof NotFound) {
+      return { error: 'Route not found', path: url.pathname }
     }
 
-    return {error: errorMsg || 'Unknown error'};
-  });
+    return { error: errorMsg || 'Unknown error' }
+  })
 
 // Resolve static asset directories relative to this file
-const reactAssetsPath = resolve(new URL('../../react/dist', import.meta.url).pathname);
-const svelteAssetsPath = resolve(new URL('../../svelte/build', import.meta.url).pathname);
-const vanillaJsAssetsPath = resolve(new URL('../../vanilla-js', import.meta.url).pathname);
-const html5AssetsPath = resolve(new URL('../../html5', import.meta.url).pathname);
-const angularAssetsPath = resolve(new URL('../../angular/dist/angular/browser', import.meta.url).pathname);
-const vueAssetsPath = resolve(new URL('../../vue/dist', import.meta.url).pathname);
+const reactAssetsPath = resolve(new URL('../../react/dist', import.meta.url).pathname)
+const svelteAssetsPath = resolve(new URL('../../svelte/build', import.meta.url).pathname)
+const vanillaJsAssetsPath = resolve(new URL('../../vanilla-js', import.meta.url).pathname)
+const html5AssetsPath = resolve(new URL('../../html5', import.meta.url).pathname)
+const angularAssetsPath = resolve(
+  new URL('../../angular/dist/angular/browser', import.meta.url).pathname
+)
+const vueAssetsPath = resolve(new URL('../../vue/dist', import.meta.url).pathname)
 
 const contentTypeByExt: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -107,89 +110,90 @@ const contentTypeByExt: Record<string, string> = {
   '.map': 'application/json; charset=utf-8',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
-};
+}
 
 const getContentType = (filePath: string): string =>
-  contentTypeByExt[filePath.slice(filePath.lastIndexOf('.'))] ?? 'application/octet-stream';
+  contentTypeByExt[filePath.slice(filePath.lastIndexOf('.'))] ?? 'application/octet-stream'
 
 // Helper: create an Elysia plugin that serves a pre-built SPA from disk.
 // Uses fs APIs so it works on Node and Bun runtimes.
 const serveSPA = (assetsDir: string, prefix: string) => {
-  const indexPath = join(assetsDir, 'index.html');
+  const indexPath = join(assetsDir, 'index.html')
 
   const serveIndex = async () => {
     try {
-      const html = await fs.readFile(indexPath);
+      const html = await fs.readFile(indexPath)
       return new Response(new Uint8Array(html), {
-        headers: {'content-type': 'text/html; charset=utf-8'},
-      });
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      })
     } catch {
       // Graceful fallback when a frontend build artifact is missing at runtime
       // (e.g. Angular skipped due to build env / compiler issues after upgrades).
       // Returns 200 HTML instead of letting ENOENT become a 500, keeping deploys
       // and the site surface green.
-      const fallback = `<!doctype html><html><head><meta charset="utf-8"><title>${prefix} (placeholder)</title><base href="${prefix}/"></head><body><h1>${prefix} placeholder</h1><p>Frontend build artifact not present (build was skipped or incomplete). See CI logs.</p></body></html>`;
+      const fallback = `<!doctype html><html><head><meta charset="utf-8"><title>${prefix} (placeholder)</title><base href="${prefix}/"></head><body><h1>${prefix} placeholder</h1><p>Frontend build artifact not present (build was skipped or incomplete). See CI logs.</p></body></html>`
       return new Response(fallback, {
-        headers: {'content-type': 'text/html; charset=utf-8'},
-      });
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      })
     }
-  };
+  }
 
   return (
     new Elysia()
       // Redirect bare prefix to trailing-slash so relative paths in HTML resolve correctly
       // e.g. /svelte -> /svelte/  (without this, "./_app/foo.css" resolves to "/_app/foo.css")
-      .get(prefix, async ({request}) => {
-        const url = new URL(request.url);
+      .get(prefix, async ({ request }) => {
+        const url = new URL(request.url)
         if (!url.pathname.endsWith('/')) {
-          const redirectUrl = new URL(`${url.pathname}/`, url.origin);
-          return Response.redirect(redirectUrl.toString(), 302);
+          const redirectUrl = new URL(`${url.pathname}/`, url.origin)
+          return Response.redirect(redirectUrl.toString(), 302)
         }
-        return await serveIndex();
+        return await serveIndex()
       })
       .group(prefix, (app) =>
         app
           .get('/', async () => await serveIndex())
-          .get('/*', async ({params}) => {
-            const reqPath = params['*'] ?? '';
-            const filePath = resolve(assetsDir, reqPath);
+          .get('/*', async ({ params }) => {
+            const reqPath = params['*'] ?? ''
+            const filePath = resolve(assetsDir, reqPath)
 
             // Prevent path traversal
-            if (!filePath.startsWith(assetsDir + '/') && filePath !== assetsDir) {
-              throw new NotFoundError();
+            if (!filePath.startsWith(`${assetsDir}/`) && filePath !== assetsDir) {
+              throw new NotFound()
             }
 
             try {
-              const stat = await fs.stat(filePath);
+              const stat = await fs.stat(filePath)
               if (stat.isFile()) {
-                const file = await fs.readFile(filePath);
+                const file = await fs.readFile(filePath)
                 return new Response(new Uint8Array(file), {
-                  headers: {'content-type': getContentType(filePath)},
-                });
+                  headers: { 'content-type': getContentType(filePath) },
+                })
               }
             } catch {
               // Ignore fs errors and fall back to index for SPA routes.
             }
 
             // SPA fallback — serve index.html for client-side routing
-            return await serveIndex();
-          }),
+            return await serveIndex()
+          })
       )
-  );
-};
+  )
+}
 
 // Create the main app
-const app = new Elysia();
-const allowedOrigins = getAllowedOrigins();
+const app = new Elysia().state({ resource: null as unknown })
+const allowedOrigins = getAllowedOrigins()
 
-// Add custom logger middleware
-useLogger(app);
+// Add custom logger middleware. Named useLogger for the Pino helper; not a React hook.
+// biome-ignore lint/correctness/useHookAtTopLevel: Pino helper, not a React hook
+useLogger(app)
 
 // Continue with other middleware and routes
 app
   // Cast plugin instances to any to avoid cross-package Elysia type incompatibilities
   .use(opentelemetry() as any)
-  .use(swagger() as any)
+  .use(openapi() as any)
   // Clerk plugin: include request origin in authorizedParties so same-host tokens (e.g. Vercel deployment URL) are accepted.
   .use(
     clerkPluginWithRequestOrigin({
@@ -197,43 +201,43 @@ app
       secretKey: process.env.CLERK_SECRET_KEY,
       authorizedParties: allowedOrigins,
       protectedRoutes: (path: string) => isProtectedRoute(path),
-    }),
+    })
   )
   .use(
     cors({
       origin: allowedOrigins,
       credentials: true,
-    }) as any,
+    }) as any
   )
   // Add request tracking for debugging
-  .onRequest(({request}) => {
-    const url = new URL(request.url);
-    console.log(`[REQUEST] ${request.method} ${url.pathname}`);
+  .request(({ request }) => {
+    const _url = new URL(request.url)
   })
   .derive(async () => {
-    await dbSetupPromise;
+    await dbSetupPromise
     // Attach database to context
-    const db = await getDB();
-    return {db};
+    const db = await getDB()
+    return { db }
   })
-  .onError(({error, code, request}) => {
-    const url = new URL(request.url);
-    const errorMsg = getErrorMessage(error);
-    console.error(`[ERROR] ${request.method} ${url.pathname} - ${code} - ${errorMsg}`);
+  .error(({ error, request }) => {
+    const url = new URL(request.url)
+    const errorMsg = getErrorMessage(error)
+    const _kind =
+      error instanceof NotFound ? 'not-found' : error instanceof Error ? error.name : 'unknown'
 
-    if (code === 'NOT_FOUND') {
-      return {error: 'Route not found', path: url.pathname};
+    if (error instanceof NotFound) {
+      return { error: 'Route not found', path: url.pathname }
     }
 
-    return {error: errorMsg || 'Unknown error'};
+    return { error: errorMsg || 'Unknown error' }
   })
   .head('/', () => '')
   .get(
     '/all',
     () =>
       new Response(renderAllPage(), {
-        headers: {'content-type': 'text/html; charset=utf-8'},
-      }),
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      })
   )
   // Expose a tiny JS payload for the Vanilla JS frontend with only
   // public configuration derived from server environment variables.
@@ -243,13 +247,13 @@ app
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
       // Frontend API host for the instance, e.g. "ample-garfish-72.clerk.accounts.dev"
       clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
-    };
+    }
 
-    const body = `window.__VANILLA_ENV__ = ${JSON.stringify(payload)};`;
+    const body = `window.__VANILLA_ENV__ = ${JSON.stringify(payload)};`
 
     return new Response(body, {
-      headers: {'content-type': 'application/javascript; charset=utf-8'},
-    });
+      headers: { 'content-type': 'application/javascript; charset=utf-8' },
+    })
   })
   // Expose a tiny JS payload for the HTML5 frontend with only
   // public configuration derived from server environment variables.
@@ -257,75 +261,75 @@ app
     const payload = {
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
       clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
-    };
+    }
 
-    const body = `window.__HTML5_ENV__ = ${JSON.stringify(payload)};`;
+    const body = `window.__HTML5_ENV__ = ${JSON.stringify(payload)};`
 
     return new Response(body, {
-      headers: {'content-type': 'application/javascript; charset=utf-8'},
-    });
+      headers: { 'content-type': 'application/javascript; charset=utf-8' },
+    })
   })
   .get('/angular/env.js', () => {
     const payload = {
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
       clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
-    };
+    }
 
-    const body = `window.__ANGULAR_ENV__ = ${JSON.stringify(payload)};`;
+    const body = `window.__ANGULAR_ENV__ = ${JSON.stringify(payload)};`
 
     return new Response(body, {
-      headers: {'content-type': 'application/javascript; charset=utf-8'},
-    });
+      headers: { 'content-type': 'application/javascript; charset=utf-8' },
+    })
   })
   .get('/react-env.js', () => {
     const payload = {
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
       clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
-    };
+    }
 
-    const body = `window.__REACT_ENV__ = ${JSON.stringify(payload)};`;
+    const body = `window.__REACT_ENV__ = ${JSON.stringify(payload)};`
 
     return new Response(body, {
-      headers: {'content-type': 'application/javascript; charset=utf-8'},
-    });
+      headers: { 'content-type': 'application/javascript; charset=utf-8' },
+    })
   })
   .get('/svelte/env.js', () => {
     const payload = {
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
       clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
-    };
+    }
 
-    const body = `window.__SVELTE_ENV__ = ${JSON.stringify(payload)};`;
+    const body = `window.__SVELTE_ENV__ = ${JSON.stringify(payload)};`
 
     return new Response(body, {
-      headers: {'content-type': 'application/javascript; charset=utf-8'},
-    });
+      headers: { 'content-type': 'application/javascript; charset=utf-8' },
+    })
   })
   .get('/vue/env.js', () => {
     const payload = {
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? '',
       clerkFrontendApi: process.env.CLERK_FRONTEND_API ?? '',
-    };
+    }
 
-    const body = `window.__VUE_ENV__ = ${JSON.stringify(payload)};`;
+    const body = `window.__VUE_ENV__ = ${JSON.stringify(payload)};`
 
     return new Response(body, {
-      headers: {'content-type': 'application/javascript; charset=utf-8'},
-    });
+      headers: { 'content-type': 'application/javascript; charset=utf-8' },
+    })
   })
   .get(
     '/favicon.svg',
     () =>
       new Response(faviconSvg, {
-        headers: {'content-type': 'image/svg+xml'},
-      }),
+        headers: { 'content-type': 'image/svg+xml' },
+      })
   )
   .get(
     '/favicon.ico',
     () =>
       new Response(faviconSvg, {
-        headers: {'content-type': 'image/svg+xml'},
-      }),
+        headers: { 'content-type': 'image/svg+xml' },
+      })
   )
   .get(
     '/',
@@ -953,14 +957,18 @@ app
           '</html>',
         ].join('\n'),
         {
-          headers: {'content-type': 'text/html; charset=utf-8'},
-        },
-      ),
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+        }
+      )
   )
-  .get('/health', () => ({status: 'ok', timestamp: new Date().toISOString()}))
-  .get('/auth-example', () => 'This route requires authentication', {
-    beforeHandle: authGuard,
-  })
+  .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
+  .get(
+    '/auth-example',
+    {
+      beforeHandle: authGuard,
+    },
+    () => 'This route requires authentication'
+  )
   .use(versionsController) // Add versions controller at the app level
   .use(htmxController) // Add HTMX controller
   .use(jqueryController) // Add jQuery showcase controller
@@ -971,26 +979,26 @@ app
   // Serve SvelteKit's /_app/ assets (referenced by relative paths in svelte/build/index.html
   // when the page is loaded without a trailing slash, e.g. GET /svelte resolves ./ to /)
   .group('/_app', (app) =>
-    app.get('/*', async ({params}) => {
-      const reqPath = params['*'] ?? '';
-      const svelteAppDir = resolve(svelteAssetsPath, '_app');
-      const filePath = resolve(svelteAppDir, reqPath);
-      if (!filePath.startsWith(svelteAppDir + '/') && filePath !== svelteAppDir) {
-        throw new NotFoundError();
+    app.get('/*', async ({ params }) => {
+      const reqPath = params['*'] ?? ''
+      const svelteAppDir = resolve(svelteAssetsPath, '_app')
+      const filePath = resolve(svelteAppDir, reqPath)
+      if (!filePath.startsWith(`${svelteAppDir}/`) && filePath !== svelteAppDir) {
+        throw new NotFound()
       }
       try {
-        const stat = await fs.stat(filePath);
+        const stat = await fs.stat(filePath)
         if (stat.isFile()) {
-          const file = await fs.readFile(filePath);
+          const file = await fs.readFile(filePath)
           return new Response(new Uint8Array(file), {
-            headers: {'content-type': getContentType(filePath)},
-          });
+            headers: { 'content-type': getContentType(filePath) },
+          })
         }
       } catch {
         /* fall through */
       }
-      throw new NotFoundError();
-    }),
+      throw new NotFound()
+    })
   )
   // Serve built Svelte app at /svelte
   .use(serveSPA(svelteAssetsPath, '/svelte'))
@@ -999,15 +1007,14 @@ app
   // Serve Angular app at /angular
   .use(serveSPA(angularAssetsPath, '/angular'))
   // Serve Vue app at /vue
-  .use(serveSPA(vueAssetsPath, '/vue'));
+  .use(serveSPA(vueAssetsPath, '/vue'))
 
 // Only start a local HTTP server when not running on Vercel.
 // Default port is 3500, override with PORT env if needed.
 if (process.env.VERCEL !== '1') {
-  const port = Number(process.env.PORT ?? 3500);
-  app.listen(port);
-  console.log(`🦊 Server is running at http://localhost:${port}`);
+  const port = Number(process.env.PORT ?? 3500)
+  app.listen(port)
 }
 
-export type App = typeof app;
-export default app;
+export type App = typeof app
+export default app

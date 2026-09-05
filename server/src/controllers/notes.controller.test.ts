@@ -1,524 +1,519 @@
-import {
-  describe,
-  expect,
-  it,
-  beforeEach,
-  beforeAll,
-  afterAll,
-} from "bun:test";
-import { treaty } from "@elysiajs/eden";
-import { notesController } from "./notes.controller";
-import { TestDBUtils } from "../../test/utils/db-utils";
-import { createTestApp } from "../../test/utils/app-utils";
+import { describe, expect, it, beforeEach, beforeAll, afterAll } from 'bun:test'
+import { treaty } from '@elysia/eden'
+import { notesController } from './notes.controller'
+import { TestDBUtils } from '../../test/utils/db-utils'
+import { createTestApp } from '../../test/utils/app-utils'
 
 // Define test user ID
-const TEST_USER_ID = "user_test123";
+const TEST_USER_ID = 'user_test123'
 
 // Define interfaces for the response types
 interface Note {
-  id: number;
-  title: string;
-  content: string;
-  isPublic: string;
-  userId: number;
-  createdAt: string;
-  updatedAt: string;
+  id: number
+  title: string
+  content: string
+  isPublic: string
+  userId: number
+  createdAt: string
+  updatedAt: string
 }
 
 interface DeleteResponse {
-  success: boolean;
-  message: string;
+  success: boolean
+  message: string
 }
 
-describe("Notes Controller", () => {
-  let dbUtils: TestDBUtils;
-  const ADMIN_API_KEY = "test-admin-key"; // Add a consistent admin API key for tests
+describe('Notes Controller', () => {
+  let dbUtils: TestDBUtils
+  const ADMIN_API_KEY = 'test-admin-key' // Add a consistent admin API key for tests
 
   // Setup test database before all tests
   beforeAll(async () => {
     // Initialize test database
-    dbUtils = await TestDBUtils.getInstance();
-    await dbUtils.createTestDB();
+    dbUtils = await TestDBUtils.getInstance()
+    await dbUtils.createTestDB()
 
     // Set the admin API key for tests
-    process.env.ADMIN_API_KEY = ADMIN_API_KEY;
-  });
+    process.env.ADMIN_API_KEY = ADMIN_API_KEY
+  })
 
   // Cleanup after tests
   afterAll(async () => {
     if (dbUtils) {
-      await dbUtils.clearAllData();
+      await dbUtils.clearAllData()
     }
     // Clean up environment variables
-    delete process.env.ADMIN_API_KEY;
-  });
-
-  describe("Not signed in", () => {
-  it("should return unauthorized when not authenticated", async () => {
-    const { app } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      withAuth: false,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    const { data, error } = await api.api.notes.get();
-
-    expect(error).toBeDefined();
-    expect(error.status).toBe(401);
-    expect(data).toBeNull();
-  });
-  });
-
-  describe("Signed in", () => {
-  it("should get user notes when authenticated", async () => {
-    const { app, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    const { data, error } = await api.api.notes.get({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(Array.isArray(data)).toBe(true);
-  });
-
-  it("should create a new note", async () => {
-    const { app, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    const noteData = {
-      title: "Test Note",
-      content: "This is a test note",
-      isPublic: false,
-    };
-
-    const { data, error } = await api.api.notes.post(noteData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data).toHaveProperty("title", "Test Note");
-    expect(data).toHaveProperty("content", "This is a test note");
-    expect(data).toHaveProperty("isPublic", "false");
-
-    // Save the ID for later tests
-    const noteId = data.id;
-
-    // Verify we can get it back in the list of notes
-    const { data: getNotes } = await api.api.notes.get({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const noteExists = getNotes.some((note: any) => note.id === noteId);
-    expect(noteExists).toBe(true);
-  });
-
-  it("should get a specific note by ID", async () => {
-    const { app, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    // First create a note
-    const noteData = {
-      title: "Get Note Test",
-      content: "This is a note we'll get by ID",
-      isPublic: false,
-    };
-
-    const { data: createdNote, error: createError } = await api.api.notes.post(noteData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(createError).toBeNull();
-    expect(createdNote).toBeDefined();
-    const noteId = createdNote.id;
-
-    // Now get it by ID
-    const { data, error } = await api.api.notes[noteId].get({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data.id).toBe(noteId);
-    expect(data.title).toBe("Get Note Test");
-    expect(data.content).toBe("This is a note we'll get by ID");
-  });
-
-  it("should update a note", async () => {
-    const { app, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    // First create a note
-    const noteData = {
-      title: "Update Note Test",
-      content: "This note will be updated",
-      isPublic: false,
-    };
-
-    const { data: createdNote, error: createError } = await api.api.notes.post(noteData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(createError).toBeNull();
-    expect(createdNote).toBeDefined();
-    const noteId = createdNote.id;
-
-    // Now update it
-    const updatedData = {
-      title: "Updated Note",
-      content: "This note has been updated",
-      isPublic: true,
-    };
-
-    const { data, error } = await api.api.notes[noteId].put(updatedData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data.title).toBe("Updated Note");
-    expect(data.content).toBe("This note has been updated");
-    expect(data.isPublic).toBe("true");
-  });
-
-  it("should delete a note", async () => {
-    const { app, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    // First create a note
-    const noteData = {
-      title: "Delete Note Test",
-      content: "This note will be deleted",
-      isPublic: false,
-    };
-
-    const { data: createdNote, error: createError } = await api.api.notes.post(noteData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(createError).toBeNull();
-    expect(createdNote).toBeDefined();
-    const noteId = createdNote.id;
-
-    // Now delete it
-    const { data, error } = await api.api.notes[noteId].delete({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data).toHaveProperty("success", true);
-
-    // Verify the note is deleted
-    const { error: getError } = await api.api.notes[noteId].get({
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(getError).toBeDefined();
-    expect([403, 404]).toContain(getError.status);
-  });
-  });
-
-  describe("Admin (API key)", () => {
-  it("should return 401 when getting all notes without admin API key", async () => {
-    const { app } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      withAuth: false,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    const { data, error } = await api.api.notes.all.get();
-
-    expect(error).toBeDefined();
-    expect(error?.status).toBe(401);
-    expect(data).toBeNull();
-  });
-
-  it("should get all notes with admin API key", async () => {
-    // First create a note as a regular user
-    const { app: userApp, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!userApp) throw new Error("User app not initialized");
-    const userApi = treaty(userApp) as any;
-
-    await userApi.api.notes.post(
-      {
-        title: "Admin View Test",
-        content: "This note should be visible to admin",
-        isPublic: false,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    // Now use an app with API key
-    const { app: adminApp } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-      withApiKey: true,
-      apiKey: ADMIN_API_KEY, // Pass the admin API key
-    });
-
-    if (!adminApp) throw new Error("Admin app not initialized");
-    const adminApi = treaty(adminApp) as any;
-
-    const { data, error } = await adminApi.api.notes.all.get({
-      headers: {
-        "X-API-Key": ADMIN_API_KEY, // Include API key in headers
-      },
-    });
-
-    console.log("Admin get all notes response:", { data, error });
-
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThan(0);
-
-    // API conformance: note shape matches UX spec (all three UIs expect this shape)
-    const note = data[0] as Record<string, unknown>;
-    const requiredKeys = ["id", "title", "content", "isPublic", "createdAt", "updatedAt"];
-    for (const key of requiredKeys) {
-      expect(note).toHaveProperty(key);
-    }
-  });
-
-  it("should return 401 when deleting note as admin without API key", async () => {
-    const { app, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!app) throw new Error("App not initialized");
-    const api = treaty(app) as any;
-
-    // Create a note first
-    const { data: createdNote } = await api.api.notes.post(
-      {
-        title: "Admin No-Key Delete Test",
-        content: "Should not be deletable without API key",
-        isPublic: false,
-      },
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    const noteId = createdNote!.id;
-
-    // Try admin delete without X-API-Key
-    const { data, error } = await api.api.notes[noteId].admin.delete({});
-
-    expect(error).toBeDefined();
-    expect(error?.status).toBe(401);
-    expect(data).toBeNull();
-  });
-
-  it("should delete a note with admin API key", async () => {
-    // First create a note as a regular user
-    const { app: userApp, token } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-    });
-
-    if (!userApp) throw new Error("User app not initialized");
-    const userApi = treaty(userApp) as any;
-
-    const noteData = {
-      title: "Admin Delete Test",
-      content: "This note will be deleted by admin",
-      isPublic: false,
-    };
-
-    const { data: createdNote, error: createError } = await userApi.api.notes.post(noteData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    expect(createError).toBeNull();
-    expect(createdNote).toBeDefined();
-    const noteId = createdNote.id;
-
-    // Now use an app with API key
-    const { app: adminApp } = await createTestApp({
-      controller: notesController,
-      dbUtils,
-      userId: TEST_USER_ID,
-      withApiKey: true,
-      apiKey: ADMIN_API_KEY, // Pass the admin API key
-    });
-
-    if (!adminApp) throw new Error("Admin app not initialized");
-    const adminApi = treaty(adminApp) as any;
-
-    const { data, error } = await adminApi.api.notes[noteId].admin.delete({
-      headers: {
-        "X-API-Key": ADMIN_API_KEY, // Include API key in headers
-      },
-    });
-
-    console.log("Admin delete note response:", { data, error });
-
-    expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data).toHaveProperty("success", true);
-    expect(data.message).toContain("admin");
-  });
-  });
-
-  describe("Global search (GET /search)", () => {
-    it("returns empty array for empty query", async () => {
+    delete process.env.ADMIN_API_KEY
+  })
+
+  describe('Not signed in', () => {
+    it('should return unauthorized when not authenticated', async () => {
       const { app } = await createTestApp({
         controller: notesController,
         dbUtils,
         withAuth: false,
-      });
-      if (!app) throw new Error("App not initialized");
-      const api = treaty(app) as any;
+      })
 
-      const { data, error } = await api.api.notes.search.get({
-        query: { q: "" },
-      });
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
 
-      expect(error).toBeNull();
-      expect(Array.isArray(data)).toBe(true);
-      expect(data).toHaveLength(0);
-    });
+      const { data, error } = await api.api.notes.get()
 
-    it("returns public notes when not authenticated", async () => {
-      await dbUtils.createPublicAnonymousNote();
-      const { app } = await createTestApp({
-        controller: notesController,
-        dbUtils,
-        withAuth: false,
-      });
-      if (!app) throw new Error("App not initialized");
-      const api = treaty(app) as any;
+      expect(error).toBeDefined()
+      expect(error.status).toBe(401)
+      expect(data).toBeNull()
+    })
+  })
 
-      const { data, error } = await api.api.notes.search.get({
-        query: { q: "anonymous" },
-      });
-
-      expect(error).toBeNull();
-      expect(Array.isArray(data)).toBe(true);
-      expect(data!.length).toBeGreaterThanOrEqual(1);
-      expect(data!.some((n: Note) => n.content.includes("anonymous"))).toBe(true);
-    });
-
-    it("returns public and own private notes when authenticated", async () => {
+  describe('Signed in', () => {
+    it('should get user notes when authenticated', async () => {
       const { app, token } = await createTestApp({
         controller: notesController,
         dbUtils,
         userId: TEST_USER_ID,
-      });
-      if (!app) throw new Error("App not initialized");
-      const api = treaty(app) as any;
+      })
 
-      await api.api.notes.post(
-        {
-          title: "Searchable private",
-          content: "uniqueSearchablePrivateContent",
-          isPublic: false,
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      const { data, error } = await api.api.notes.get({
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      })
 
-      const { data, error } = await api.api.notes.search.get({
-        query: { q: "uniqueSearchablePrivateContent" },
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      expect(error).toBeNull()
+      expect(data).toBeDefined()
+      expect(Array.isArray(data)).toBe(true)
+    })
 
-      expect(error).toBeNull();
-      expect(Array.isArray(data)).toBe(true);
-      expect(data!.length).toBeGreaterThanOrEqual(1);
-      expect(data!.some((n: Note) => n.content.includes("uniqueSearchablePrivateContent"))).toBe(true);
-    });
+    it('should create a new note', async () => {
+      const { app, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
 
-    it("returns all notes when X-API-Key is valid admin key", async () => {
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      const noteData = {
+        title: 'Test Note',
+        content: 'This is a test note',
+        isPublic: false,
+      }
+
+      const { data, error } = await api.api.notes.post(noteData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(error).toBeNull()
+      expect(data).toBeDefined()
+      expect(data).toHaveProperty('title', 'Test Note')
+      expect(data).toHaveProperty('content', 'This is a test note')
+      expect(data).toHaveProperty('isPublic', 'false')
+
+      // Save the ID for later tests
+      const noteId = data.id
+
+      // Verify we can get it back in the list of notes
+      const { data: getNotes } = await api.api.notes.get({
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const noteExists = getNotes.some((note: any) => note.id === noteId)
+      expect(noteExists).toBe(true)
+    })
+
+    it('should get a specific note by ID', async () => {
+      const { app, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
+
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      // First create a note
+      const noteData = {
+        title: 'Get Note Test',
+        content: "This is a note we'll get by ID",
+        isPublic: false,
+      }
+
+      const { data: createdNote, error: createError } = await api.api.notes.post(noteData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(createError).toBeNull()
+      expect(createdNote).toBeDefined()
+      const noteId = createdNote.id
+
+      // Now get it by ID
+      const { data, error } = await api.api.notes[noteId].get({
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(error).toBeNull()
+      expect(data).toBeDefined()
+      expect(data.id).toBe(noteId)
+      expect(data.title).toBe('Get Note Test')
+      expect(data.content).toBe("This is a note we'll get by ID")
+    })
+
+    it('should update a note', async () => {
+      const { app, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
+
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      // First create a note
+      const noteData = {
+        title: 'Update Note Test',
+        content: 'This note will be updated',
+        isPublic: false,
+      }
+
+      const { data: createdNote, error: createError } = await api.api.notes.post(noteData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(createError).toBeNull()
+      expect(createdNote).toBeDefined()
+      const noteId = createdNote.id
+
+      // Now update it
+      const updatedData = {
+        title: 'Updated Note',
+        content: 'This note has been updated',
+        isPublic: true,
+      }
+
+      const { data, error } = await api.api.notes[noteId].put(updatedData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(error).toBeNull()
+      expect(data).toBeDefined()
+      expect(data.title).toBe('Updated Note')
+      expect(data.content).toBe('This note has been updated')
+      expect(data.isPublic).toBe('true')
+    })
+
+    it('should delete a note', async () => {
+      const { app, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
+
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      // First create a note
+      const noteData = {
+        title: 'Delete Note Test',
+        content: 'This note will be deleted',
+        isPublic: false,
+      }
+
+      const { data: createdNote, error: createError } = await api.api.notes.post(noteData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(createError).toBeNull()
+      expect(createdNote).toBeDefined()
+      const noteId = createdNote.id
+
+      // Now delete it
+      const { data, error } = await api.api.notes[noteId].delete({
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(error).toBeNull()
+      expect(data).toBeDefined()
+      expect(data).toHaveProperty('success', true)
+
+      // Verify the note is deleted
+      const { error: getError } = await api.api.notes[noteId].get({
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(getError).toBeDefined()
+      expect([403, 404]).toContain(getError.status)
+    })
+  })
+
+  describe('Admin (API key)', () => {
+    it('should return 401 when getting all notes without admin API key', async () => {
+      const { app } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        withAuth: false,
+      })
+
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      const { data, error } = await api.api.notes.all.get()
+
+      expect(error).toBeDefined()
+      expect(error?.status).toBe(401)
+      expect(data).toBeNull()
+    })
+
+    it('should get all notes with admin API key', async () => {
+      // First create a note as a regular user
       const { app: userApp, token } = await createTestApp({
         controller: notesController,
         dbUtils,
         userId: TEST_USER_ID,
-      });
-      if (!userApp) throw new Error("App not initialized");
-      const userApi = treaty(userApp) as any;
+      })
+
+      if (!userApp) throw new Error('User app not initialized')
+      const userApi = treaty(userApp) as any
 
       await userApi.api.notes.post(
         {
-          title: "Admin search private",
-          content: "adminSearchPrivateContent",
+          title: 'Admin View Test',
+          content: 'This note should be visible to admin',
+          isPublic: false,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      // Now use an app with API key
+      const { app: adminApp } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+        withApiKey: true,
+        apiKey: ADMIN_API_KEY, // Pass the admin API key
+      })
+
+      if (!adminApp) throw new Error('Admin app not initialized')
+      const adminApi = treaty(adminApp) as any
+
+      const { data, error } = await adminApi.api.notes.all.get({
+        headers: {
+          'X-API-Key': ADMIN_API_KEY, // Include API key in headers
+        },
+      })
+
+      console.log('Admin get all notes response:', { data, error })
+
+      expect(error).toBeNull()
+      expect(data).toBeDefined()
+      expect(Array.isArray(data)).toBe(true)
+      expect(data.length).toBeGreaterThan(0)
+
+      // API conformance: note shape matches UX spec (all three UIs expect this shape)
+      const note = data[0] as Record<string, unknown>
+      const requiredKeys = ['id', 'title', 'content', 'isPublic', 'createdAt', 'updatedAt']
+      for (const key of requiredKeys) {
+        expect(note).toHaveProperty(key)
+      }
+    })
+
+    it('should return 401 when deleting note as admin without API key', async () => {
+      const { app, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
+
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      // Create a note first
+      const { data: createdNote } = await api.api.notes.post(
+        {
+          title: 'Admin No-Key Delete Test',
+          content: 'Should not be deletable without API key',
           isPublic: false,
         },
         { headers: { Authorization: `Bearer ${token}` } }
-      );
+      )
+      const noteId = createdNote!.id
 
-      await dbUtils.createPublicAnonymousNote();
+      // Try admin delete without X-API-Key
+      const { data, error } = await api.api.notes[noteId].admin.delete({})
+
+      expect(error).toBeDefined()
+      expect(error?.status).toBe(401)
+      expect(data).toBeNull()
+    })
+
+    it('should delete a note with admin API key', async () => {
+      // First create a note as a regular user
+      const { app: userApp, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
+
+      if (!userApp) throw new Error('User app not initialized')
+      const userApi = treaty(userApp) as any
+
+      const noteData = {
+        title: 'Admin Delete Test',
+        content: 'This note will be deleted by admin',
+        isPublic: false,
+      }
+
+      const { data: createdNote, error: createError } = await userApi.api.notes.post(noteData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      expect(createError).toBeNull()
+      expect(createdNote).toBeDefined()
+      const noteId = createdNote.id
+
+      // Now use an app with API key
+      const { app: adminApp } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+        withApiKey: true,
+        apiKey: ADMIN_API_KEY, // Pass the admin API key
+      })
+
+      if (!adminApp) throw new Error('Admin app not initialized')
+      const adminApi = treaty(adminApp) as any
+
+      const { data, error } = await adminApi.api.notes[noteId].admin.delete({
+        headers: {
+          'X-API-Key': ADMIN_API_KEY, // Include API key in headers
+        },
+      })
+
+      console.log('Admin delete note response:', { data, error })
+
+      expect(error).toBeNull()
+      expect(data).toBeDefined()
+      expect(data).toHaveProperty('success', true)
+      expect(data.message).toContain('admin')
+    })
+  })
+
+  describe('Global search (GET /search)', () => {
+    it('returns empty array for empty query', async () => {
+      const { app } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        withAuth: false,
+      })
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      const { data, error } = await api.api.notes.search.get({
+        query: { q: '' },
+      })
+
+      expect(error).toBeNull()
+      expect(Array.isArray(data)).toBe(true)
+      expect(data).toHaveLength(0)
+    })
+
+    it('returns public notes when not authenticated', async () => {
+      await dbUtils.createPublicAnonymousNote()
+      const { app } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        withAuth: false,
+      })
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      const { data, error } = await api.api.notes.search.get({
+        query: { q: 'anonymous' },
+      })
+
+      expect(error).toBeNull()
+      expect(Array.isArray(data)).toBe(true)
+      expect(data!.length).toBeGreaterThanOrEqual(1)
+      expect(data!.some((n: Note) => n.content.includes('anonymous'))).toBe(true)
+    })
+
+    it('returns public and own private notes when authenticated', async () => {
+      const { app, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
+      if (!app) throw new Error('App not initialized')
+      const api = treaty(app) as any
+
+      await api.api.notes.post(
+        {
+          title: 'Searchable private',
+          content: 'uniqueSearchablePrivateContent',
+          isPublic: false,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      const { data, error } = await api.api.notes.search.get({
+        query: { q: 'uniqueSearchablePrivateContent' },
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      expect(error).toBeNull()
+      expect(Array.isArray(data)).toBe(true)
+      expect(data!.length).toBeGreaterThanOrEqual(1)
+      expect(data!.some((n: Note) => n.content.includes('uniqueSearchablePrivateContent'))).toBe(
+        true
+      )
+    })
+
+    it('returns all notes when X-API-Key is valid admin key', async () => {
+      const { app: userApp, token } = await createTestApp({
+        controller: notesController,
+        dbUtils,
+        userId: TEST_USER_ID,
+      })
+      if (!userApp) throw new Error('App not initialized')
+      const userApi = treaty(userApp) as any
+
+      await userApi.api.notes.post(
+        {
+          title: 'Admin search private',
+          content: 'adminSearchPrivateContent',
+          isPublic: false,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      await dbUtils.createPublicAnonymousNote()
 
       const { app: adminApp } = await createTestApp({
         controller: notesController,
@@ -526,18 +521,18 @@ describe("Notes Controller", () => {
         withAuth: false,
         withApiKey: true,
         apiKey: ADMIN_API_KEY,
-      });
-      if (!adminApp) throw new Error("Admin app not initialized");
-      const adminApi = treaty(adminApp) as any;
+      })
+      if (!adminApp) throw new Error('Admin app not initialized')
+      const adminApi = treaty(adminApp) as any
 
       const { data, error } = await adminApi.api.notes.search.get({
-        query: { q: "adminSearchPrivateContent" },
-        headers: { "X-API-Key": ADMIN_API_KEY },
-      });
+        query: { q: 'adminSearchPrivateContent' },
+        headers: { 'X-API-Key': ADMIN_API_KEY },
+      })
 
-      expect(error).toBeNull();
-      expect(Array.isArray(data)).toBe(true);
-      expect(data!.some((n: Note) => n.content.includes("adminSearchPrivateContent"))).toBe(true);
-    });
-  });
-});
+      expect(error).toBeNull()
+      expect(Array.isArray(data)).toBe(true)
+      expect(data!.some((n: Note) => n.content.includes('adminSearchPrivateContent'))).toBe(true)
+    })
+  })
+})

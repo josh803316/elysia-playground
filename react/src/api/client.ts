@@ -3,141 +3,140 @@
  * payloads stay in sync. We normalize VITE_API_URL (ignore placeholders, support
  * root-relative and absolute) so dev proxy and production both work without CORS.
  */
-import { treaty } from "@elysiajs/eden";
-import type { App } from "../../../server/src/index";
+import { treaty } from '@elysia/eden'
+import type { App } from '../../../server/src/index'
 
 // Resolve API base URL safely.
 // In production (Vercel), default to same-origin unless an explicit valid
 // absolute/root-relative VITE_API_URL is provided.
-const rawApiUrl = (import.meta.env.VITE_API_URL ?? "").trim();
-const normalizedApiUrl = rawApiUrl.toLowerCase();
+const rawApiUrl = (import.meta.env.VITE_API_URL ?? '').trim()
+const normalizedApiUrl = rawApiUrl.toLowerCase()
 const isPlaceholderApiHost =
-  normalizedApiUrl === "api" ||
-  normalizedApiUrl === "//api" ||
-  normalizedApiUrl === "http://api" ||
-  normalizedApiUrl === "https://api";
-const isAbsoluteApiUrl = /^https?:\/\//i.test(rawApiUrl);
-const isRootRelativeApiUrl = rawApiUrl.startsWith("/");
+  normalizedApiUrl === 'api' ||
+  normalizedApiUrl === '//api' ||
+  normalizedApiUrl === 'http://api' ||
+  normalizedApiUrl === 'https://api'
+const isAbsoluteApiUrl = /^https?:\/\//i.test(rawApiUrl)
+const isRootRelativeApiUrl = rawApiUrl.startsWith('/')
 const isInvalidApiUrl =
-  !!rawApiUrl &&
-  !isPlaceholderApiHost &&
-  !isAbsoluteApiUrl &&
-  !isRootRelativeApiUrl;
+  !!rawApiUrl && !isPlaceholderApiHost && !isAbsoluteApiUrl && !isRootRelativeApiUrl
 
 export const API_URL =
-  typeof window !== "undefined"
-    ? rawApiUrl && !isPlaceholderApiHost
+  typeof window === 'undefined'
+    ? rawApiUrl && !isPlaceholderApiHost && isAbsoluteApiUrl
+      ? rawApiUrl.replace(/\/+$/, '')
+      : typeof process !== 'undefined' && process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3500'
+    : rawApiUrl && !isPlaceholderApiHost
       ? isAbsoluteApiUrl
-        ? rawApiUrl.replace(/\/+$/, "")
+        ? rawApiUrl.replace(/\/+$/, '')
         : isRootRelativeApiUrl
-          ? `${window.location.origin}${rawApiUrl.replace(/\/+$/, "")}`
+          ? `${window.location.origin}${rawApiUrl.replace(/\/+$/, '')}`
           : window.location.origin
       : window.location.origin
-    : rawApiUrl && !isPlaceholderApiHost && isAbsoluteApiUrl
-      ? rawApiUrl.replace(/\/+$/, "")
-      : typeof process !== "undefined" && process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3500";
 
-if (typeof console !== "undefined") {
+if (typeof console !== 'undefined') {
   if (isPlaceholderApiHost) {
+    // Invalid env is a config mistake; keep this visible in the browser console.
     console.warn(
       `[api/client] Ignoring invalid VITE_API_URL="${rawApiUrl}". ` +
-        "Using same-origin API base instead."
-    );
+        'Using same-origin API base instead.'
+    )
   } else if (isInvalidApiUrl) {
+    // Invalid env is a config mistake; keep this visible in the browser console.
     console.warn(
       `[api/client] VITE_API_URL="${rawApiUrl}" is not absolute or root-relative. ` +
-        "Using same-origin API base instead."
-    );
+        'Using same-origin API base instead.'
+    )
   }
 }
 
 /** Base URL without trailing slash; used when building paths manually (e.g. deleteAllMyNotes). */
 export function getApiBase(): string {
-  return API_URL.replace(/\/$/, "");
+  return API_URL.replace(/\/$/, '')
 }
 
 // Define error types
 interface ApiError extends Error {
-  details?: string;
-  status?: number;
-  technicalDetails?: string;
+  details?: string
+  status?: number
+  technicalDetails?: string
 }
 
 interface ApiResponseError {
-  message: string;
-  details?: string;
-  status?: number;
-  error?: string;
-  technicalDetails?: string;
+  message: string
+  details?: string
+  status?: number
+  error?: string
+  technicalDetails?: string
 }
 
 // Use a more specific async function type for endpoints
-type Endpoint = (...args: unknown[]) => Promise<unknown>;
+type Endpoint = (...args: unknown[]) => Promise<unknown>
 
 // Define the expected client structure manually
 interface ExpectedClient {
-  "auth-example": {
-    get: Endpoint;
-  };
+  'auth-example': {
+    get: Endpoint
+  }
   api: {
     notes: {
-      get: Endpoint;
-      post: Endpoint;
+      get: Endpoint
+      post: Endpoint
     } & {
       // Index signature *only* for dynamic ID routes
       [id: string]: {
-        get: Endpoint;
-        put: Endpoint;
-        delete: Endpoint;
-      };
-    };
-    "private-notes": {
-      get: Endpoint;
-      put: Endpoint;
+        get: Endpoint
+        put: Endpoint
+        delete: Endpoint
+      }
+    }
+    'private-notes': {
+      get: Endpoint
+      put: Endpoint
     } & {
       // Index signature *only* for dynamic ID routes
       [id: string]: {
-        get: Endpoint;
-        put: Endpoint;
-        delete: Endpoint;
-      };
-    };
-    "public-notes": {
-      get: Endpoint;
+        get: Endpoint
+        put: Endpoint
+        delete: Endpoint
+      }
+    }
+    'public-notes': {
+      get: Endpoint
     } & {
       // Index signature *only* for dynamic ID routes
       [id: string]: {
-        get: Endpoint;
-      };
-    };
+        get: Endpoint
+      }
+    }
     // Add other API namespaces if necessary
-  };
+  }
   // Add other treaty methods like $ws if used
 }
 
 // Create and export the base Eden Treaty client, asserting its shape
-const client = treaty<App>(API_URL) as ExpectedClient;
+const client = treaty<App>(API_URL) as ExpectedClient
 
 // Helper functions for common API operations using the exported client
 export const apiClient = {
   // Notes API (mounted under /api)
   notes: {
     getAll: async (token?: string) => {
-      return client.api.notes.get({
+      return await client.api.notes.get({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
     getUserNotes: async (token?: string) => {
-      return client.api.notes.get({
+      return await client.api.notes.get({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
     getById: async (id: number, token?: string) => {
-      return client.api.notes[id].get({
+      return await client.api.notes[id].get({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
     create: async (
       note: { title: string; content: string; isPublic?: string | boolean },
@@ -147,28 +146,23 @@ export const apiClient = {
       const noteData = {
         ...note,
         isPublic:
-          typeof note.isPublic === "string"
-            ? note.isPublic === "true"
-            : (note.isPublic ?? false),
-      };
+          typeof note.isPublic === 'string' ? note.isPublic === 'true' : (note.isPublic ?? false),
+      }
 
       try {
         const response = await client.api.notes.post(noteData, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
-        return response;
+        })
+        return response
       } catch (error: unknown) {
         // Format the error with more details
         const apiError = new Error(
-          (error as ApiResponseError).error || "Failed to create note"
-        ) as ApiError;
-        apiError.details =
-          (error as ApiResponseError).details || "Unknown error";
-        apiError.technicalDetails = (
-          error as ApiResponseError
-        ).technicalDetails;
-        apiError.status = (error as ApiResponseError).status;
-        throw apiError;
+          (error as ApiResponseError).error || 'Failed to create note'
+        ) as ApiError
+        apiError.details = (error as ApiResponseError).details || 'Unknown error'
+        apiError.technicalDetails = (error as ApiResponseError).technicalDetails
+        apiError.status = (error as ApiResponseError).status
+        throw apiError
       }
     },
     update: async (
@@ -180,104 +174,95 @@ export const apiClient = {
       const noteData = {
         ...note,
         isPublic:
-          typeof note.isPublic === "string"
-            ? note.isPublic === "true"
-            : (note.isPublic ?? false),
-      };
+          typeof note.isPublic === 'string' ? note.isPublic === 'true' : (note.isPublic ?? false),
+      }
 
-      return client.api.notes[id].put(noteData, {
+      return await client.api.notes[id].put(noteData, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
     delete: async (id: number, token?: string) => {
-      return client.api.notes[id].delete({
+      return await client.api.notes[id].delete({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
   },
 
   // Private Notes API (mounted under /api)
   privateNotes: {
     getAll: async (token?: string) => {
-      return client.api["private-notes"].get({
+      return await client.api['private-notes'].get({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
     getById: async (id: number, token?: string) => {
-      return client.api["private-notes"][id].get({
+      return await client.api['private-notes'][id].get({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
-    create: async (
-      note: { title: string; content: string },
-      token?: string
-    ) => {
-      return client.api["private-notes"].put(note, {
+    create: async (note: { title: string; content: string }, token?: string) => {
+      return await client.api['private-notes'].put(note, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
-    update: async (
-      id: number,
-      note: { title?: string; content?: string },
-      token?: string
-    ) => {
-      return client.api["private-notes"][id].put(note, {
+    update: async (id: number, note: { title?: string; content?: string }, token?: string) => {
+      return await client.api['private-notes'][id].put(note, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
     delete: async (id: number, token?: string) => {
-      return client.api["private-notes"][id].delete({
+      return await client.api['private-notes'][id].delete({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
   },
 
   // Public Notes API (mounted under /api)
   publicNotes: {
     getAll: async () => {
-      return client.api["public-notes"].get();
+      return await client.api['public-notes'].get()
     },
     getById: async (id: number) => {
-      return client.api["public-notes"][id].get();
+      return await client.api['public-notes'][id].get()
     },
   },
 
   // Delete all notes
   deleteAllMyNotes: async (token: string) => {
     const response = await fetch(`${API_URL}/api/notes/all`, {
-      method: "DELETE",
+      method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    })
     if (!response.ok) {
-      throw new Error(`Failed to delete all notes: ${response.status}`);
+      throw new Error(`Failed to delete all notes: ${response.status}`)
     }
-    return response.json();
+    return response.json()
   },
 
   deleteAllNotesAdmin: async (apiKey: string) => {
     const response = await fetch(`${API_URL}/api/notes/all/admin`, {
-      method: "DELETE",
+      method: 'DELETE',
       headers: {
-        "X-API-Key": apiKey,
+        'X-API-Key': apiKey,
       },
-    });
+    })
     if (!response.ok) {
-      throw new Error(`Failed to delete all notes (admin): ${response.status}`);
+      throw new Error(`Failed to delete all notes (admin): ${response.status}`)
     }
-    return response.json();
+    return response.json()
   },
 
   // Auth example (mounted at root /)
   auth: {
     example: async (token?: string) => {
       // Correct path: Access root route directly via client
-      return client["auth-example"].get({
+      return await client['auth-example'].get({
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      })
     },
   },
-};
+}
 
-export default apiClient;
+export default apiClient

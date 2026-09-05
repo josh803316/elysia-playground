@@ -68,10 +68,10 @@
   "overrides": {
     "esbuild": "^0.28.2",
     "@clerk/backend": "3.17.1",
-    "elysia": "^1.4.30"
+    "elysia": "2.0.0-beta.12"
   },
   "dependencies": {
-    "elysia": "^1.4.30"
+    "elysia": "2.0.0-beta.12"
   },
   "devDependencies": {
     "@josh803316/shared-config": "3.0.2",
