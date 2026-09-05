@@ -14,10 +14,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@4.0.0/dist/htmx.min.js"></script>
 
     <!-- Alpine.js for client-side state management -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.1/dist/cdn.min.js"></script>
 
     <!-- Clerk for authentication -->
     <script
@@ -411,14 +411,17 @@
       }
 
       // HTMX event handlers
-      document.addEventListener('htmx:afterRequest', function (event) {
+      document.addEventListener('htmx:after:request', function (event) {
         // Auto-refresh notes after successful creation
-        if (event.detail.successful && event.detail.xhr.status === 200) {
-          if (event.detail.pathInfo.requestPath.includes('/public-notes')) {
+        const ctx = event.detail.ctx;
+        const status = ctx?.response?.status;
+        const path = ctx?.request?.action ?? '';
+        if (status === 200) {
+          if (path.includes('/public-notes')) {
             setTimeout(() => {
               htmx.trigger(document.body, 'refreshPublicNotes');
             }, 500);
-          } else if (event.detail.pathInfo.requestPath.includes('/private-notes')) {
+          } else if (path.includes('/private-notes')) {
             setTimeout(() => {
               htmx.trigger(document.body, 'refreshPrivateNotes');
             }, 500);
@@ -427,10 +430,11 @@
       });
 
       // Configure HTMX to include auth token in requests
-      document.body.addEventListener('htmx:configRequest', function (event) {
+      document.body.addEventListener('htmx:config:request', function (event) {
         const token = sessionStorage.getItem('clerkToken');
-        if (token && !event.detail.headers['Authorization']) {
-          event.detail.headers['Authorization'] = `Bearer ${token}`;
+        const headers = event.detail.ctx?.request?.headers;
+        if (token && headers && !headers['Authorization']) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
       });
     </script>

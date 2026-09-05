@@ -1,11 +1,11 @@
 export interface FrameworkSnippet {
-  id: string;
-  name: string;
-  path: string;
-  badge: string;
-  admin: string;
-  public: string;
-  private: string;
+  id: string
+  name: string
+  path: string
+  badge: string
+  admin: string
+  public: string
+  private: string
 }
 
 export const FRAMEWORK_SNIPPETS: FrameworkSnippet[] = [
@@ -297,11 +297,11 @@ async function createPrivateNote(title, content, token) {
   hx-swap="innerHTML"
 ></div>
 
-// X-API-Key injected via htmx:configRequest:
-document.body.addEventListener('htmx:configRequest', (evt) => {
-  const url = evt.detail.pathInfo?.requestPath ?? '';
+// X-API-Key injected via htmx:config:request:
+document.body.addEventListener('htmx:config:request', (evt) => {
+  const url = evt.detail.ctx?.request?.action ?? '';
   if (url.includes('/htmx/admin/notes')) {
-    evt.detail.headers['X-API-Key'] =
+    evt.detail.ctx.request.headers['X-API-Key'] =
       localStorage.getItem('adminApiKey');
   }
 });`,
@@ -324,11 +324,11 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
   hx-swap="innerHTML"
 ></div>
 
-// Authorization header injected via htmx:configRequest:
-document.body.addEventListener('htmx:configRequest', (evt) => {
-  const url = evt.detail.pathInfo?.requestPath ?? '';
+// Authorization header injected via htmx:config:request:
+document.body.addEventListener('htmx:config:request', (evt) => {
+  const url = evt.detail.ctx?.request?.action ?? '';
   if (url.includes('/htmx/private-notes')) {
-    evt.detail.headers['Authorization'] =
+    evt.detail.ctx.request.headers['Authorization'] =
       'Bearer ' + window.__clerkToken;
   }
 });`,
@@ -473,4 +473,4 @@ document.getElementById('form-create-private').addEventListener('submit', async 
   await loadPrivateNotes();
 });`,
   },
-];
+]

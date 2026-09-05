@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { notesStore } from '$lib/stores/notes';
+  import { notesStore } from '$lib/stores/notes.svelte';
   import { 
     Button, 
     Input, 

@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { notesStore } from '$lib/stores/notes';
+  import { notesStore } from '$lib/stores/notes.svelte';
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
   import { Button, Input, Textarea, Label, Alert, Checkbox } from 'flowbite-svelte';
   
   // Import Clerk at component initialization
@@ -81,7 +80,7 @@
       await notesStore.createNote(
         noteData,
         // Only pass userToken if signed in, otherwise undefined for anonymous public notes
-        isSignedIn ? userToken : undefined
+        isSignedIn ? userToken ?? undefined : undefined
       );
       
       // Redirect to home page
@@ -154,7 +153,7 @@
       <div class="flex justify-end space-x-4">
         <Button 
           color="light"
-          on:click={() => goto('/')}
+          onclick={() => goto('/')}
         >
           Cancel
         </Button>

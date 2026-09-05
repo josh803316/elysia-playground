@@ -8,22 +8,22 @@
  */
 
 import {
-  NAV_AUTH_TEST_SNIPPET,
-  PUBLIC_NOTES_TEST_SNIPPET,
-  PRIVATE_NOTES_TEST_SNIPPET,
   ADMIN_TEST_SNIPPET,
-} from '../snippets/e2e-snippets.js';
+  NAV_AUTH_TEST_SNIPPET,
+  PRIVATE_NOTES_TEST_SNIPPET,
+  PUBLIC_NOTES_TEST_SNIPPET,
+} from '../snippets/e2e-snippets.js'
 
 function escapeHtml(text: string): string {
   return text.replace(
     /[&<>"']/g,
-    (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c] ?? c,
-  );
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c
+  )
 }
 
 /** Escape code snippets for display inside <code> blocks inside HTML */
 function escapeCode(code: string): string {
-  return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 /** A `</>  Code ▼` toggle + hidden Prism-highlighted panel. Optional testCode adds E2E test expander below. */
@@ -42,7 +42,7 @@ function codeExpander(code: string, id: string, testCode?: string): string {
     <div id="${id}-panel" class="jq-code-panel" style="display:none">
       <pre class="language-javascript rounded-lg text-xs overflow-x-auto m-0"><code class="language-javascript">${escapeCode(code)}</code></pre>
     </div>
-  </div>`;
+  </div>`
   if (testCode != null && testCode !== '') {
     out += `
   <div class="border-t border-gray-100 mt-4">
@@ -58,20 +58,20 @@ function codeExpander(code: string, id: string, testCode?: string): string {
     <div id="${id}-test-panel" class="jq-code-panel" style="display:none">
       <pre class="language-javascript rounded-lg text-xs overflow-x-auto m-0"><code class="language-javascript">${escapeCode(testCode)}</code></pre>
     </div>
-  </div>`;
+  </div>`
   }
-  return out;
+  return out
 }
 
 export function baseLayout(
   content: string,
   title = 'Elysia Notes - jQuery',
   clerkPublishableKey?: string,
-  clerkFrontendApi?: string,
+  clerkFrontendApi?: string
 ): string {
   const clerkScriptSrc = clerkFrontendApi
     ? `https://${clerkFrontendApi}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js`
-    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js'
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -79,11 +79,11 @@ export function baseLayout(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism-tomorrow.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@4.0.0/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-javascript.min.js"></script>
   ${
     clerkPublishableKey
       ? `<script
@@ -851,7 +851,7 @@ window.addEventListener('load', async function() {
   </script>`
   }
 </body>
-</html>`;
+</html>`
 }
 
 // ─── Code snippets shown in the expanders ────────────────────────────────────
@@ -863,7 +863,7 @@ $.get('/api/public-notes', function(notes) {
     return;
   }
   $('#public-notes-grid').html(notes.map(buildNoteCard).join(''));
-});`;
+});`
 
 const CODE_CREATE_PUBLIC = `// POST new public note (no auth required)
 $('#create-public-note-form').on('submit', function(e) {
@@ -877,7 +877,7 @@ $('#create-public-note-form').on('submit', function(e) {
       $('#public-notes-grid').prepend(buildNoteCard(note));
     }
   });
-});`;
+});`
 
 const CODE_EDIT_DELETE_PUBLIC = `// Edit public note — PUT with updated fields
 $.ajax({
@@ -899,7 +899,7 @@ $(document).on('click', '.delete-note-btn', function() {
       $('#note-' + id).fadeOut(200, function() { $(this).remove(); });
     }
   });
-});`;
+});`
 
 const CODE_LOAD_PRIVATE = `// Load private notes — requires Clerk session token
 var token = await window.Clerk.session.getToken();
@@ -913,7 +913,7 @@ $.ajax({
       notes.map(buildPrivateNoteCard).join('')
     );
   }
-});`;
+});`
 
 const CODE_CREATE_PRIVATE = `// Create private note — PUT with auth header
 // (private-notes uses PUT, not POST, per the API contract)
@@ -936,7 +936,7 @@ $.ajax({
       $(this).remove();
     });
   }
-});`;
+});`
 
 const CODE_ADMIN = `// Admin login — store key in localStorage
 $('#admin-login-form').on('submit', function(e) {
@@ -961,7 +961,7 @@ $.ajax({
   url: '/api/notes/' + id + '/admin',
   method: 'DELETE',
   headers: { 'X-API-Key': localStorage.getItem('adminApiKey') }
-});`;
+});`
 
 // ─── Page function ────────────────────────────────────────────────────────────
 
@@ -985,7 +985,7 @@ export function jqueryPage(clerkPublishableKey?: string, clerkFrontendApi?: stri
         <div id="public-notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div class="col-span-full text-center py-8 text-gray-400">Loading…</div>
         </div>
-        ${codeExpander(CODE_LOAD_PUBLIC + '\n\n' + CODE_CREATE_PUBLIC + '\n\n' + CODE_EDIT_DELETE_PUBLIC, 'public-code', PUBLIC_NOTES_TEST_SNIPPET)}
+        ${codeExpander(`${CODE_LOAD_PUBLIC}\n\n${CODE_CREATE_PUBLIC}\n\n${CODE_EDIT_DELETE_PUBLIC}`, 'public-code', PUBLIC_NOTES_TEST_SNIPPET)}
       </div>
 
       <!-- Your Notes (signed-in only) -->
@@ -1009,7 +1009,7 @@ export function jqueryPage(clerkPublishableKey?: string, clerkFrontendApi?: stri
         </div>
       </div>
 
-      ${codeExpander(CODE_LOAD_PRIVATE + '\n\n' + CODE_CREATE_PRIVATE, 'private-code', PRIVATE_NOTES_TEST_SNIPPET)}
+      ${codeExpander(`${CODE_LOAD_PRIVATE}\n\n${CODE_CREATE_PRIVATE}`, 'private-code', PRIVATE_NOTES_TEST_SNIPPET)}
 
       <!-- Sign-in prompt (signed-out only) -->
       <div class="show-when-signed-out show-when-loaded">
@@ -1053,6 +1053,6 @@ export function jqueryPage(clerkPublishableKey?: string, clerkFrontendApi?: stri
   `,
     'Elysia Notes - jQuery',
     clerkPublishableKey,
-    clerkFrontendApi,
-  );
+    clerkFrontendApi
+  )
 }

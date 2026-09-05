@@ -4,33 +4,33 @@
  */
 
 import {
-  NAV_AUTH_TEST_SNIPPET,
-  PUBLIC_NOTES_TEST_SNIPPET,
-  PRIVATE_NOTES_TEST_SNIPPET,
   ADMIN_TEST_SNIPPET,
-} from '../snippets/e2e-snippets.js';
+  NAV_AUTH_TEST_SNIPPET,
+  PRIVATE_NOTES_TEST_SNIPPET,
+  PUBLIC_NOTES_TEST_SNIPPET,
+} from '../snippets/e2e-snippets.js'
 
 export interface Note {
-  id: number;
-  title: string;
-  content: string;
-  isPublic: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  userId: number | null;
+  id: number
+  title: string
+  content: string
+  isPublic: string | null
+  createdAt: Date
+  updatedAt: Date
+  userId: number | null
   user?: {
-    email: string | null;
-    firstName: string | null;
-    lastName: string | null;
-  } | null;
+    email: string | null
+    firstName: string | null
+    lastName: string | null
+  } | null
 }
 
 export interface User {
-  id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
-  imageUrl?: string | null;
+  id: string
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
+  imageUrl?: string | null
 }
 
 /**
@@ -38,16 +38,16 @@ export interface User {
  */
 export function baseLayout(
   content: string,
-  title: string = 'Elysia Notes - HTMX',
+  title = 'Elysia Notes - HTMX',
   clerkPublishableKey?: string,
-  clerkFrontendApi?: string,
+  clerkFrontendApi?: string
 ): string {
   const clerkScriptSrc = clerkFrontendApi
     ? `https://${clerkFrontendApi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`
-    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js';
+    : 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js'
   const clerkUiScriptSrc = clerkFrontendApi
     ? `https://${clerkFrontendApi}/npm/@clerk/ui@1/dist/ui.browser.js`
-    : 'https://cdn.jsdelivr.net/npm/@clerk/ui@1/dist/ui.browser.js';
+    : 'https://cdn.jsdelivr.net/npm/@clerk/ui@1/dist/ui.browser.js'
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -55,10 +55,11 @@ export function baseLayout(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <meta name="htmx-config" content='{"noSwap": [204, 304, "4xx", "5xx"]}'>
+  <script src="https://unpkg.com/htmx.org@4.0.0/dist/htmx.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/prism.min.js"></script>
   ${
     clerkPublishableKey
       ? `<script defer crossorigin="anonymous" src="${clerkUiScriptSrc}" type="text/javascript"></script>
@@ -201,16 +202,16 @@ export function baseLayout(
 </nav>
 
 <!-- Nav counts and auth are kept in sync by layout script -->
-document.body.addEventListener('htmx:configRequest', (evt) => {
-  const url = evt.detail.pathInfo?.requestPath ?? '';
+document.body.addEventListener('htmx:config:request', (evt) => {
+  const url = evt.detail.ctx?.request?.action ?? '';
   // Inject X-API-Key for /htmx/admin/notes when admin key is present
   if (url.includes('/htmx/admin/notes')) {
     const key = localStorage.getItem('adminApiKey');
-    if (key) evt.detail.headers['X-API-Key'] = key;
+    if (key) evt.detail.ctx.request.headers['X-API-Key'] = key;
   }
 });`,
       'htmx-nav-code',
-      NAV_AUTH_TEST_SNIPPET,
+      NAV_AUTH_TEST_SNIPPET
     )}
   </div>
   
@@ -381,24 +382,27 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
         if (!versionsPanel.classList.contains('hidden')) renderVersionsPanel();
       });
     });
-    document.body.addEventListener('htmx:configRequest', function(evt) {
-      var el = evt.detail && evt.detail.elt;
+    document.body.addEventListener('htmx:config:request', function(evt) {
+      var req = evt.detail && evt.detail.ctx && evt.detail.ctx.request;
+      var el = evt.detail && evt.detail.ctx && evt.detail.ctx.sourceElement;
       var getUrl = el && el.getAttribute && el.getAttribute('hx-get');
       var putUrl = el && el.getAttribute && el.getAttribute('hx-put');
       var postUrl = el && el.getAttribute && el.getAttribute('hx-post');
       var deleteUrl = el && el.getAttribute && el.getAttribute('hx-delete');
-      var pathInfoUrl = evt.detail.pathInfo && evt.detail.pathInfo.requestPath;
-      var url = pathInfoUrl || getUrl || putUrl || postUrl || deleteUrl || '';
+      var url = (req && req.action) || getUrl || putUrl || postUrl || deleteUrl || '';
+      if (!req) return;
       if ((url.indexOf('/htmx/admin/notes') !== -1 || url === '/htmx/admin/notes') && window.getAdminApiKey()) {
-        evt.detail.headers['X-API-Key'] = window.getAdminApiKey();
+        req.headers['X-API-Key'] = window.getAdminApiKey();
       }
       if (url.indexOf('/htmx/private-notes') !== -1 && window.__clerkToken) {
-        evt.detail.headers['Authorization'] = 'Bearer ' + window.__clerkToken;
+        req.headers['Authorization'] = 'Bearer ' + window.__clerkToken;
       }
     });
-    document.body.addEventListener('htmx:afterRequest', function(evt) {
-      var path = (evt.detail.pathInfo && evt.detail.pathInfo.requestPath) || (evt.detail.elt && evt.detail.elt.getAttribute && evt.detail.elt.getAttribute('hx-get')) || '';
-      if (path.indexOf('/htmx/admin/') !== -1 && evt.detail.xhr && evt.detail.xhr.status === 401) {
+    document.body.addEventListener('htmx:after:request', function(evt) {
+      var ctx = evt.detail && evt.detail.ctx;
+      var path = (ctx && ctx.request && ctx.request.action) || (ctx && ctx.sourceElement && ctx.sourceElement.getAttribute && ctx.sourceElement.getAttribute('hx-get')) || '';
+      var status = ctx && ctx.response && ctx.response.status;
+      if (path.indexOf('/htmx/admin/') !== -1 && status === 401) {
         localStorage.removeItem('adminApiKey');
         if (window.updateAdminNav) window.updateAdminNav();
       }
@@ -516,7 +520,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
       : ''
   }
 </body>
-</html>`;
+</html>`
 }
 
 /**
@@ -567,15 +571,15 @@ export function notesTablePage(clerkPublishableKey?: string, clerkFrontendApi?: 
   `,
     'Notes – Table view',
     clerkPublishableKey,
-    clerkFrontendApi,
-  );
+    clerkFrontendApi
+  )
 }
 
 /**
  * Escape HTML entities for safe embedding inside <pre><code> blocks
  */
 function escapeCode(code: string): string {
-  return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 /**
@@ -593,7 +597,7 @@ function codeExpander(code: string, id: string, testCode?: string): string {
       <div id="${id}-panel" class="htmx-code-panel" style="display:none">
         <pre class="rounded-lg bg-gray-900 text-gray-100 p-4 overflow-x-auto text-xs mt-1 !m-0"><code class="language-markup">${escapeCode(code)}</code></pre>
       </div>
-    </div>`;
+    </div>`
   if (testCode != null && testCode !== '') {
     out += `
     <div class="border-t border-gray-100 mt-4">
@@ -605,15 +609,19 @@ function codeExpander(code: string, id: string, testCode?: string): string {
       <div id="${id}-test-panel" class="htmx-code-panel" style="display:none">
         <pre class="rounded-lg bg-gray-900 text-gray-100 p-4 overflow-x-auto text-xs mt-1 !m-0"><code class="language-javascript">${escapeCode(testCode)}</code></pre>
       </div>
-    </div>`;
+    </div>`
   }
-  return out;
+  return out
 }
 
 /**
  * Main notes page content
  */
-export function notesPage(notes: Note[], clerkPublishableKey?: string, clerkFrontendApi?: string): string {
+export function notesPage(
+  notes: Note[],
+  clerkPublishableKey?: string,
+  clerkFrontendApi?: string
+): string {
   const adminCode = `<!-- Admin notes loaded via HTMX -->
 <div
   id="admin-notes-container"
@@ -622,13 +630,13 @@ export function notesPage(notes: Note[], clerkPublishableKey?: string, clerkFron
   hx-swap="innerHTML"
 ></div>
 
-// X-API-Key injected via htmx:configRequest:
-document.body.addEventListener('htmx:configRequest', (evt) => {
-  const url = evt.detail.pathInfo?.requestPath ?? '';
+// X-API-Key injected via htmx:config:request:
+document.body.addEventListener('htmx:config:request', (evt) => {
+  const url = evt.detail.ctx?.request?.action ?? '';
   if (url.includes('/htmx/admin/notes')) {
-    evt.detail.headers['X-API-Key'] = localStorage.getItem('adminApiKey');
+    evt.detail.ctx.request.headers['X-API-Key'] = localStorage.getItem('adminApiKey');
   }
-});`;
+});`
 
   const publicCode = `<!-- Public notes server-rendered by Elysia on page load -->
 <div id="notes-grid">
@@ -640,7 +648,7 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
   hx-get="/htmx/notes/new"
   hx-target="#modal-container"
   hx-swap="innerHTML"
->+ Create Public Note</button>`;
+>+ Create Public Note</button>`
 
   const privateCode = `<!-- Private notes lazy-loaded after Clerk auth resolves -->
 <div
@@ -650,13 +658,13 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
   hx-swap="innerHTML"
 ></div>
 
-// Authorization header injected via htmx:configRequest:
-document.body.addEventListener('htmx:configRequest', (evt) => {
-  const url = evt.detail.pathInfo?.requestPath ?? '';
+// Authorization header injected via htmx:config:request:
+document.body.addEventListener('htmx:config:request', (evt) => {
+  const url = evt.detail.ctx?.request?.action ?? '';
   if (url.includes('/htmx/private-notes')) {
-    evt.detail.headers['Authorization'] = 'Bearer ' + window.__clerkToken;
+    evt.detail.ctx.request.headers['Authorization'] = 'Bearer ' + window.__clerkToken;
   }
-});`;
+});`
 
   return baseLayout(
     `
@@ -765,8 +773,8 @@ document.body.addEventListener('htmx:configRequest', (evt) => {
   `,
     'Elysia Notes - HTMX',
     clerkPublishableKey,
-    clerkFrontendApi,
-  );
+    clerkFrontendApi
+  )
 }
 
 /**
@@ -779,7 +787,7 @@ export function emptyState(): string {
       <h3 class="text-xl font-semibold text-gray-600 mb-2">No notes yet</h3>
       <p class="text-gray-500">Create your first note to get started!</p>
     </div>
-  `;
+  `
 }
 
 /**
@@ -788,13 +796,13 @@ export function emptyState(): string {
 export function noteCard(note: Note): string {
   const authorName = note.user
     ? `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email
-    : 'Anonymous';
+    : 'Anonymous'
 
   const createdDate = new Date(note.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  });
+  })
 
   return `
     <div id="note-${note.id}" class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
@@ -831,7 +839,7 @@ export function noteCard(note: Note): string {
         </button>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -903,7 +911,7 @@ export function newNoteModal(): string {
         </form>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -985,7 +993,7 @@ export function editNoteModal(note: Note): string {
         </form>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -998,14 +1006,14 @@ export function privateNotesGrid(notes: Note[]): string {
         <div class="text-4xl mb-2">🔒</div>
         <p>No private notes yet. Create your first one!</p>
       </div>
-    `;
+    `
   }
 
   return `
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       ${notes.map((note) => privateNoteCard(note)).join('')}
     </div>
-  `;
+  `
 }
 
 /**
@@ -1016,7 +1024,7 @@ export function privateNoteCard(note: Note): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  });
+  })
 
   return `
     <div id="private-note-${note.id}" class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border-l-4 border-purple-500">
@@ -1052,7 +1060,7 @@ export function privateNoteCard(note: Note): string {
         </div>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -1119,7 +1127,7 @@ export function editPrivateNoteModal(note: Note): string {
         </form>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -1194,7 +1202,7 @@ export function newPrivateNoteModal(): string {
         </form>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -1206,7 +1214,7 @@ export function authRequiredMessage(): string {
       <div class="text-4xl mb-2">🔐</div>
       <p>Please sign in to view your private notes</p>
     </div>
-  `;
+  `
 }
 
 /**
@@ -1219,7 +1227,7 @@ export function adminUnauthorizedMessage(): string {
       <p class="font-medium">Invalid or missing admin key</p>
       <p class="text-sm mt-1">Use Admin Login in the nav and enter your Admin API Key.</p>
     </div>
-  `;
+  `
 }
 
 /**
@@ -1232,21 +1240,21 @@ export function adminNotesGrid(notes: Note[]): string {
         <div class="text-4xl mb-2">📭</div>
         <p>No notes found in the system</p>
       </div>
-    `;
+    `
   }
   const formatDate = (d: Date) =>
-    d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) +
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
     ', ' +
-    d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   const contentPreview = (c: string) =>
-    !c ? '(No content)' : c.length > 50 ? escapeHtml(c.slice(0, 50)) + '...' : escapeHtml(c);
+    c ? (c.length > 50 ? `${escapeHtml(c.slice(0, 50))}...` : escapeHtml(c)) : '(No content)'
   const rows = notes
     .map((note) => {
       const authorName = note.user
         ? `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email
-        : 'Anonymous';
-      const createdDate = formatDate(new Date(note.createdAt));
-      const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : 'N/A';
+        : 'Anonymous'
+      const createdDate = formatDate(new Date(note.createdAt))
+      const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : 'N/A'
       return `
     <tr id="admin-note-row-${note.id}" class="border-b border-gray-200 hover:bg-gray-50">
       <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title || 'Untitled')}</td>
@@ -1276,9 +1284,9 @@ export function adminNotesGrid(notes: Note[]): string {
           </button>
         </div>
       </td>
-    </tr>`;
+    </tr>`
     })
-    .join('');
+    .join('')
   return `
     <div class="overflow-x-auto rounded-lg border border-gray-200" data-testid="admin-notes-table">
       <table class="min-w-full divide-y divide-gray-200">
@@ -1298,7 +1306,7 @@ export function adminNotesGrid(notes: Note[]): string {
         </tbody>
       </table>
     </div>
-  `;
+  `
 }
 
 /**
@@ -1307,18 +1315,18 @@ export function adminNotesGrid(notes: Note[]): string {
 export function adminNoteCard(note: Note): string {
   const authorName = note.user
     ? `${note.user.firstName || ''} ${note.user.lastName || ''}`.trim() || note.user.email
-    : 'Anonymous';
+    : 'Anonymous'
   const formatDate = (d: Date) =>
-    d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) +
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
     ', ' +
-    d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-  const createdDate = formatDate(new Date(note.createdAt));
-  const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : 'N/A';
-  const contentPreview = !note.content
-    ? '(No content)'
-    : note.content.length > 50
-      ? escapeHtml(note.content.slice(0, 50)) + '...'
-      : escapeHtml(note.content);
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  const createdDate = formatDate(new Date(note.createdAt))
+  const updatedDate = note.updatedAt ? formatDate(new Date(note.updatedAt)) : 'N/A'
+  const contentPreview = note.content
+    ? note.content.length > 50
+      ? `${escapeHtml(note.content.slice(0, 50))}...`
+      : escapeHtml(note.content)
+    : '(No content)'
   return `
     <tr id="admin-note-row-${note.id}" class="border-b border-gray-200 hover:bg-gray-50">
       <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(note.title || 'Untitled')}</td>
@@ -1349,7 +1357,7 @@ export function adminNoteCard(note: Note): string {
         </div>
       </td>
     </tr>
-  `;
+  `
 }
 
 /**
@@ -1402,7 +1410,7 @@ export function adminLoginModal(): string {
         }
       })();
     </script>
-  `;
+  `
 }
 
 /**
@@ -1413,7 +1421,7 @@ export function errorMessage(message: string): string {
     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
       <strong>Error:</strong> ${escapeHtml(message)}
     </div>
-  `;
+  `
 }
 
 /**
@@ -1424,7 +1432,7 @@ export function successMessage(message: string): string {
     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
       ${escapeHtml(message)}
     </div>
-  `;
+  `
 }
 
 /**
@@ -1437,6 +1445,6 @@ function escapeHtml(text: string): string {
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#39;',
-  };
-  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+  }
+  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char])
 }

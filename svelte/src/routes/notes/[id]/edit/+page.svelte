@@ -1,12 +1,11 @@
 <script lang="ts">
   import { useClerkContext } from 'svelte-clerk/client';
-  import { notesStore } from '$lib/stores/notes';
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Button, Input, Textarea, Label, Alert, Checkbox, Spinner } from 'flowbite-svelte';
 
-  const noteId = parseInt($page.params.id ?? '');
+  const noteId = parseInt(page.params.id ?? '');
   let title = $state('');
   let content = $state('');
   let isPublic = $state(false);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { searchStore } from '$lib/stores/searchStore';
+	import { searchStore, type SearchNote } from '$lib/stores/searchStore.svelte';
 
 	interface Props {
 		adminApiKey?: string | null;
@@ -9,7 +9,7 @@
 	let { adminApiKey = null }: Props = $props();
 
 	let query = $state('');
-	let results = $state<import('$lib/stores/searchStore').SearchNote[]>([]);
+	let results = $state<SearchNote[]>([]);
 	let loading = $state(false);
 	let open = $state(false);
 	let containerEl: HTMLDivElement;
@@ -64,7 +64,7 @@
 	}
 </script>
 
-<svelte:window on:mousedown={handleClickOutside} />
+<svelte:window onmousedown={handleClickOutside} />
 
 <div bind:this={containerEl} class="global-search">
 	<input

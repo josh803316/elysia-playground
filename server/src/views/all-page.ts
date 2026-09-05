@@ -1,13 +1,23 @@
-import {FRAMEWORK_SNIPPETS} from '../data/code-snippets.js';
+import { FRAMEWORK_SNIPPETS } from '../data/code-snippets.js'
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 export function renderAllPage(): string {
   const snippetsJson = JSON.stringify(
-    FRAMEWORK_SNIPPETS.map((f) => ({id: f.id, name: f.name, admin: f.admin, public: f.public, private: f.private})),
-  );
+    FRAMEWORK_SNIPPETS.map((f) => ({
+      id: f.id,
+      name: f.name,
+      admin: f.admin,
+      public: f.public,
+      private: f.private,
+    }))
+  )
 
   const frameworkCheckboxes = FRAMEWORK_SNIPPETS.map(
     (f) => `
@@ -15,8 +25,8 @@ export function renderAllPage(): string {
           <input type="checkbox" value="${f.id}" />
           <span class="fw-label">${escapeHtml(f.name)}</span>
           <span class="fw-badge">${escapeHtml(f.badge)}</span>
-        </label>`,
-  ).join('\n');
+        </label>`
+  ).join('\n')
 
   const iframeSections = FRAMEWORK_SNIPPETS.map(
     (f) => `
@@ -29,8 +39,8 @@ export function renderAllPage(): string {
           <a href="${f.path}" class="open-link" target="_blank">Open in new tab <span class="arrow">&#8599;</span></a>
         </div>
         <iframe src="${f.path}" title="${escapeHtml(f.name)} demo" loading="lazy" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
-      </section>`,
-  ).join('\n');
+      </section>`
+  ).join('\n')
 
   return `<!doctype html>
 <html lang="en">
@@ -39,7 +49,7 @@ export function renderAllPage(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>All Frameworks – Elysia Playground</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
   <style>
     :root {
       color-scheme: dark;
@@ -397,10 +407,10 @@ export function renderAllPage(): string {
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"><\/script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"><\/script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"><\/script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"><\/script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js"><\/script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-javascript.min.js"><\/script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-typescript.min.js"><\/script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-markup.min.js"><\/script>
   <script>
     (function() {
       var SNIPPETS = ${snippetsJson};
@@ -521,5 +531,5 @@ export function renderAllPage(): string {
     })();
   <\/script>
 </body>
-</html>`;
+</html>`
 }

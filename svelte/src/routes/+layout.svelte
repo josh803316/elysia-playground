@@ -2,7 +2,7 @@
 	import { ClerkProvider, Show, SignInButton } from 'svelte-clerk/client';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { versionStore } from '$lib/stores/version';
+	import { versionStore } from '$lib/stores/version.svelte';
 	
 	// Import Flowbite components
 import { 
@@ -421,12 +421,12 @@ function handleAdminLogout() {
 						<span class="font-semibold text-gray-800">Versions</span>
 						<button type="button" class="text-gray-500 hover:text-gray-700 text-lg leading-none" onclick={() => (versionsOpen = false)} aria-label="Close">×</button>
 					</div>
-					{#if $versionStore.loading}
+					{#if versionStore.loading}
 						<p class="text-sm text-gray-500">Loading…</p>
-					{:else if $versionStore.error}
-						<p class="text-sm text-red-600">{$versionStore.error.message}</p>
-					{:else if $versionStore.data}
-						{@const d = $versionStore.data}
+					{:else if versionStore.error}
+						<p class="text-sm text-red-600">{versionStore.error.message}</p>
+					{:else if versionStore.data}
+						{@const d = versionStore.data}
 						<dl class="text-sm space-y-2">
 							<div><dt class="text-gray-500">App</dt><dd class="font-medium">{d.name} @ {d.version}</dd></div>
 							{#if d.elysia}<div><dt class="text-gray-500">Elysia</dt><dd class="font-medium">{d.elysia}</dd></div>{/if}

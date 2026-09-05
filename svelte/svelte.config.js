@@ -1,28 +1,31 @@
-import adapter from '@sveltejs/adapter-static';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import adapter from '@sveltejs/adapter-static'
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 
 const config = {
-	preprocess: vitePreprocess(),
-	kit: { 
-		adapter: adapter({ strict: false }),
-		paths: {
-			// On Vercel, app will be served under /svelte
-			base: process.env.VERCEL ? '/svelte' : ''
-		},
-		csrf: {
-			trustedOrigins: ['http://localhost:6173', 'http://127.0.0.1:6173']
-		},
-		prerender: {
-			// Don't fail build for dynamic routes we don't explicitly crawl
-			handleUnseenRoutes: 'ignore',
-			// Ignore HTTP errors (e.g. API not reachable) during prerender on Vercel
-			handleHttpError: 'ignore'
-		}
-	},
+  preprocess: vitePreprocess(),
+  compilerOptions: {
+    runes: true,
+  },
+  kit: {
+    adapter: adapter({ strict: false }),
+    paths: {
+      // On Vercel, app will be served under /svelte
+      base: process.env.VERCEL ? '/svelte' : '',
+    },
+    csrf: {
+      trustedOrigins: ['http://localhost:6173', 'http://127.0.0.1:6173'],
+    },
+    prerender: {
+      // Don't fail build for dynamic routes we don't explicitly crawl
+      handleUnseenRoutes: 'ignore',
+      // Ignore HTTP errors (e.g. API not reachable) during prerender on Vercel
+      handleHttpError: 'ignore',
+    },
+  },
 
-	vitePlugin: {
-		inspector: true
-	}
-};
+  vitePlugin: {
+    inspector: true,
+  },
+}
 
-export default config;
+export default config

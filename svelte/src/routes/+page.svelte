@@ -1,7 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { notesStore } from '$lib/stores/notes';
-  import { searchStore } from '$lib/stores/searchStore';
+  import { searchStore } from '$lib/stores/searchStore.svelte';
   import { goto } from '$app/navigation';
   import { useClerkContext } from 'svelte-clerk/client';
   import { Show, SignInButton } from 'svelte-clerk/client';
@@ -74,11 +73,11 @@
 
   // Define note type for better type safety
   interface Note {
-    id: string;
+    id: string | number;
     title?: string;
     content?: string;
     isPublic: boolean | string;
-    userId?: string;
+    userId?: string | number | null;
     createdAt?: string;
     updatedAt?: string;
     user?: {
@@ -114,9 +113,8 @@
   let showTestAlert = $state(false);
 
   // Global search filter: when search is active, show only matching notes
-  let searchData = $derived($searchStore);
-  let publicNotesToShow = $derived(searchData.query ? searchData.results.filter((n) => n.isPublic === 'true') : publicNotes);
-  let privateNotesToShow = $derived(searchData.query ? searchData.results.filter((n) => n.isPublic !== 'true') : privateNotes);
+  let publicNotesToShow = $derived(searchStore.query ? searchStore.results.filter((n) => n.isPublic === 'true' || n.isPublic === true) as Note[] : publicNotes);
+  let privateNotesToShow = $derived(searchStore.query ? searchStore.results.filter((n) => n.isPublic !== 'true' && n.isPublic !== true) as Note[] : privateNotes);
   
   // Get Clerk context - must be called during component initialization
   let clerkCtx: any = null;
@@ -821,10 +819,10 @@
           </Button>
         </div>
       
-        {#if searchData.query}
-          <p class="text-gray-600 text-sm mb-2">Showing notes matching &quot;{searchData.query}&quot;</p>
+        {#if searchStore.query}
+          <p class="text-gray-600 text-sm mb-2">Showing notes matching &quot;{searchStore.query}&quot;</p>
         {/if}
-        {#if loading && !searchData.query && !publicNotes.length}
+        {#if loading && !searchStore.query && !publicNotes.length}
           <div class="flex justify-center my-4">
             <Spinner size="8" />
           </div>
@@ -835,7 +833,7 @@
             <svg class="w-16 h-16 text-green-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="text-gray-600 text-lg font-medium">{searchData.query ? `No public notes match "${searchData.query}"` : 'No public notes yet. Be the first to create one!'}</p>
+            <p class="text-gray-600 text-lg font-medium">{searchStore.query ? `No public notes match "${searchStore.query}"` : 'No public notes yet. Be the first to create one!'}</p>
             <p class="text-gray-500">Use the button above to create a public note.</p>
             <Button color="green" class="mt-4 flex items-center mx-auto bg-green-600 hover:bg-green-700 text-white px-4" onclick={() => {
               editingNote = null;
@@ -912,10 +910,10 @@
           </Button>
         </div>
         
-        {#if searchData.query}
-          <p class="text-gray-600 text-sm mb-2">Showing notes matching &quot;{searchData.query}&quot;</p>
+        {#if searchStore.query}
+          <p class="text-gray-600 text-sm mb-2">Showing notes matching &quot;{searchStore.query}&quot;</p>
         {/if}
-        {#if loading && !searchData.query && !privateNotes.length}
+        {#if loading && !searchStore.query && !privateNotes.length}
           <div class="flex justify-center my-4">
             <Spinner size="8" />
           </div>
@@ -926,8 +924,8 @@
             <svg class="w-16 h-16 text-purple-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="text-gray-600 text-lg font-medium">{searchData.query ? `No private notes match "${searchData.query}"` : 'No notes yet.'}</p>
-            <p class="text-gray-500">{searchData.query ? '' : 'Create your first note using the button above!'}</p>
+            <p class="text-gray-600 text-lg font-medium">{searchStore.query ? `No private notes match "${searchStore.query}"` : 'No notes yet.'}</p>
+            <p class="text-gray-500">{searchStore.query ? '' : 'Create your first note using the button above!'}</p>
           </div>
         {:else}
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
