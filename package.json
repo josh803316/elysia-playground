@@ -68,6 +68,7 @@
   "overrides": {
     "esbuild": "^0.28.2",
     "@clerk/backend": "3.17.1",
+    "@clerk/shared": "4.31.0",
     "elysia": "2.0.0-beta.12"
   },
   "dependencies": {

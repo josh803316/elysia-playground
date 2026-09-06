@@ -8,7 +8,7 @@ export default defineConfig({
     exclude: ['svelte'],
   },
   ssr: {
-    noExternal: ['svelte-clerk'],
+    noExternal: ['svelte-clerk', '@clerk/shared'],
   },
   server: {
     port: 6173,
