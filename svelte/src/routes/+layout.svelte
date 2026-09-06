@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ClerkProvider, Show, SignInButton } from 'svelte-clerk/client';
+	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { versionStore } from '$lib/stores/version.svelte';
@@ -41,12 +42,14 @@ import {
 	let adminModalOpen = $state(false);
 	let clerkLoaded = $state(false);
 
-	const CLERK_PUBLISHABLE_KEY = 
-		(typeof window !== 'undefined' && (window as any).__SVELTE_ENV__?.clerkPublishableKey)
+	// Runtime key comes from /svelte/env.js. Do not throw during prerender/SSR —
+	// GHA `bun run build` has no Vercel env, and adapter-static then skips index.html.
+	const CLERK_PUBLISHABLE_KEY =
+		(browser && (window as any).__SVELTE_ENV__?.clerkPublishableKey)
 			? (window as any).__SVELTE_ENV__.clerkPublishableKey
 			: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-	if (!CLERK_PUBLISHABLE_KEY) {
+	if (browser && !CLERK_PUBLISHABLE_KEY) {
 		throw new Error('Missing Clerk publishable key. Set VITE_CLERK_PUBLISHABLE_KEY in env or serve /svelte/env.js');
 	}
 	let userName = $state<string | null>(null);
@@ -337,7 +340,7 @@ function handleAdminLogout() {
 	}
 </script>
 
-{#if typeof window !== 'undefined'}
+{#if browser && CLERK_PUBLISHABLE_KEY}
 <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
 	<div class="min-h-screen bg-gray-100 flex flex-col">
 		<!-- Header - Tailored to match the React app -->
