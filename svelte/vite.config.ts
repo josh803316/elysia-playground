@@ -2,13 +2,23 @@ import { sveltekit } from '@sveltejs/kit/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
+// svelte-clerk needs @clerk/shared 4.x (setClerkJSLoadingErrorPackageName).
+// React Clerk 5 needs 3.x, so keep 4.x aliased only in this Vite graph.
+const clerkSharedAlias = { find: '@clerk/shared', replacement: 'clerk-shared-v4' }
+
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
   optimizeDeps: {
     exclude: ['svelte'],
   },
+  resolve: {
+    alias: [clerkSharedAlias],
+  },
   ssr: {
-    noExternal: ['svelte-clerk', '@clerk/shared'],
+    noExternal: ['svelte-clerk', '@clerk/shared', 'clerk-shared-v4'],
+    resolve: {
+      alias: [clerkSharedAlias],
+    },
   },
   server: {
     port: 6173,

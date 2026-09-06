@@ -35,7 +35,7 @@
     "vitest": "^5.0.0"
   },
   "dependencies": {
-    "@clerk/shared": "4.31.0",
+    "clerk-shared-v4": "npm:@clerk/shared@4.31.0",
     "@elysia/eden": "2.0.0-beta.5",
     "flowbite": "^4.0.2",
     "flowbite-svelte": "^1.33.1",
