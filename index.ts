@@ -2,6 +2,7 @@
 // Import elysia so Vercel detects this as the Elysia entrypoint.
 // App is loaded lazily on first request so load errors are caught and surfaced (Vercel often
 // swallows Bun exit-without-logging otherwise).
+import "./server/src/polyfills/map-get-or-insert.js";
 import "elysia";
 
 let appPromise: Promise<{ fetch: (req: Request) => Response | Promise<Response> }> | null =

@@ -48,6 +48,40 @@ describe('Public Notes Controller', () => {
       })
     })
 
+    it('should create a public note when WeakMap.getOrInsertComputed is missing', async () => {
+      const proto = WeakMap.prototype as WeakMap<object, unknown> & {
+        getOrInsertComputed?: (key: object, computed: (key: object) => unknown) => unknown
+      }
+      const native = proto.getOrInsertComputed
+      const descriptor = Object.getOwnPropertyDescriptor(proto, 'getOrInsertComputed')
+      if (descriptor && descriptor.configurable === false) {
+        return
+      }
+
+      const {installMapGetOrInsertComputed} = await import('../polyfills/map-get-or-insert')
+      try {
+        // @ts-expect-error -- simulate Vercel Node
+        delete proto.getOrInsertComputed
+        installMapGetOrInsertComputed()
+
+        const {app} = await createTestApp({
+          controller: publicNotesController,
+          dbUtils,
+          withAuth: false,
+        })
+        const client = treaty(app) as any
+        const response = await client.api['public-notes'].post({
+          title: 'Node polyfill note',
+          content: 'Created without native getOrInsertComputed',
+        })
+        expect(response.status).toBe(200)
+        expect(response.data).toHaveProperty('title', 'Node polyfill note')
+        expect(response.data).toHaveProperty('isPublic', 'true')
+      } finally {
+        if (native) proto.getOrInsertComputed = native
+      }
+    })
+
     it('should create a new public note anonymously', async () => {
       const { app } = await createTestApp({
         controller: publicNotesController,

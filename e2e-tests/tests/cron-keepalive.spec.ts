@@ -59,8 +59,11 @@ test.describe('weekly keepalive via playwright cli', () => {
       },
     });
 
-    expect(publicRes.ok(), `public note create failed: ${publicRes.status()}`).toBe(true);
-    const publicNote = await publicRes.json();
+    const publicBody = await publicRes.text();
+    expect(publicRes.ok(), `public note create failed: ${publicRes.status()} ${publicBody}`).toBe(
+      true,
+    );
+    const publicNote = JSON.parse(publicBody);
     console.log('[cron-keepalive] created public note id=', publicNote?.id, 'title=', publicNote?.title);
 
     // 2. "Private" (system) note via the admin create endpoint (isPublic=false, userId=null)
@@ -77,8 +80,12 @@ test.describe('weekly keepalive via playwright cli', () => {
       },
     });
 
-    expect(privateRes.ok(), `admin private note create failed: ${privateRes.status()}`).toBe(true);
-    const privateNote = await privateRes.json();
+    const privateBody = await privateRes.text();
+    expect(
+      privateRes.ok(),
+      `admin private note create failed: ${privateRes.status()} ${privateBody}`,
+    ).toBe(true);
+    const privateNote = JSON.parse(privateBody);
     console.log(
       '[cron-keepalive] created admin/system note id=',
       privateNote?.id,
