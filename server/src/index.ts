@@ -4,7 +4,7 @@
  * initialized once at cold start; seeding runs only in PGlite mode.
  */
 
-import './polyfills/map-get-or-insert.js'
+import './polyfills/setup-typebox.js'
 import { cors } from '@elysia/cors'
 import { openapi } from '@elysia/openapi'
 import { opentelemetry } from '@elysia/opentelemetry'
